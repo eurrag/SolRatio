@@ -1,0 +1,22 @@
+# SolRatio v4.1.0 — Dipendenze Python
+# Installazione:  pip install -r requirements.txt
+#
+# DIPENDENZA ESTERNA NON-PIP (richiesta!):
+#   Radiance >= 5.4    https://www.radiance-online.org/
+#   I comandi gendaylit, oconv, rtrace devono essere nel PATH di sistema.
+
+# === Core scientifico ===
+numpy>=1.20
+pandas>=1.3
+pvlib>=0.10
+
+# === Simulazione 3D ray-tracing ===
+bifacial_radiance>=0.5.1
+
+# === I/O Excel ===
+openpyxl>=3.0
+lxml>=4.6        # editing XML interno .xlsx (write_effetto_bordo)
+
+# === Reportistica PDF (opzionale ma consigliata) ===
+reportlab>=3.6
+matplotlib>=3.4  # grafici nel PDF + analisi batteria

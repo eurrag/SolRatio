@@ -1,0 +1,69 @@
+# SolRatio — file generati e artefatti da escludere dal repository
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Output di simulazione (nelle cartelle progetti/)
+**/.br_done
+**/.pvlib_done
+**/.sensitivity_done
+**/br_log.txt
+**/br_err.txt
+**/pvlib_log.txt
+**/pvlib_error.txt
+**/sensitivity_log.txt
+**/batteria_log.txt
+**/risultati_*.xlsx
+**/report_SolRatio_*.pdf
+**/report_AGV_*.pdf
+**/*.xlsx.tmp
+**/optimization_*.xlsx
+**/optimization_*.png
+
+# Cache analisi batteria (rigenerabile)
+progetti/*/99_ANALISI/
+
+# File di lavoro Radiance (generati da bifacial_radiance)
+images/
+materials/
+objects/
+results/
+skies/
+*.oct
+*.pic
+*.hdr
+
+# Diagnostica ambiente (generata da check_environment.py)
+engine/check_env_*.txt
+
+# Temporanei e backup
+*.bak
+*.swp
+*~
+*.orig
+
+# === Progetti privati ===
+# Il repository pubblico include SOLO il progetto Sample dimostrativo.
+# Tutti gli altri progetti (clienti, lavori interni, _template personale,
+# test specifici) sono mantenuti SOLO localmente sul filesystem dell'utente.
+#
+# Pattern: escludi le sottodirectory IMMEDIATE di progetti/ (con * singolo,
+# non ** ricorsivo), poi re-includi Sample.
+# Nota Git: il pattern DEVE essere "progetti/*" (single star) e NON
+# "progetti/**" perché git non permette di re-includere file dentro una
+# directory esclusa ricorsivamente.
+progetti/*
+!progetti/Sample/
