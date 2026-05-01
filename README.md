@@ -1,5 +1,8 @@
 # SolRatio v4.1.0
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19959587.svg)](https://doi.org/10.5281/zenodo.19959587)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 **Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale.**
 
 SolRatio è uno strumento integrato che combina la simulazione della radiazione solare disponibile per le colture sottostanti ai pannelli fotovoltaici (tramite ray-tracing 3D fisicamente accurato Radiance + bifacial_radiance) con le curve dose-risposta di Laub et al. (2022) per la stima delle rese colturali in regime di ombreggiamento agrivoltaico. Fornisce profili spaziali e temporali di PAR e DLI, e il coefficiente agrivoltaico K_agv per nove categorie colturali, necessari alla verifica dei requisiti agronomici previsti dalle Linee Guida MiTE (D.M. 436/2023) e alla valutazione della compatibilità tra produzione energetica e produzione agricola.
@@ -140,7 +143,11 @@ Lo scostamento residuo è rumore numerico intrinseco di Radiance (stocasticità 
 
 Se usi SolRatio in lavori pubblici (relazioni tecniche, articoli, presentazioni), puoi citarlo come:
 
-> Pesavento, S. (2026). *SolRatio: Modello di irradianza al suolo per impianti agrivoltaici a tracker monoassiale* (v4.1.0). Zenodo. https://doi.org/<DOI verrà popolato dopo il primo rilascio>
+> Pesavento, S. (2026). *SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale* (v4.1.0). Zenodo. https://doi.org/10.5281/zenodo.19959582
+
+**DOI:**
+- **Concept DOI** (sempre-ultima-versione): [`10.5281/zenodo.19959587`](https://doi.org/10.5281/zenodo.19959587) — usalo per citare "SolRatio" in generale
+- **Versione v4.1.0** (immutabile): [`10.5281/zenodo.19959582`](https://doi.org/10.5281/zenodo.19959582) — usalo per citare la versione esatta che hai scaricato
 
 Vedi `CITATION.cff` per i metadati completi.
 

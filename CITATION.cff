@@ -32,7 +32,9 @@ license: "Apache-2.0"
 repository-code: "https://github.com/eurrag/SolRatio"
 url: "https://github.com/eurrag/SolRatio"
 
-# doi: "10.5281/zenodo.XXXXXXX"  # ← popolare dopo il primo deposito Zenodo
+# DOI Zenodo della versione specifica v4.1.0 (immutabile).
+# Per il Concept DOI (sempre-ultima-versione) vedi README.md.
+doi: "10.5281/zenodo.19959582"
 
 keywords:
   - "agrivoltaics"
