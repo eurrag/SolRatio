@@ -144,11 +144,13 @@ Lo scostamento residuo è rumore numerico intrinseco di Radiance (stocasticità 
 
 Se usi SolRatio in lavori pubblici (relazioni tecniche, articoli, presentazioni), puoi citarlo come:
 
-> Pesavento, S. (2026). *SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale* (v4.1.0). Zenodo. https://doi.org/10.5281/zenodo.19959582
+> Pesavento, S. (2026). *SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale* (v4.1.1). Zenodo. https://doi.org/10.5281/zenodo.19960929
 
 **DOI:**
 - **Concept DOI** (sempre-ultima-versione): [`10.5281/zenodo.19959587`](https://doi.org/10.5281/zenodo.19959587) — usalo per citare "SolRatio" in generale
-- **Versione v4.1.0** (immutabile): [`10.5281/zenodo.19959582`](https://doi.org/10.5281/zenodo.19959582) — usalo per citare la versione esatta che hai scaricato
+- **Versione v4.1.1** (immutabile, raccomandata): [`10.5281/zenodo.19960929`](https://doi.org/10.5281/zenodo.19960929) — usalo per citare la versione esatta che hai scaricato
+
+DOI versione precedente (v4.1.0): [`10.5281/zenodo.19959582`](https://doi.org/10.5281/zenodo.19959582) — contiene il bug STEP 5 risolto in v4.1.1, **non raccomandato per nuove citazioni**.
 
 Vedi `CITATION.cff` per i metadati completi.
 
