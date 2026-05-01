@@ -1,5 +1,5 @@
 """
-validazione_br.py  |  SolRatio v4.1.0
+validazione_br.py  |  SolRatio v4.1.1
 =======================================
 Confronto tra SolRatio v4 (rtrace custom) e workflow standard
 bifacial_radiance (AnalysisObj) sullo stesso progetto.
@@ -246,8 +246,29 @@ def _run_br_official(p, epw_path, target_month, target_day, n_points):
         rad.setGround(p.get('albedo', 0.23))
 
         module_length = 30.0
-        n_ext = p.get('n_ext', 2)
-        n_rows = 2 * n_ext + 1
+
+        # ── Dimensione scena: stessa logica di br_engine.run_annual ──
+        # Se il file Excel imposta br_n_rows > 0, quel valore SOVRASCRIVE
+        # il calcolo automatico da n_ext. Importante che sia BR ufficiale
+        # sia run_annual usino la stessa scena, altrimenti si confrontano
+        # impianti fisicamente diversi (es. 4 file vs 7 file → bias 4-5%
+        # sull'equinozio, anche con tau=0/slope=0).
+        # Fix v4.1.1: prima della patch, _run_br_official ignorava br_n_rows
+        # e usava sempre n_rows = 2*n_ext+1 (sempre dispari), creando il
+        # mismatch. Adesso replica esattamente la logica di run_annual.
+        br_n_rows = p.get('br_n_rows', 0)
+        if br_n_rows > 0:
+            n_rows = br_n_rows
+            n_ext = (n_rows - 1) // 2
+        else:
+            n_ext = p.get('n_ext', 2)
+            n_rows = 2 * n_ext + 1
+        if n_rows < 3:
+            n_rows = 3
+        if br_n_rows > 0 and br_n_rows % 2 == 0:
+            print(f'  Nota: br_n_rows={br_n_rows} (pari). Scena BR ufficiale '
+                  f'allineata: {n_rows} file totali (geometria simmetrica '
+                  f'attorno all\'origine).')
 
         mod = rad.makeModule(name='val_module', x=module_length, y=p['W'],
                              glass=False)

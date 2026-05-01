@@ -1,6 +1,17 @@
 # SolRatio — Roadmap e bug noti
 
-## Stato attuale (v4.1.0, 2026-05-01)
+## Stato attuale (v4.1.1, 2026-05-01)
+
+Patch di correttezza scientifica della pipeline di validazione vs BR ufficiale
+NREL: corretto il mismatch di dimensione scena tra `run_annual()` e
+`_run_br_official()` quando l'override `br_n_rows` è impostato. Aggiunto
+warning a runtime in `br_engine.run_annual()` quando `n_rows < 7`, e
+documentazione esplicita della raccomandazione minima n_ext ≥ 3 per uso
+di routine. Pipeline di validazione torna a MBE ~0%, R² > 0.999.
+
+Vedi `CHANGELOG.md` per i dettagli completi delle modifiche v4.1.1.
+
+## Stato precedente (v4.1.0, 2026-05-01)
 
 Prima release pubblica con DOI Zenodo. Motore BR validato, infrastruttura di
 rilascio completa (LICENSE Apache 2.0, README, requirements, CITATION.cff,
@@ -74,6 +85,47 @@ I TODO della v4.0.0 sono stati chiusi (completati o riformulati) in v4.1.0:
 
 - **Cache scene persistente**: salvare le scene pre-generate (.oct) su disco
   per evitare ri-generazione tra run successive sullo stesso progetto.
+
+- **Layout cartella progetto standardizzato**: separare input e output in
+  sottocartelle dedicate per migliorare la leggibilità di progetti maturi.
+  Struttura proposta:
+  ```
+  <progetto>/
+  ├── SolRatio_progetto.xlsm        (rimane in root: punto d'ingresso)
+  ├── input/
+  │   ├── PVGIS_<lat>_<lon>_*.csv  (meteo grezzo)
+  │   └── PVGIS_<lat>_<lon>_TMY.epw (EPW generato)
+  └── test/
+      ├── optimization_*.xlsx       (curva K_agv vs H_min)
+      ├── optimization_*.png        (grafico)
+      ├── validazione_*.csv         (confronto SR vs BR ufficiale)
+      └── risultati_*.xlsx          (output principale BR)
+  ```
+  Richiede:
+  - Funzione `find_pvgis_csv()` con fallback root → `input/`
+    in `br_engine.pvgis_to_epw()` e `validazione_br.py`
+  - Aggiornamento path output in `solratio_optimization.py`,
+    `validazione_br.py`, `calcola_br.py`
+  - Aggiornamento Launcher Excel (VBA) per nuovi path relativi
+  - Migrazione automatica progetti esistenti (script `migrate_project_layout.py`
+    che sposta i file e mantiene retrocompatibilità con layout v4.1.x)
+  - Aggiornamento `_template/` e `Sample/` come riferimento
+  - Aggiornamento docs: `ARCHITETTURA.md`, README di Sample, README principale
+
+- **Script di release automatico** (`_PREPARA_RELEASE.bat` + `bump_version.py`):
+  automatizzare la procedura di patch/release. Funzionalità:
+  - Chiede nuova versione interattivamente (es. `4.1.2`, `4.2.0`)
+  - Aggiorna `engine/VERSION`
+  - Sostituisce stringa versione in tutti i file `.py` (header docstring,
+    `__version__`, print statement runtime, descrizioni argparse)
+  - Aggiorna `CITATION.cff` (`version`, `date-released`)
+  - Apre `documentazione/CHANGELOG.md` con un template della nuova sezione
+    da compilare a mano
+  - Verifica coerenza con `check_environment.py` post-bump
+  - Stampa istruzioni passo-passo per: commit, tag, push, GitHub release,
+    Zenodo DOI, aggiornamento CITATION con DOI versione
+  Riduce il rischio di dimenticare un file da bumpare e accelera il rilascio
+  di patch successive.
 
 ### v4.3 — Funzionalità avanzate
 

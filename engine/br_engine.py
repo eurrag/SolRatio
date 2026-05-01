@@ -1,5 +1,5 @@
 """
-br_engine.py  |  SolRatio v4.1.0
+br_engine.py  |  SolRatio v4.1.1
 =================================
 Motore di calcolo basato su bifacial_radiance (Radiance ray-tracing).
 
@@ -40,7 +40,7 @@ import pandas as pd
 
 warnings.filterwarnings('ignore')
 
-__version__ = '4.1.0'
+__version__ = '4.1.1'
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -146,7 +146,7 @@ def _apply_tau_material(rad, tau, module_name='sr_module'):
     mat_file = os.path.join(materials_dir, f'{NEW_MATERIAL}.rad')
     with open(mat_file, 'w') as f:
         f.write(
-            f'# SolRatio v4.1.0 — Materiale pannello semitrasparente\n'
+            f'# SolRatio v4.1.1 — Materiale pannello semitrasparente\n'
             f'# Trasmittanza tau = {tau:.3f}\n'
             f'# Mappatura: trans=tau, tspec=1.0 (vetro), spec=0.05\n'
             f'# Bilancio: rifl_spec + rifl_diff + trasm = '
@@ -356,7 +356,7 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
     # per l'utente (parametri, progresso %, tempi, errori).
     # ══════════════════════════════════════════════════════════════════
 
-    print('  === SolRatio v4.1.0 — Motore bifacial_radiance ===')
+    print('  === SolRatio v4.1.1 — Motore bifacial_radiance ===')
 
     # ── Work dir senza spazi ─────────────────────────────────────────
     temp_work = tempfile.mkdtemp(prefix='sr_v4_')
@@ -389,6 +389,22 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
             n_rows = 2 * n_ext + 1
         if n_rows < 3:
             n_rows = 3
+        # ── Warning v4.1.1: n_rows insufficiente sotto-stima inter-row ─
+        # Empiricamente (vedi CHANGELOG v4.1.1 e PARAMETRI_RADIANCE.md):
+        # con n_rows < 7 la radiazione al pitch centrale è sovra-stimata
+        # rispetto a un campo "grande" (asintotico) — bias fino a +4-5%
+        # sull'equinozio, ~+1-2% sul solstizio. Ammissibile per test
+        # rapidi, ma sconsigliato per simulazioni di routine e
+        # benchmark/pubblicazione. Soglie suggerite:
+        #   n_ext >= 3 (n_rows >= 7) → uso routine, bias residuo <1%
+        #   n_ext >= 4 (n_rows >= 9) → benchmark, asintoto fisico
+        if n_rows < 7:
+            print(f'  ⚠ AVVISO scena ridotta: n_rows={n_rows} (n_ext={n_ext}). '
+                  f'Le file insufficienti sotto-stimano l\'effetto inter-row → '
+                  f'la radiazione al pitch centrale può essere sovra-stimata di '
+                  f'+1-5% rispetto al limite "campo grande". Raccomandato: '
+                  f'n_ext >= 3 (n_rows >= 7) per uso routine, n_ext >= 4 '
+                  f'(n_rows >= 9) per benchmark/pubblicazione.')
         _center_row = n_rows // 2
         mod = rad.makeModule(name='sr_module', x=module_length,
                              y=p['W'], glass=False)

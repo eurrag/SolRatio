@@ -26,14 +26,17 @@ authors:
     orcid: "https://orcid.org/0009-0008-0720-4539"
     affiliation: "Independent researcher"
 
-version: "4.1.0"
+version: "4.1.1"
 date-released: "2026-05-01"
 license: "Apache-2.0"
 repository-code: "https://github.com/eurrag/SolRatio"
 url: "https://github.com/eurrag/SolRatio"
 
-# DOI Zenodo della versione specifica v4.1.0 (immutabile).
+# DOI Zenodo della versione specifica v4.1.1 (immutabile).
+# Da popolare dopo la creazione della release v4.1.1 su GitHub
+# e l'avvenuta archiviazione su Zenodo (formato 10.5281/zenodo.NNNNNNN).
 # Per il Concept DOI (sempre-ultima-versione) vedi README.md.
+# DOI versione precedente v4.1.0: 10.5281/zenodo.19959582
 doi: "10.5281/zenodo.19959582"
 
 keywords:

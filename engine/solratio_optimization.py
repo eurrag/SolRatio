@@ -1,5 +1,5 @@
 """
-solratio_optimization.py  |  SolRatio v4.1.0 (2026-05-01)
+solratio_optimization.py  |  SolRatio v4.1.1 (2026-05-01)
 ============================================================
 Ottimizzazione dei parametri di progetto agrivoltaico.
 
@@ -589,7 +589,7 @@ def main():
         pass
 
     parser = argparse.ArgumentParser(
-        description='Ottimizzazione H_min via curva K_agv(H_min) — SolRatio v4.1.0'
+        description='Ottimizzazione H_min via curva K_agv(H_min) — SolRatio v4.1.1'
     )
     parser.add_argument('progetto_xlsm', help='Path al file SolRatio_progetto.xlsm')
     parser.add_argument('--crop', default='cereali_C3',

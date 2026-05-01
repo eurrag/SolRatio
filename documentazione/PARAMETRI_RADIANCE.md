@@ -90,6 +90,34 @@ cumulativa). Per il pitch centrale, oltre 7 file il guadagno è trascurabile.
 Per l'effetto bordo, il numero di file determina quanti profili edge vengono
 calcolati.
 
+### Raccomandazione minima n_rows (v4.1.1)
+
+Misurazioni empiriche su progetto pianura padana (lat 45.30°N, pitch=5m,
+W=2.38m, H=3.13m) confrontando SolRatio v4 con bifacial_radiance ufficiale
+NREL come reference:
+
+| n_rows | n_ext | Bias eq. (21 mar) | Bias solst. (21 giu) | Uso consigliato |
+|-------:|------:|------------------:|---------------------:|-----------------|
+| 4      | 1     | +4.5%             | +1.2%                | Sconsigliato (sotto-stima inter-row) |
+| 5      | 2     | +1-2% (stimato)   | <1%                  | Test rapidi, debug |
+| **7**  | **3** | **<1%**           | **<0.5%**            | **Uso routine, default raccomandato** |
+| 9      | 4     | <0.5%             | <0.3%                | Benchmark, pubblicazioni |
+| 11+    | 5+    | <0.3% (asintoto)  | <0.2%                | Validazione di riferimento |
+
+**Causa fisica**: con sole basso (equinozio, mattina/sera), la luce arriva
+con angoli obliqui e le file lontane dal pitch centrale intercettano una
+porzione significativa di raggi diretti e diffusi che altrimenti
+raggiungerebbero il terreno. Una scena con poche file simula implicitamente
+un campo agrivoltaico piccolo (es. 4 file = pilota di pochi tracker), dove
+il pitch centrale "vede" meno ombreggiamento mutuo. Per simulare il
+comportamento di un pitch interno a un impianto medio-grande (10+ file)
+serve usare n_ext ≥ 3.
+
+A partire da v4.1.1, `br_engine.run_annual()` emette un avviso a runtime
+quando `n_rows < 7`, ricordando di aumentare n_ext per simulazioni accurate.
+La pipeline di validazione `validazione_br.py` è stata corretta per usare
+la stessa scena di `run_annual` (rispetta `br_n_rows` se impostato).
+
 
 ## Parametri rtrace fissi (non configurabili)
 

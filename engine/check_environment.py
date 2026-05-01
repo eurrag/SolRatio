@@ -1,5 +1,5 @@
 """
-check_environment.py  |  SolRatio v4.1.0 (2026-05-01)
+check_environment.py  |  SolRatio v4.1.1 (2026-05-01)
 =======================================================
 Verifica che l'ambiente Python contenga tutte le dipendenze necessarie
 per eseguire SolRatio. Stampa a video le versioni di ciascuna libreria
@@ -71,7 +71,7 @@ def check_radiance() -> tuple[bool, list[str]]:
 
 def main() -> int:
     print('=' * 60)
-    print('  SolRatio v4.1.0 - Verifica ambiente Python')
+    print('  SolRatio v4.1.1 - Verifica ambiente Python')
     print('=' * 60)
     print(f'Python: {check_python()}  ({sys.executable})')
     print()

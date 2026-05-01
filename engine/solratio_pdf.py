@@ -1,5 +1,5 @@
 """
-solratio_pdf.py  |  SolRatio v4.1.0
+solratio_pdf.py  |  SolRatio v4.1.1
 ===================================================
 Generazione report PDF di sintesi (5 pagine).
 
