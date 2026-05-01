@@ -49,11 +49,24 @@ skies/
 # Diagnostica ambiente (generata da check_environment.py)
 engine/check_env_*.txt
 
+# Report di release (rigenerabili dall'utente con _LANCIA_RELEASE_TEST.bat)
+# e log di debug — non pubblicati (potrebbero contenere riferimenti
+# a progetti privati usati come baseline durante lo sviluppo).
+analisi/release_report_*.md
+analisi/optimize_hmin_fail_*.log
+
 # Temporanei e backup
 *.bak
 *.swp
 *~
 *.orig
+
+# === Documenti privati personali ===
+# File di memoria/note personali NON pubblicati su GitHub.
+# Convenzione: qualsiasi file con "Privato" o "Private" nel nome.
+**/* - Privato*
+**/*_Privato*
+**/*Private*
 
 # === Progetti privati ===
 # Il repository pubblico include SOLO il progetto Sample dimostrativo.

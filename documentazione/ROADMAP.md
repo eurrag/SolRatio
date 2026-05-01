@@ -35,8 +35,8 @@ I TODO della v4.0.0 sono stati chiusi (completati o riformulati) in v4.1.0:
 - [✓] ~~Validazione vs v3.3.4~~: superato — v3.x è dichiarato deprecato. Riferimento
   scientifico per la validazione è ora `bifacial_radiance` ufficiale (NREL),
   con cui v4 è allineato a MBE<1%, R²>0.998 (località esempio (lat 45.30°N, lon 9.34°E)).
-- [parziale] **Test su progetti multipli**: già eseguito un primo round su localita esempio,
-  e batteria test_battery (47 test, 45 OK + 2 SKIP). Da estendere con un
+- [parziale] **Test su progetti multipli**: già eseguito un primo round su progetto
+  Sample (Pianura Padana, lat 45.30°N), e batteria test_battery (47 test, 45 OK + 2 SKIP). Da estendere con un
   test specifico al rilascio v4.1.0 sui progetti reali con tau/H_min/L3 attivi.
 - [da fare al rilascio] **Verifica ΔK_agv effetto bordo positivo** su almeno 2
   progetti diversi.

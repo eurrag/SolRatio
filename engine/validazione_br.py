@@ -49,10 +49,66 @@ def main():
     from br_engine import pvgis_to_epw, run_annual
 
     tmp_input = os.path.join(proj_dir, '_sr_temp_val.xlsx')
-    shutil.copy2(input_path, tmp_input)
-    wb = load_workbook(tmp_input, data_only=True)
-    p = read_parameters(wb)
-    wb.close()
+
+    # Verifica preliminare: se Excel ha aperto il file in scrittura,
+    # shutil.copy2 può fallire (PermissionError) o copiare un file
+    # temporaneamente non coerente. Inoltre, con load_workbook(data_only=True)
+    # le formule restituiscono i valori CACHED salvati da Excel: se il
+    # file è aperto e non salvato, molte celle formula tornano None
+    # → read_parameters fallirebbe con TypeError oscuro.
+    try:
+        shutil.copy2(input_path, tmp_input)
+    except PermissionError:
+        print('=' * 65)
+        print(' ERRORE: file Excel aperto in un\'altra applicazione')
+        print('=' * 65)
+        print(f'  File: {input_path}')
+        print('  Impossibile copiare il file (PermissionError).')
+        print('  Chiudere il file in Excel e rilanciare la validazione.')
+        sys.exit(2)
+
+    try:
+        wb = load_workbook(tmp_input, data_only=True)
+        p = read_parameters(wb)
+        wb.close()
+    except Exception as e:
+        print('=' * 65)
+        print(' ERRORE: lettura parametri fallita')
+        print('=' * 65)
+        print(f'  File: {tmp_input}')
+        print(f'  Eccezione: {type(e).__name__}: {e}')
+        print('  Causa probabile: file Excel aperto in modifica oppure')
+        print('  cached values non aggiornati. Chiudere Excel, salvare')
+        print('  il file (Ctrl+S) e rilanciare la validazione.')
+        try:
+            os.remove(tmp_input)
+        except Exception:
+            pass
+        sys.exit(2)
+
+    # Sanity check: parametri critici non devono essere None.
+    # Se sono None significa che le formule cached non sono presenti
+    # (file Excel mai salvato dopo modifiche, o aperto in scrittura).
+    _critical = ('pitch', 'W', 'H', 'lat', 'lon', 'GCR', 'albedo', 'n_ext',
+                 'beta_max', 'n_points')
+    _missing = [k for k in _critical
+                if p.get(k) is None or (isinstance(p.get(k), float)
+                                         and np.isnan(p[k]))]
+    if _missing:
+        print('=' * 65)
+        print(' ERRORE: parametri critici mancanti o None')
+        print('=' * 65)
+        print(f'  Parametri non leggibili: {_missing}')
+        print('  Causa probabile: il file Excel è aperto in modifica')
+        print('  oppure le formule non hanno valori cached salvati.')
+        print('  Soluzione: chiudere Excel, riaprirlo, salvare (Ctrl+S)')
+        print('  e rilanciare la validazione.')
+        try:
+            os.remove(tmp_input)
+        except Exception:
+            pass
+        sys.exit(2)
+
     try:
         os.remove(tmp_input)
     except Exception:

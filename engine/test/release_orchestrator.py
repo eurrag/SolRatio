@@ -921,6 +921,10 @@ def main():
                              f'(default: {DEFAULT_REGRESSION_TOLERANCE_PCT}%%)')
     parser.add_argument('--skip-battery', action='store_true', default=False,
                         help='Salta STEP 4 (batteria estesa) anche con --full')
+    parser.add_argument('--battery-dir', type=str, default=None,
+                        help='Nome cartella batteria test sotto progetti/ '
+                             '(default: prima fra "test_battery", "TEST CLAUDE", '
+                             '"test_data" che esiste). Path assoluto accettato.')
     parser.add_argument('--skip-validation', action='store_true', default=False,
                         help='Salta STEP 5 (validazione vs BR) anche con --full')
     parser.add_argument('--keep-tmp', action='store_true', default=False,
@@ -968,7 +972,21 @@ def main():
     print('=' * 70)
 
     baseline_project = PROJECT_ROOT / 'progetti' / args.baseline_project
-    test_data_dir = PROJECT_ROOT / 'progetti' / 'test_battery'
+
+    # Risoluzione cartella batteria:
+    # 1) se --battery-dir specificato → usalo (assoluto o relativo a progetti/)
+    # 2) altrimenti prova in ordine i nomi candidati noti
+    if args.battery_dir:
+        bd = Path(args.battery_dir)
+        test_data_dir = bd if bd.is_absolute() else (PROJECT_ROOT / 'progetti' / bd)
+    else:
+        candidates = ['test_battery', 'TEST CLAUDE', 'test_data', 'batteria']
+        test_data_dir = PROJECT_ROOT / 'progetti' / candidates[0]
+        for cand in candidates:
+            cand_path = PROJECT_ROOT / 'progetti' / cand
+            if cand_path.exists():
+                test_data_dir = cand_path
+                break
 
     results = []
     n_steps = 5 if args.full else 3

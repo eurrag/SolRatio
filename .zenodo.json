@@ -1,6 +1,6 @@
 {
   "title": "SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale",
-  "description": "<p>SolRatio è uno strumento integrato di simulazione dell'irradianza solare al suolo e di stima delle rese colturali in impianti agrivoltaici con tracker monoassiale. Il modello combina ray-tracing 3D (Radiance + bifacial_radiance) per il calcolo dei profili spaziali e temporali di PAR e DLI, con le curve dose-risposta di Laub et al. (2022) per stimare il coefficiente agrivoltaico K_agv per nove categorie colturali. Supporta la verifica dei requisiti agronomici previsti dalle Linee Guida MiTE (D.M. 436/2023) e la valutazione della compatibilità tra produzione energetica e produzione agricola.</p><p><strong>Validazione</strong>: confronto vs bifacial_radiance ufficiale (NREL) su due giornate rappresentative (localita esempio (Pianura Padana), 21 marzo e 21 giugno): MBE < 1%, R² > 0.998.</p><p><strong>Caratteristiche principali</strong>: simulazione oraria 8760 h/anno, geometria configurabile (pitch, larghezza modulo, altezza minima, slope terreno), backtracking + tilt fisso, trasmittanza pannello via materiale Radiance trans, effetto bordo da BR, curve di resa colturale Laub et al. 2022 (9 categorie colturali), output Excel multi-foglio + report PDF, interfaccia Excel/VBA per uso senza scrivere codice.</p>",
+  "description": "<p>SolRatio è uno strumento integrato di simulazione dell'irradianza solare al suolo e di stima delle rese colturali in impianti agrivoltaici con tracker monoassiale. Il modello combina ray-tracing 3D (Radiance + bifacial_radiance) per il calcolo dei profili spaziali e temporali di PAR e DLI, con le curve dose-risposta di Laub et al. (2022) per stimare il coefficiente agrivoltaico K_agv per nove categorie colturali. Supporta la verifica dei requisiti agronomici previsti dalle Linee Guida MiTE (D.M. 436/2023) e la valutazione della compatibilità tra produzione energetica e produzione agricola.</p><p><strong>Validazione</strong>: confronto vs bifacial_radiance ufficiale (NREL) su due giornate rappresentative (località esempio Pianura Padana, lat 45.30°N lon 9.34°E, 21 marzo e 21 giugno): MBE < 1%, R² > 0.998.</p><p><strong>Caratteristiche principali</strong>: simulazione oraria 8760 h/anno, geometria configurabile (pitch, larghezza modulo, altezza minima, slope terreno), backtracking + tilt fisso, trasmittanza pannello via materiale Radiance trans, effetto bordo da BR, curve di resa colturale Laub et al. 2022 (9 categorie colturali), output Excel multi-foglio + report PDF, interfaccia Excel/VBA per uso senza scrivere codice.</p>",
   "creators": [
     {
       "name": "Pesavento, Stefano",
@@ -33,7 +33,7 @@
   "related_identifiers": [
     {
       "identifier": "10.5281/zenodo.4767317",
-      "relation": "isBasedOn",
+      "relation": "requires",
       "resource_type": "software",
       "scheme": "doi"
     }
