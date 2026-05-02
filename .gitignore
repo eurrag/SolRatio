@@ -55,6 +55,14 @@ engine/check_env_*.txt
 analisi/release_report_*.md
 analisi/optimize_hmin_fail_*.log
 
+# Helper di rilascio personale: spostato in cartella esterna
+# C:\Users\Utente\OneDrive\Documenti\Claude\Projects\Versioning\
+# (toolbox condiviso tra progetti, non versionato).
+
+# Bat di workflow personale (push automatizzato verso il proprio repo GitHub).
+# Non parte del software pubblico.
+_PUBBLICA_AGGIORNAMENTI.bat
+
 # Temporanei e backup
 *.bak
 *.swp

@@ -1,5 +1,5 @@
 """
-validazione_br.py  |  SolRatio v4.1.1
+validazione_br.py  |  SolRatio v4.1.2
 =======================================
 Confronto tra SolRatio v4 (rtrace custom) e workflow standard
 bifacial_radiance (AnalysisObj) sullo stesso progetto.

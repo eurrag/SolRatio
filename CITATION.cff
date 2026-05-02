@@ -26,8 +26,8 @@ authors:
     orcid: "https://orcid.org/0009-0008-0720-4539"
     affiliation: "Independent researcher"
 
-version: "4.1.1"
-date-released: "2026-05-01"
+version: "4.1.2"
+date-released: "2026-05-02"
 license: "Apache-2.0"
 repository-code: "https://github.com/eurrag/SolRatio"
 url: "https://github.com/eurrag/SolRatio"

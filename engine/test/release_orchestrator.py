@@ -1,5 +1,5 @@
 """
-release_orchestrator.py  |  SolRatio v4.1.1 (2026-05-01)
+release_orchestrator.py  |  SolRatio v4.1.2 (2026-05-01)
 ==========================================================
 Orchestratore di test/validazione per il rilascio di una nuova versione.
 
@@ -732,11 +732,19 @@ def step5_validation(baseline_project: Path, python_exe: str) -> StepResult:
         # MBE: cattura la percentuale tra parentesi sulla riga MBE.
         # R²: regex tollerante al carattere ² (può diventare '?' o '2' su terminali
         # con encoding non-UTF8).
+        #
+        # Fix v4.1.1+: la regex R² precedente (`R[²\^2\?]?...`) era troppo
+        # permissiva e catturava per errore valori come "GCR=0.476" perché
+        # `[²\^2\?]?` rendeva ² opzionale → matchava "R=N.NNN" dentro qualsiasi
+        # parola che terminava con R. Ora richiediamo:
+        #   - \b      = word boundary (R non preceduta da lettera, esclude "GCR")
+        #   - (?:²|2|\?) = ² | 2 | ? OBBLIGATORIO (non opzionale)
+        #   - [01]\.\d+  = un solo digit prima del punto (no ".5" interpretato male)
         out = (r.stdout or '') + '\n' + (r.stderr or '')
         import re
         mbe_matches = re.findall(r'MBE[^\n]*?\(([+-]?\d+\.\d+)\s*%\)', out)
         r2_matches = re.findall(
-            r'R[²\^2\?]?\s*=\s*([01]?\.\d+)', out)
+            r'\bR(?:²|2|\?)\s*=\s*([01]\.\d+)', out)
         if mbe_matches and r2_matches:
             mbe_max = max(abs(float(x)) for x in mbe_matches)
             r2_min = min(float(x) for x in r2_matches)

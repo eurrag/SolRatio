@@ -1,4 +1,4 @@
-# SolRatio v4.1.1
+# SolRatio v4.1.2
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19959587.svg)](https://doi.org/10.5281/zenodo.19959587)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -130,7 +130,7 @@ Lo scostamento residuo è rumore numerico intrinseco di Radiance (stocasticità 
 
 ---
 
-## Limitazioni note di v4.1.1
+## Limitazioni note di v4.1.2
 
 - **Pali di sostegno**: non sono modellati nella scena Radiance. Saranno aggiunti come oggetti cilindrici 3D in v4.2.
 - **Modalità multi-anno (variabilità interannuale P10/P50/P90)**: prevista per v4.2.

@@ -1,5 +1,5 @@
 """
-solratio_sensitivity.py  |  SolRatio v4.1.1 (2026-05-01)
+solratio_sensitivity.py  |  SolRatio v4.1.2 (2026-05-01)
 ============================================================
 Analisi di sensitivita parametrica: OAT (One-at-a-Time) e Morris screening.
 

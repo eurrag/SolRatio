@@ -1,6 +1,25 @@
 # SolRatio — Roadmap e bug noti
 
-## Stato attuale (v4.1.1, 2026-05-01)
+## Stato attuale (v4.1.2, 2026-05-02)
+
+Patch cumulativa con piccoli fix di sviluppo. Correzioni principali:
+- Fix regex R² nell'orchestratore (`release_orchestrator.py`): la regex
+  precedente catturava per errore il valore di `GCR=0.476` come R²,
+  generando NO-GO falsi nello STEP 5. Ora usa word boundary + carattere
+  ² obbligatorio (`\bR(?:²|2|\?)...`).
+- Aggiornamenti a ROADMAP per pianificare v4.2 (frame coordinate sensori
+  generalizzato per `axis_azimuth`, auto-update label versione nei file
+  Excel via macro VBA, script di release end-to-end).
+- Rimozione di `engine/_br_run.bat` (codice morto con path hardcoded a
+  `SolRatio_v4_0_0\engine\br_test_tmp.py`, file non più esistente).
+- Esclusione di `_PUBBLICA_AGGIORNAMENTI.bat` (workflow personale) da git.
+
+Nessuna modifica al motore di simulazione SR core (smoke regression v4.1.1
+resta valido: K_agv SAU = 84.00% sul Sample).
+
+Vedi `CHANGELOG.md` per i dettagli completi delle modifiche v4.1.2.
+
+## Stato precedente (v4.1.1, 2026-05-01)
 
 Patch di correttezza scientifica della pipeline di validazione vs BR ufficiale
 NREL: corretto il mismatch di dimensione scena tra `run_annual()` e
@@ -112,20 +131,226 @@ I TODO della v4.0.0 sono stati chiusi (completati o riformulati) in v4.1.0:
   - Aggiornamento `_template/` e `Sample/` come riferimento
   - Aggiornamento docs: `ARCHITETTURA.md`, README di Sample, README principale
 
-- **Script di release automatico** (`_PREPARA_RELEASE.bat` + `bump_version.py`):
-  automatizzare la procedura di patch/release. Funzionalità:
-  - Chiede nuova versione interattivamente (es. `4.1.2`, `4.2.0`)
-  - Aggiorna `engine/VERSION`
-  - Sostituisce stringa versione in tutti i file `.py` (header docstring,
-    `__version__`, print statement runtime, descrizioni argparse)
-  - Aggiorna `CITATION.cff` (`version`, `date-released`)
-  - Apre `documentazione/CHANGELOG.md` con un template della nuova sezione
-    da compilare a mano
-  - Verifica coerenza con `check_environment.py` post-bump
-  - Stampa istruzioni passo-passo per: commit, tag, push, GitHub release,
-    Zenodo DOI, aggiornamento CITATION con DOI versione
-  Riduce il rischio di dimenticare un file da bumpare e accelera il rilascio
-  di patch successive.
+- **Script di release end-to-end automatico** (`_NUOVA_VERSIONE.bat` +
+  `engine/release_helper.py`): automatizzare l'intera procedura di rilascio
+  (patch/minor/major) inclusa la sincronizzazione Git ↔ GitHub ↔ Zenodo.
+  Riferimento esperienza: la procedura manuale per v4.1.1 ha richiesto
+  ~30 minuti distribuiti su molti passaggi e con rischio di dimenticare
+  un file da bumpare o un comando.
+
+  **Prerequisiti da installare prima di costruire lo script:**
+  - **GitHub CLI** (`gh`) per creazione release senza browser:
+    `winget install --id GitHub.cli` (Windows) o equivalente.
+    Login una tantum: `gh auth login`.
+  - Python con `requests` (probabilmente già installato).
+
+  **Architettura della pipeline a 14 step:**
+  1. Chiede versione nuova (es. `4.1.2`, `4.2.0`) e tipo (patch/minor/major)
+  2. Pre-check: ramo git pulito, no modifiche pendenti, VERSION coerente
+  3. (opzionale) Esegue orchestrator `--quick` per validare → richiede GO
+  4. Apre `CHANGELOG.md` con template della nuova sezione precompilata
+     (incluso `git log --oneline <prev>..HEAD` come spunto)
+  5. [Pausa interattiva: utente compila descrizione, salva e chiude editor]
+  6. `release_helper.py bump --new-version X.Y.Z`:
+     - Sostituisce stringa versione in tutti i file `.py`
+       (header docstring, `__version__`, print runtime, argparse description)
+     - Aggiorna `engine/VERSION`
+     - Aggiorna `CITATION.cff` (`version`, `date-released`)
+     - Aggiorna `README.md` (titolo + sezione Limitazioni note)
+  7. Mostra preview `git diff --stat` e chiede conferma
+  8. `git add -A && git commit -m "release vX.Y.Z: ..."`
+  9. `git tag -a vX.Y.Z -m "..." && git push origin main vX.Y.Z`
+  10. `gh release create vX.Y.Z --title "..." --notes-file <changelog_section>`
+  11. Loop polling Zenodo API ogni 30 sec, max 5 min:
+      `https://zenodo.org/api/records?q=conceptdoi:<concept>&sort=newest&size=1`
+      → estrae DOI nuova versione
+  12. `release_helper.py update-doi --doi 10.5281/zenodo.NNNNNNN`:
+      aggiorna `CITATION.cff` (campo `doi`) e `README.md` (sezione "Come citare")
+  13. `git add CITATION.cff README.md && git commit -m "docs: add DOI for vX.Y.Z" && git push`
+  14. Stampa riepilogo: link release GitHub, link DOI Zenodo, tempo totale
+
+  **Tempo totale interventi utente:** ~2 minuti (input versione + scrittura
+  CHANGELOG + conferma diff). Tempo totale di esecuzione: ~5 minuti
+  (escluso eventuale orchestrator pre-release, che resta opzionale).
+
+  **Stima implementazione:** ~2 ore per versione completa. Si può
+  spezzare in due fasi: prima `bump_version.py` (steps 1-9, base),
+  poi aggiunta polling Zenodo + DOI auto-update (steps 11-13, avanzato).
+
+  **Cosa NON va automatizzato deliberatamente:**
+  - Contenuto del CHANGELOG (atto editoriale che richiede pensiero)
+  - Decisione di rilasciare ("è pronto?")
+  - Decisione GO/NO-GO sui test pre-release
+
+  **Enhancement al `release_helper.py`: bump-from-CHANGELOG.** Modalità
+  in cui lo script legge la nuova versione direttamente dalla prima
+  sezione `## v(\d+\.\d+\.\d+)` del CHANGELOG.md, eliminando la necessità
+  di passare la versione come argomento CLI. Allinea il workflow alla
+  convenzione di tool consolidati (release-please, standard-version,
+  semantic-release) dove il CHANGELOG è la fonte autoritativa di intent
+  di rilascio. Vantaggi:
+  - Single source of truth (no rischio di mismatch CHANGELOG vs CLI arg)
+  - Forza la disciplina "documento prima di rilasciare"
+  - Estrae anche data automaticamente per `CITATION.cff` (coerenza per
+    costruzione)
+  - Validazione: errore esplicito se nuova versione < corrente o se
+    formato CHANGELOG non parsabile
+  Mantenere la modalità esplicita esistente (`bump X.Y.Z`) per
+  retrocompatibilità, e aggiungere `bump --from-changelog` (esplicito) e
+  `bump X.Y.Z --verify-changelog` (controllo match).
+
+- **Generalizzazione frame coordinate sensori per `axis_azimuth` arbitrario**:
+  in v4.1.x il parametro `axis_azimuth` è letto da Excel e passato a pvlib
+  per il calcolo degli angoli tracker, ma sia `br_engine.run_annual()` sia
+  `validazione_br._run_br_official()` hardcodano la scena Radiance e i
+  sensori in convenzione asse nord-sud (`azimuth = 90 if theta>=0 else 270`,
+  sensori lungo `x` mondo). Quindi cambiare `axis_azimuth` in Excel ha
+  effetto solo sui calcoli pvlib, NON sulla scena → risultati incoerenti
+  per qualsiasi azimuth ≠ 180°.
+
+  **Soluzione architetturale**: spostare il posizionamento sensori da
+  coordinate mondo a un **frame locale ancorato al tracker**:
+  ```
+  asse u = parallelo all'asse del tracker (lungo la fila)
+  asse v = perpendicolare all'asse (= direzione del pitch)
+  asse w = verticale (= z mondo)
+  ```
+  I sensori sono sempre `(0, j*dv, z0)` nel frame locale, indipendentemente
+  dall'orientamento. Si trasformano a coordinate mondo con rotazione
+  `axis_azimuth - 180°`:
+  ```python
+  phi = math.radians(axis_azimuth - 180.0)
+  cos_phi, sin_phi = math.cos(phi), math.sin(phi)
+  for j in range(n_points):
+      v = j * dv
+      x_world = v * sin_phi
+      y_world = v * cos_phi
+      linepts_lines.append(f'{x_world:.6f} {y_world:.6f} {z0:.6f} 0 0 1')
+  ```
+  E specularmente l'azimuth dei moduli passato a `sceneDict`:
+  ```python
+  azimuth_module = (axis_azimuth + (90 if theta >= 0 else -90)) % 360
+  ```
+
+  **Modifiche richieste:**
+  - `engine/br_engine.py`: rotazione coordinate sensori + azimuth scena
+  - `engine/validazione_br.py / _run_br_official()`: stessa modifica
+    in parallelo (per mantenere coerente il confronto)
+  - `engine/solratio_edge.py`: verifica che il calcolo dei profili edge
+    funzioni con frame ruotato (probabilmente sì, sono coordinate locali)
+  - Test di non-regressione: con `axis_azimuth=180°` deve dare risultati
+    bit-per-bit identici all'attuale (i CSV `validazione_*.csv` esistenti
+    sono il riferimento)
+  - Validazione vs BR ufficiale: rifare con almeno 3 valori di
+    `axis_azimuth` (180°, 90°, 135°) → atteso MBE<1% R²>0.99 in tutti
+
+  **Vantaggi:**
+  1. Coerenza per qualsiasi `axis_azimuth` (N-S, E-W, NE-SW, ecc.)
+  2. Output sempre fisicamente significativo (sensori attraverso il pitch)
+  3. Apre la strada a configurazioni miste o orografie vincolate
+  4. Architettura pulita per manutenzione futura
+
+  **Stima implementazione: ~1 giornata** (codice + test + validazione +
+  doc). Ridotto rispetto alla versione "supporto E-W ad-hoc" perché
+  l'approccio architetturale evita casi-particolari hardcoded.
+
+  **Nota agronomica importante per asse E-W:** anche dopo questo fix
+  tecnico, l'applicazione delle curve di Laub et al. 2022 a configurazioni
+  E-W resta scientificamente delicata. Con asse E-W, l'ombra dei pannelli
+  forma strisce N-S quasi-fisse durante l'anno (piccola oscillazione
+  stagionale), creando una distribuzione PAR/DLI fortemente bimodale
+  (strisce in ombra permanente vs strisce in sole permanente). Le curve
+  Laub sono calibrate su regimi di ombra parziale e variabile (tipico
+  N-S). L'utente deve essere avvisato di questa limitazione: aggiungere
+  warning runtime in `solratio_yield.py` se `axis_azimuth` è fuori dal
+  range "N-S ± 30°" (es. 150°-210°), e sezione dedicata in `FORMULE.md`
+  con linee guida d'uso (eventualmente: output con doppia popolazione
+  "strisce sole" / "strisce ombra" invece di K_agv medio singolo).
+
+- **Auto-update label versione nei file Excel** (Sample, _template, progetti
+  utente): macro VBA `Workbook_Open()` che, all'apertura del file Excel,
+  legge `engine/VERSION` (file di testo nella root del progetto SolRatio)
+  e aggiorna il label "SolRatio vX.Y.Z" nel foglio Launcher in automatico.
+
+  **Motivazione**: evitare il task ricorrente di aggiornare manualmente
+  la cella del Launcher a ogni release (problema esistente in tutti i
+  progetti — oggi richiede edit manuale in Excel per ogni xlsm). Il file
+  `engine/VERSION` è già la single source of truth (aggiornato
+  automaticamente da `Versioning/release_helper.py`). L'Excel deve solo
+  rifletterlo passivamente.
+
+  **Implementazione VBA proposta** (modulo `ThisWorkbook`):
+  ```vba
+  Private Sub Workbook_Open()
+      On Error GoTo CleanExit  ' Failure silenzioso
+
+      ' Cerca engine/VERSION risalendo la struttura cartelle
+      Dim base_path As String
+      base_path = ThisWorkbook.Path
+      Dim candidates(0 To 3) As String
+      candidates(0) = base_path & "\..\..\engine\VERSION"
+      candidates(1) = base_path & "\..\engine\VERSION"
+      candidates(2) = base_path & "\engine\VERSION"
+      candidates(3) = base_path & "\..\..\..\engine\VERSION"
+
+      Dim version_path As String, i As Integer
+      For i = 0 To 3
+          If Dir(candidates(i)) <> "" Then
+              version_path = candidates(i)
+              Exit For
+          End If
+      Next i
+      If version_path = "" Then Exit Sub
+
+      ' Leggi versione
+      Dim version_text As String, file_num As Integer
+      file_num = FreeFile
+      Open version_path For Input As #file_num
+      Line Input #file_num, version_text
+      Close #file_num
+      version_text = Trim(version_text)
+      If version_text = "" Then Exit Sub
+
+      ' Aggiorna cella solo se diversa (per non sporcare il file)
+      Dim ws As Worksheet
+      Set ws = Worksheets("Launcher")
+      Dim target_cell As Range
+      Set target_cell = ws.Range("A1")  ' DA VERIFICARE: indirizzo cella reale
+
+      Dim new_label As String
+      new_label = "SolRatio v" & version_text
+      If target_cell.Value <> new_label Then
+          target_cell.Value = new_label
+          ThisWorkbook.Saved = True  ' Evita prompt "Salvare?" alla chiusura
+      End If
+
+  CleanExit:
+      Exit Sub
+  End Sub
+  ```
+
+  **Vantaggi:**
+  - Zero manutenzione: cambia `engine/VERSION` (anche tramite
+    `release_helper.py`), apri il file, label aggiornata
+  - Single source of truth: `engine/VERSION` resta autoritativo
+  - Funziona per qualsiasi progetto (Sample, _template, progetti privati)
+  - Risolve definitivamente il task #39 [POSTICIPATO] (label Launcher manuale)
+  - Compatibile con macro già abilitate in SolRatio_progetto.xlsm
+
+  **Lavori da fare in v4.2:**
+  1. Verificare cella esatta del label versione nel foglio Launcher
+     (es. A1, A3, B2 — da controllare aprendo il file)
+  2. Verificare nome esatto del foglio (case-sensitive in VBA: "Launcher")
+  3. Aggiungere il codice VBA al modulo `ThisWorkbook` di Sample/SolRatio_progetto.xlsm
+  4. Testare apertura: il label deve aggiornarsi automaticamente
+  5. Replicare nel `_template` (per nuovi progetti che derivano da template)
+  6. Documentare in `progetti/Sample/README.md` il comportamento auto-update
+  7. Eventualmente: aggiungere check di versione minima in caso di file
+     più vecchi di un certo soglia (warning "questo Excel è di un progetto
+     v4.0.x, considerare aggiornamento parametri")
+
+  **Tempo stimato implementazione: ~30 minuti** (incluso test). Bassa
+  complessità ma alto valore quotidiano (automazione di un task ricorrente).
 
 ### v4.3 — Funzionalità avanzate
 

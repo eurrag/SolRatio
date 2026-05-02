@@ -1,5 +1,32 @@
 # SolRatio — Changelog
 
+## v4.1.2 (2026-05-02) — Fix orchestratore + raffinamenti documentazione
+
+Patch cumulativa di piccoli fix accumulati dopo v4.1.1.
+
+**Fix principale**: regex R² nell'orchestratore (`release_orchestrator.py`)
+era troppo permissiva e catturava per errore il valore di `GCR=0.476`
+dall'output di `validazione_br.py`, generando falsi NO-GO per STEP 5
+anche quando i CSV salvati mostravano R² > 0.99 corretto. Pattern aggiornato
+da `R[²\^2\?]?...` a `\bR(?:²|2|\?)...` con word boundary e carattere
+² obbligatorio.
+
+**Modifiche minori**:
+- ROADMAP aggiornata: stato attuale → v4.1.2; pianificazione v4.2 estesa
+  con generalizzazione frame coordinate sensori per `axis_azimuth`
+  arbitrario, auto-update label versione nei file Excel via macro VBA
+  `Workbook_Open()`, e script di release end-to-end automatico
+  (`_NUOVA_VERSIONE.bat` + `release_helper.py`).
+- Rimosso `engine/_br_run.bat` (codice morto: path hardcoded a
+  `SolRatio_v4_0_0\engine\br_test_tmp.py`, file non più esistente).
+- `_PUBBLICA_AGGIORNAMENTI.bat` aggiunto a `.gitignore` (workflow personale
+  dell'autore, non parte del software pubblico).
+
+Nessuna modifica al motore di simulazione SR (smoke regression v4.1.1
+resta valido: K_agv SAU = 84.00% sul Sample). Validazione vs BR ufficiale
+NREL conferma MBE ~0%, R² > 0.99 (i numeri "errati" del run notturno del
+2 maggio erano artefatto della regex orchestratore, ora risolto).
+
 ## v4.1.1 (2026-05-01) — Fix STEP 5 mismatch scena BR ufficiale
 
 Patch di correttezza scientifica della pipeline di validazione (STEP 5

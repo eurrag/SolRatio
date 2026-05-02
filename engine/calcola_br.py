@@ -1,5 +1,5 @@
 """
-calcola_br.py  |  SolRatio v4.1.1 (2026-05-01)
+calcola_br.py  |  SolRatio v4.1.2 (2026-05-01)
 =================================================
 Entry point: orchestrazione lettura parametri -> bifacial_radiance -> output Excel + PDF.
 
@@ -109,7 +109,7 @@ def main():
     out_path = os.path.join(proj_dir, f'risultati_{proj_name}.xlsx')
 
     print('=' * 65)
-    print(f' SolRatio v4.1.1 — Motore bifacial_radiance')
+    print(f' SolRatio v4.1.2 — Motore bifacial_radiance')
     print('=' * 65)
     print(f'  Input   : {input_path}')
     print(f'  Progetto: {proj_dir}')
@@ -304,7 +304,7 @@ def main():
     for row in wb['Parametri'].iter_rows(min_row=1, max_row=49, max_col=5):
         for cell in row:
             ws_param_dst.cell(cell.row, cell.column).value = cell.value
-    ws_param_dst['A1'].value = (f'PARAMETRI IMPIANTO - SolRatio v4.1.1 '
+    ws_param_dst['A1'].value = (f'PARAMETRI IMPIANTO - SolRatio v4.1.2 '
                                 f'(BR ray-tracing) | Progetto: {proj_name}')
 
     wb.close()
@@ -631,7 +631,7 @@ if __name__ == '__main__':
             log_path = os.path.join(proj_dir, 'br_error.txt')
             try:
                 with open(log_path, 'w', encoding='utf-8') as f:
-                    f.write(f'SolRatio v4.1.1 -- ERRORE\n')
+                    f.write(f'SolRatio v4.1.2 -- ERRORE\n')
                     f.write(f'Data: {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}\n')
                     f.write(f'Input: {sys.argv[1]}\n\n')
                     f.write(err_msg)
