@@ -148,7 +148,7 @@ Se usi SolRatio in lavori pubblici (relazioni tecniche, articoli, presentazioni)
 
 **DOI:**
 - **Concept DOI** (sempre-ultima-versione): [`10.5281/zenodo.19959587`](https://doi.org/10.5281/zenodo.19959587) — usalo per citare "SolRatio" in generale
-- **Versione v4.1.1** (immutabile, raccomandata): [`10.5281/zenodo.19960929`](https://doi.org/10.5281/zenodo.19960929) — usalo per citare la versione esatta che hai scaricato
+- **Versione v4.1.1** (immutabile, raccomandata): [`10.5281/zenodo.19982399`](https://doi.org/10.5281/zenodo.19982399) — usalo per citare la versione esatta che hai scaricato
 
 DOI versione precedente (v4.1.0): [`10.5281/zenodo.19959582`](https://doi.org/10.5281/zenodo.19959582) — contiene il bug STEP 5 risolto in v4.1.1, **non raccomandato per nuove citazioni**.
 

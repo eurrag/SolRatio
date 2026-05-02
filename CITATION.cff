@@ -37,7 +37,7 @@ url: "https://github.com/eurrag/SolRatio"
 # DOI versioni precedenti:
 #   v4.1.0: 10.5281/zenodo.19959582 (rilascio iniziale, contiene bug STEP 5
 #           risolto in v4.1.1 - vedi CHANGELOG)
-doi: "10.5281/zenodo.19960929"
+doi: "10.5281/zenodo.19982399"
 
 keywords:
   - "agrivoltaics"
