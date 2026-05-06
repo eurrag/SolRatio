@@ -1,5 +1,5 @@
 """
-solratio_yield.py  |  SolRatio v4.1.2 (2026-05-01)
+solratio_yield.py  |  SolRatio v4.2.0 (2026-05-01)
 =====================================================
 Resa colturale (Laub et al. 2022) e impatto pali di sostegno.
 Calcolo + scrittura Excel per i fogli Resa_Colturale e Impatto_Pali.

@@ -1,4 +1,4 @@
-# SolRatio v4.1.2
+# SolRatio v4.2.0
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19959587.svg)](https://doi.org/10.5281/zenodo.19959587)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)

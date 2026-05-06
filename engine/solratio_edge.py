@@ -1,5 +1,5 @@
 """
-solratio_edge.py  |  SolRatio v4.1.2 (2026-05-01)
+solratio_edge.py  |  SolRatio v4.2.0 (2026-05-01)
 =====================================================
 Effetto bordo semplificato: profili file perimetrali, fascia esterna,
 correzione N-S, SAU esterna, K_agv medio impianto.

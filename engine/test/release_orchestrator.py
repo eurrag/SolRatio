@@ -1,5 +1,5 @@
 """
-release_orchestrator.py  |  SolRatio v4.1.2 (2026-05-01)
+release_orchestrator.py  |  SolRatio v4.2.0 (2026-05-01)
 ==========================================================
 Orchestratore di test/validazione per il rilascio di una nuova versione.
 
