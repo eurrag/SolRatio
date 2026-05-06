@@ -52,7 +52,7 @@ from solratio_yield import (
     # write_impatto_pali,  # disabilitato in v4.1.0 — vedi project_pali_fuori_v4.md
     update_resa_with_edge,
 )
-from br_engine import pvgis_to_epw, run_annual
+from br_engine import pvgis_to_epw, run_annual, find_pvgis_csv
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 warnings.filterwarnings('ignore', category=DeprecationWarning, module='pvlib')
@@ -160,25 +160,29 @@ def main():
     print()
 
     # ── Generazione EPW da PVGIS ──────────────────────────────────────
+    # v4.2 item 5: usa find_pvgis_csv per supportare sia layout v4.1.x
+    # ("piatto", CSV in root) sia layout v4.2 (CSV in <progetto>/input/).
     print('2. Preparazione dati meteo (PVGIS → EPW)...')
-    pvgis_files = [f for f in os.listdir(proj_dir)
-                   if f.startswith('PVGIS') and f.endswith('.csv')]
-    if not pvgis_files:
+    pvgis_csv_path = find_pvgis_csv(proj_dir, p['lat'], p['lon'])
+    if pvgis_csv_path is None:
         # CSV non presente: scarica automaticamente da PVGIS
         print("   CSV PVGIS non trovato, download automatico...")
-        _ = get_pvgis_data(p, proj_dir)  # scarica e salva il CSV
-        pvgis_files = [f for f in os.listdir(proj_dir)
-                       if f.startswith('PVGIS') and f.endswith('.csv')]
-        if not pvgis_files:
+        _ = get_pvgis_data(p, proj_dir)  # scarica e salva il CSV in root
+        pvgis_csv_path = find_pvgis_csv(proj_dir, p['lat'], p['lon'])
+        if pvgis_csv_path is None:
             print("ERRORE: download PVGIS fallito, nessun CSV generato")
             sys.exit(1)
-    pvgis_csv = os.path.join(proj_dir, pvgis_files[0])
+    pvgis_csv = str(pvgis_csv_path)
     epw_path, tmy_info = pvgis_to_epw(pvgis_csv, p['lat'], p['lon'])
     print()
 
     # ── Simulazione bifacial_radiance ─────────────────────────────────
     print('3. Simulazione bifacial_radiance (anno intero)...')
-    br_result = run_annual(p, epw_path, n_points=p['n_points'])
+    # v4.2: passa project_dir esplicito così la cache scene .oct si crea
+    # sempre a livello progetto (proj_dir/.cache/scenes/) e non nella
+    # eventuale subcartella input/ del layout v4.2.
+    br_result = run_annual(p, epw_path, n_points=p['n_points'],
+                           project_dir=proj_dir)
 
     IRR_hourly = br_result['IRR_hourly']       # (n_ok, n_points) W/m²
     ok_indices = br_result['daylight_indices']  # (n_ok,) indici 0..8759
@@ -358,6 +362,26 @@ def main():
     yield_data = compute_yield_curves(stats, x_pts, p, crop_keys)
     write_resa_colturale(wb_out, yield_data, stats, x_pts, p)
     # write_impatto_pali(wb_out, yield_data, stats, x_pts, p)  # disabilitato v4.1.0
+
+    # ── Bifacciale energia PV (v4.2 item 11, scope β) ──────────────────
+    # Attivo solo se p['bifaciality_factor'] > 0 (default 0 = monofacciale,
+    # retrocompat bit-per-bit con v4.1). Il calcolo è una stima
+    # semplificata; per progetti reali dove la produzione PV è critica
+    # validare con bifacial_radiance dedicato. Vedi solratio_bifacial.py
+    # docstring per dettagli e limitazioni note.
+    _bf = float(p.get('bifaciality_factor', 0.0))
+    if _bf > 0:
+        try:
+            from solratio_bifacial import bifacial_yield, add_bifacial_to_excel
+            print(f'   Bifacciale: bifaciality_factor={_bf:.2f} -> '
+                  f'calcolo POA back e produzione PV bifacciale...')
+            bifacial_data = bifacial_yield(p, br_result)
+            add_bifacial_to_excel(wb_out, bifacial_data, p)
+            print(f'   Bifacciale: produzione front {bifacial_data["energy_front_kwh_m2"]:.0f} '
+                  f'kWh/m², bifacciale {bifacial_data["energy_total_kwh_m2"]:.0f} kWh/m² '
+                  f'(+{bifacial_data["bifacial_gain_pct"]:.1f}%)')
+        except Exception as _bf_exc:
+            print(f'   Bifacciale: errore calcolo ({_bf_exc}). Salto.')
 
     # K_agv display in PERCENTUALE (v4.1.0): tutti i valori in %
     print(f'\n   {"Coltura":<24s} {"K_agv SAU%":>11s} {"K_agv Centr%":>13s} '

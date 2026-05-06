@@ -46,7 +46,7 @@ def main():
     # ── Lettura parametri ────────────────────────────────────────────
     from openpyxl import load_workbook
     from solratio_excel import read_parameters
-    from br_engine import pvgis_to_epw, run_annual
+    from br_engine import pvgis_to_epw, run_annual, find_pvgis_csv
 
     tmp_input = os.path.join(proj_dir, '_sr_temp_val.xlsx')
 
@@ -121,12 +121,13 @@ def main():
     print()
 
     # ── Generazione EPW ──────────────────────────────────────────────
-    pvgis_files = [f for f in os.listdir(proj_dir)
-                   if f.startswith('PVGIS') and f.endswith('.csv')]
-    if not pvgis_files:
-        print("ERRORE: nessun file PVGIS*.csv")
+    # v4.2 item 5: usa find_pvgis_csv per supportare layout v4.1.x
+    # (CSV in root) e v4.2 (CSV in <progetto>/input/).
+    pvgis_csv_path = find_pvgis_csv(proj_dir, p['lat'], p['lon'])
+    if pvgis_csv_path is None:
+        print("ERRORE: nessun file PVGIS*.csv (cercato in proj_dir e input/)")
         sys.exit(1)
-    pvgis_csv = os.path.join(proj_dir, pvgis_files[0])
+    pvgis_csv = str(pvgis_csv_path)
     epw_path, tmy_info = pvgis_to_epw(pvgis_csv, p['lat'], p['lon'])
     print()
 
@@ -316,9 +317,26 @@ def _run_br_official(p, epw_path, target_month, target_day, n_points):
 
         # Sensori al suolo: stessi punti di SR v4
         xinc = p['pitch'] / (n_points - 1)
-        linepts = '\n'.join(
-            f'{j * xinc:.6f} 0 0.05 0 0 1'
-            for j in range(n_points))
+
+        # v4.2 item 7: frame coordinate locale (u, v, w) ancorato al
+        # tracker. Per axis_azimuth=180° riproduce il vecchio layout
+        # (sensori lungo world X). Per axis_azimuth diverso, ruota
+        # con il tracker.
+        import math as _math
+        _axis_azimuth = float(p.get('axis_azimuth', 180.0))
+        _phi = _math.radians(_axis_azimuth - 180.0)
+        _cos_phi = _math.cos(_phi)
+        _sin_phi = _math.sin(_phi)
+
+        def _local_to_world_xy(v_local: float):
+            return (v_local * _cos_phi, -v_local * _sin_phi)
+
+        _linepts_lines = []
+        for j in range(n_points):
+            v = j * xinc
+            x_w, y_w = _local_to_world_xy(v)
+            _linepts_lines.append(f'{x_w:.6f} {y_w:.6f} 0.05 0 0 1')
+        linepts = '\n'.join(_linepts_lines)
         linepts_bytes = linepts.encode()
 
         cumulative_irr = np.zeros(n_points)
@@ -329,7 +347,9 @@ def _run_br_official(p, epw_path, target_month, target_day, n_points):
         for idx in day_indices:
             theta = float(tracker_theta[idx])
             tilt = abs(theta)
-            azimuth = 90.0 if theta >= 0 else 270.0
+            # v4.2 item 7: azimuth scena calcolata da axis_azimuth ± 90.
+            # Per axis_azimuth=180° riproduce il vecchio (90/270).
+            azimuth = (_axis_azimuth + (-90.0 if theta >= 0 else 90.0)) % 360.0
             ch = hub_height - 0.5 * p['W'] * np.sin(np.radians(tilt))
             ch = max(0.01, ch)
 

@@ -62,6 +62,28 @@ agrivoltaico in pianura padana:
 Sono parametri di partenza realistici per un agrivoltaico standard. Per i tuoi
 progetti reali andranno sostituiti con i valori del sito specifico.
 
+## Auto-update label versione (v4.2+)
+
+A partire da SolRatio v4.2, il file `SolRatio_progetto.xlsm` può aggiornare
+automaticamente la cella `A1` del foglio Launcher con la versione corrente
+letta da `engine/VERSION`. Per attivare la feature in un progetto esistente:
+
+1. Apri `SolRatio_progetto.xlsm` con Excel (macro abilitate)
+2. `Alt+F11` per aprire l'editor VBA
+3. `File → Importa file…` → seleziona `engine/SolRatio_VersionLabel.bas`
+4. Doppio click su `ThisWorkbook` nel pannello Progetto VBA, incolla:
+   ```vba
+   Private Sub Workbook_Open()
+       On Error Resume Next
+       UpdateVersionLabelFromFile
+   End Sub
+   ```
+5. `Ctrl+S` per salvare. Chiudi e riapri: la cella `A1` mostrerà
+   `SOLRATIO AGRIVOLTAICO - Launcher vX.Y.Z` con la versione corrente.
+
+Comportamento: silent-fail se `engine/VERSION` non è raggiungibile, niente
+prompt "Salvare?" alla chiusura, idempotente.
+
 ## Validazione del progetto Sample
 
 Questa configurazione (con coordinate di pianura padana) è stata usata come

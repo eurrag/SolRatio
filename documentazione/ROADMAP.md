@@ -83,18 +83,19 @@ I TODO della v4.0.0 sono stati chiusi (completati o riformulati) in v4.1.0:
 
 ## Sviluppi futuri
 
-### v4.2 — Pali, multi-anno, ground inclinato
+> **Nota — Riassegnazione scope 2026-05-02.** Su decisione utente i pali
+> Radiance sono spostati da v4.2 a v4.3, e i 3 item v4.3 originali sono
+> redistribuiti: BRTDfunc + Bifacciale anticipati a v4.2 (con scope ridotti
+> α e β rispettivamente), Trade-off costo H_min spostato a v4.4. Vedi
+> `PIANO_v4.2.md` per il dettaglio operativo.
 
-- **Pali nella scena Radiance**: reintegrare i pali di sostegno come oggetti
-  cilindrici nella scena BR (in v4.0.0 erano gestiti analiticamente con
-  post-shadow; in v4.1.0 sono stati rimossi dal flusso, codice conservato
-  dormiente). Richiede: oggetti cilindrici Radiance posizionati sull'asse tracker
-  con spaziatura B22, riattivazione delle call sites commentate in
-  `calcola_br.py`, `solratio_edge.py`, `solratio_pdf.py`, `solratio_excel.py`.
+### v4.2 — Multi-anno, ground inclinato, bifacciale, BRTDfunc (9 item)
 
 - **Modalità multi-anno**: eseguire la simulazione su tutti gli anni PVGIS
   (non solo TMY) e calcolare statistiche inter-annuali (P10/P50/P90 di K_agv).
-  Permette di stimare la variabilità climatica del sito.
+  Permette di stimare la variabilità climatica del sito. Strategia confermata
+  (D7=A): run sequenziale + salvataggio incrementale + flag CLI
+  `--years all|tmy|2010,2015,2020`.
 
 - **Ground plane inclinato (L3 completo)**: in v4.1.0 i sensori sono già
   posizionati sul piano terreno (L3 parziale), ma il ground geometrico
@@ -352,19 +353,51 @@ I TODO della v4.0.0 sono stati chiusi (completati o riformulati) in v4.1.0:
   **Tempo stimato implementazione: ~30 minuti** (incluso test). Bassa
   complessità ma alto valore quotidiano (automazione di un task ricorrente).
 
-### v4.3 — Funzionalità avanzate
+- **Pannelli semi-trasparenti avanzati (BRTDfunc, scope α)**: in v4.1.0 è
+  già supportato `tau` via materiale Radiance `trans` (mappatura semplice per
+  pannelli a vetro convenzionali, `tspec=1.0`). v4.2 estende il modello al
+  materiale Radiance `BRTDfunc`, separando la trasmittanza in componente
+  speculare `tau_spec` e diffusa `tau_diff` (lette da Parametri Excel).
+  Retrocompat con `tau_diff=0` deve coincidere bit-per-bit col `tau` corrente.
+  _Anticipato dalla v4.3 originale (su decisione utente 2026-05-02). Le
+  estensioni a `prism2` e BSDF `.xml` restano future v4.5+._
 
-- **Pannelli semi-trasparenti avanzati**: in v4.1.0 è già supportato `tau`
-  via materiale Radiance `trans` (mappatura semplice per pannelli a vetro
-  convenzionali, `tspec=1.0`). Per pannelli organici o thin-film con
-  trasmissione diffusa, estendere a materiali `BRTDfunc` o `prism2` con
-  taratura sperimentale.
+- **Bifacciale (energia PV, scope β)**: estendere il modello al calcolo
+  della produzione PV bifacciale = `front + bifaciality_factor × rear`,
+  con `bifaciality_factor` configurabile (default 0.7 per moduli moderni,
+  0 per monofacciali). Output: nuove sezioni "Produzione bifacciale" in
+  Excel e PDF. Modulo nuovo `engine/solratio_bifacial.py` (calcolo POA
+  posteriore tramite bifacial_radiance). Retrocompat con
+  `bifaciality_factor=0`. _Anticipato dalla v4.3 originale. Estensione LCOE
+  rimandata a v4.4 (vedi sotto)._
+
+### v4.3 — Pali nella scena Radiance (3D)
+
+- **Pali nella scena Radiance**: reintegrare i pali di sostegno come oggetti
+  cilindrici nella scena BR (in v4.0.0 erano gestiti analiticamente con
+  post-shadow; in v4.1.0 sono stati rimossi dal flusso, codice conservato
+  dormiente). Richiede: oggetti cilindrici Radiance posizionati sull'asse
+  tracker con spaziatura B22, riattivazione delle call sites commentate in
+  `calcola_br.py`, `solratio_edge.py`, `solratio_pdf.py`, `solratio_excel.py`.
+  _Spostato da v4.2 originale a v4.3 su decisione utente 2026-05-02 per dare
+  priorità in v4.2 a multi-anno, BRTDfunc e bifacciale._
+
+### v4.4 — Economia (LCOE + trade-off costo H_min)
 
 - **Trade-off costo-resa H_min (formulazione B)**: estendere
-  `solratio_optimization.py` con funzione di costo strutturale
-  `cost(H_min)` parametrizzata su €/m altezza, e ottimizzazione
-  `argmax K_agv − λ · cost(H_min)` con lambda configurabile dal foglio
-  Parametri.
+  `solratio_optimization.py` con funzione di costo strutturale `cost(H_min)`
+  parametrizzata su €/m altezza, e ottimizzazione
+  `argmax K_agv − λ · cost(H_min)` con `λ` configurabile dal foglio
+  Parametri (sezione "Economia" da introdurre). _Spostato da v4.3
+  originale a v4.4 su decisione utente 2026-05-02._
 
-- **Bifacciale**: estendere il modello per calcolare l'irradianza sulla faccia
-  posteriore dei moduli fotovoltaici (per produzione e
+- **LCOE bifacciale (estensione di v4.2 § Bifacciale, scope γ originale)**:
+  propagare la produzione PV bifacciale calcolata in v4.2 sul business case
+  (LCOE €/MWh, payback). Richiede revisione fogli di sintesi Excel e
+  sezione PDF. Si accoppia naturalmente con il trade-off costo H_min in
+  un'unica release "economica".
+
+- **Bifacciale avanzato (BSDF moduli)**: per moduli con texture
+  posteriore non lambertiana (vetro temperato microstrutturato), caricare
+  BSDF `.xml` Radiance e propagare nel calcolo POA back.
+

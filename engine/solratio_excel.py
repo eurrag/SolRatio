@@ -135,8 +135,19 @@ def read_parameters(wb):
         # ma IGNORATI nel flusso v4.1.0 (pali rimandati a v4.2 con scena Radiance 3D)
         'd_palo':           get('B21', float, 0.0),
         'spaziatura_pali':  get('B22', float, 5.0),
-        'tau':              get('B23', float, 0.0),  # trasmittanza pannello (0=opaco, 0.1-0.3=semitrasparente)
+        'tau':              get('B23', float, 0.0),  # trasmittanza pannello speculare (0=opaco, 0.1-0.3=semitrasparente)
         'albedo':           get('B24', float, 0.23),
+        # v4.2 item 9: tau_diff (BRTDfunc α) - trasmittanza diffusa addizionale.
+        # Default 0 = comportamento v4.1 (tutto speculare). Workbook v4.1
+        # esistenti (senza cella B25) ricevono il default 0 → retrocompat.
+        # Per attivare: aggiungere riga in foglio Parametri con cella B25.
+        'tau_diff':         get('B25', float, 0.0),
+        # v4.2 item 11: bifaciality_factor (Bifacciale β). Default 0 =
+        # monofacciale (no contributo POA back). Tipico bifacciale: 0.65-0.85.
+        # Workbook v4.1 esistenti (senza cella B26) ricevono il default 0
+        # → retrocompat. Per attivare: aggiungere riga in foglio Parametri
+        # con cella B26.
+        'bifaciality_factor': get('B26', float, 0.0),
         # ── EFFETTI BORDO ──
         # B30: larghezza blocco bordo-bordo [m] (0=disattivato)
         # B31: lunghezza totale file tracker [m]
@@ -225,6 +236,21 @@ def read_parameters(wb):
         raise ValueError(f"Albedo = {p['albedo']:.2f}: fuori range 0-1 (cella B24).")
     if not (0.0 <= p['tau'] <= 1.0):
         raise ValueError(f"Trasmittanza tau = {p['tau']:.2f}: fuori range 0-1 (cella B23).")
+    # v4.2 item 9: BRTDfunc α — validazione tau_diff e somma totale
+    if not (0.0 <= p.get('tau_diff', 0.0) <= 1.0):
+        raise ValueError(
+            f"Trasmittanza diffusa tau_diff = {p['tau_diff']:.2f}: "
+            f"fuori range 0-1 (cella B25).")
+    if (p['tau'] + p.get('tau_diff', 0.0)) > 1.0:
+        raise ValueError(
+            f"tau + tau_diff = {p['tau']:.2f} + {p.get('tau_diff', 0.0):.2f} "
+            f"= {p['tau'] + p.get('tau_diff', 0.0):.2f} > 1: trasmittanza "
+            f"totale impossibile fisicamente. Ridurre B23 o B25.")
+    # v4.2 item 11: bifacciale — validazione bifaciality_factor
+    if not (0.0 <= p.get('bifaciality_factor', 0.0) <= 1.0):
+        raise ValueError(
+            f"Fattore bifacialità = {p['bifaciality_factor']:.2f}: "
+            f"fuori range 0-1 (cella B26).")
     if not (0.0 <= p['slope_pct'] <= 100.0):
         raise ValueError(f"Pendenza = {p['slope_pct']:.1f}%: fuori range 0-100 (cella B6).")
     if p['slope_pct'] > 0 and not (0.0 <= p['slope_azimuth'] <= 360.0):

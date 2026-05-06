@@ -266,13 +266,30 @@ def _probe_pvgis_year_range(lat, lon):
 def get_pvgis_data(p, xlsx_dir):
     """
     Restituisce DataFrame con serie oraria PVGIS (GHI, DNI, DHI, solar_elevation).
-    Cerca prima il CSV locale, altrimenti scarica da PVGIS e salva il CSV.
+    Cerca prima il CSV locale (layout v4.1.x in root o v4.2 in input/),
+    altrimenti scarica da PVGIS e salva il CSV nella root del progetto.
     """
     # Determina percorso CSV
     csv_path = p.get('csv_path', '').strip()
     if not csv_path:
         fname = f"PVGIS_{p['lat']:.4f}_{p['lon']:.4f}_{p['yr_start']}_{p['yr_end']}.csv"
         csv_path = os.path.join(xlsx_dir, fname)
+        # v4.2 item 5: se non esiste in root, prova layout standardizzato
+        # con CSV in <xlsx_dir>/input/
+        if not os.path.exists(csv_path):
+            input_csv_path = os.path.join(xlsx_dir, 'input', fname)
+            if os.path.exists(input_csv_path):
+                csv_path = input_csv_path
+            else:
+                # Fallback più ampio: usa find_pvgis_csv se disponibile
+                # (gestisce match approssimato sui nomi PVGIS_*.csv).
+                try:
+                    from br_engine import find_pvgis_csv
+                    found = find_pvgis_csv(xlsx_dir, p['lat'], p['lon'])
+                    if found is not None:
+                        csv_path = str(found)
+                except Exception:
+                    pass
 
     if os.path.exists(csv_path):
         print(f"  CSV PVGIS trovato: {csv_path}")

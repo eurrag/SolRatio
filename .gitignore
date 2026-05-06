@@ -69,6 +69,14 @@ _PUBBLICA_AGGIORNAMENTI.bat
 *~
 *.orig
 
+# Output di test e sweep parametrici (rigenerabili)
+_orchestratore_runs/
+_test_slope_runs/
+_debug_oconv/
+smoke_regression.log
+diagnosi_cache_oct*.log
+test_write_perm.txt
+
 # === Documenti privati personali ===
 # File di memoria/note personali NON pubblicati su GitHub.
 # Convenzione: qualsiasi file con "Privato" o "Private" nel nome.

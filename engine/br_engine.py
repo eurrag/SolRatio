@@ -34,9 +34,20 @@ import time as _time
 import multiprocessing
 import subprocess as _subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path as _Path
 
 import numpy as np
 import pandas as pd
+
+# Cache scene .oct persistente (item 4 di v4.2). Import opzionale —
+# l'assenza del modulo non rompe il motore (fallback no-cache).
+try:
+    from . import _scene_cache as _SR_CACHE
+except (ImportError, ValueError):
+    try:
+        import _scene_cache as _SR_CACHE  # esecuzione come script standalone
+    except ImportError:
+        _SR_CACHE = None
 
 warnings.filterwarnings('ignore')
 
@@ -47,31 +58,39 @@ __version__ = '4.1.2'
 # Trasmittanza pannello (tau) — materiale Radiance 'trans'
 # ══════════════════════════════════════════════════════════════════════════
 
-def _apply_tau_material(rad, tau, module_name='sr_module'):
+def _apply_tau_material(rad, tau, module_name='sr_module', tau_diff=0.0):
     """
     Trasforma il modulo Radiance in semitrasparente usando il materiale 'trans'.
 
     Override del materiale opaco di default di bifacial_radiance (`Metal_Grey`
     o `black`) con un materiale Radiance `trans` calibrato sulla trasmittanza
-    pannello tau (range 0-1).
+    pannello.
 
-    Mappatura per pannelli a vetro convenzionali (default):
-        trans  = tau         frazione totale di luce trasmessa
-        tspec  = 1.0         trasmissione speculare (vetro liscio: raggio passa dritto)
-        spec   = 0.05        riflessione speculare frontale (vetro standard)
-        R G B  = 1 - tau - spec   diffusione + assorbimento del backsheet
+    BRTDfunc scope α (v4.2 item 9):
+    - `tau` = trasmittanza speculare (raggio passa dritto, comportamento vetro)
+    - `tau_diff` = trasmittanza diffusa addizionale (luce sparsa Lambert)
+    - Trasmittanza totale = tau + tau_diff (deve essere <= 1)
 
-    Per pannelli a film sottile od organici (trasmissione diffusa): impostare
-    `tspec` < 1.0 modificando questa funzione.
+    Mappatura sul materiale Radiance `trans`:
+        trans  = tau + tau_diff             totale trasmessa
+        tspec  = tau / (tau + tau_diff)     frazione speculare (1=tutto vetro)
+        spec   = 0.05                       riflessione speculare frontale
+        R G B  = 1 - (tau+tau_diff) - spec  diffusione+assorbimento backsheet
+
+    Comportamento retrocompatibile: con `tau_diff=0` (default), la mappatura
+    è identica alla v4.1.x (tspec=1.0, trans=tau).
 
     Parametri
     ---------
     rad : bifacial_radiance.RadianceObj
         Oggetto Radiance già inizializzato.
     tau : float
-        Trasmittanza pannello, 0 (opaco) ≤ tau ≤ 1 (trasparente).
+        Trasmittanza pannello speculare, 0 (opaco) ≤ tau ≤ 1.
     module_name : str
         Nome modulo passato a makeModule (default 'sr_module').
+    tau_diff : float, default 0.0
+        Trasmittanza pannello diffusa addizionale, 0 ≤ tau_diff ≤ (1-tau).
+        Per pannelli organici/thin-film con trasmissione diffusa significativa.
 
     Effetti
     -------
@@ -86,10 +105,20 @@ def _apply_tau_material(rad, tau, module_name='sr_module'):
     ------
     RuntimeError se non si trova il file modulo o nessun materiale opaco standard.
     """
-    if tau <= 0:
-        return  # nessuna modifica per pannello opaco (default)
-    if tau > 1:
-        raise ValueError(f"tau deve essere in [0, 1], ricevuto {tau}")
+    # Valida tau e tau_diff (BRTDfunc scope α)
+    tau = float(tau)
+    tau_diff = float(tau_diff)
+    if tau < 0 or tau_diff < 0:
+        raise ValueError(f"tau e tau_diff devono essere >= 0, "
+                         f"ricevuti tau={tau}, tau_diff={tau_diff}")
+    tau_total = tau + tau_diff
+    if tau_total <= 0:
+        return  # opaco: nessuna modifica
+    if tau_total > 1:
+        raise ValueError(
+            f"tau + tau_diff = {tau_total} > 1 (impossibile fisicamente). "
+            f"Riducre i valori in input."
+        )
 
     NEW_MATERIAL = 'sr_panel_trans'
     objects_dir = os.path.join(rad.path, 'objects')
@@ -133,22 +162,28 @@ def _apply_tau_material(rad, tau, module_name='sr_module'):
         with open(mod_file, 'w') as f:
             f.write(mod_content_new)
 
-    # 4. Calcola parametri materiale trans
+    # 4. Calcola parametri materiale trans (BRTDfunc scope α)
     spec = 0.05                                 # riflessione speculare vetro
-    rgb_diff = max(0.0, 1.0 - float(tau) - spec)  # diffusione+assorbimento
-    trans_param = float(tau)                    # frazione trasmessa
-    tspec = 1.0                                 # trasmissione speculare
+    rgb_diff = max(0.0, 1.0 - tau_total - spec) # diffusione+assorbimento
+    trans_param = tau_total                     # frazione totale trasmessa
+    # tspec = frazione speculare della trasmissione totale
+    tspec = (tau / tau_total) if tau_total > 1e-9 else 1.0
     rough = 0.0                                 # superficie liscia
 
     # 5. Crea file materiale custom
     if not os.path.isdir(materials_dir):
         os.makedirs(materials_dir, exist_ok=True)
     mat_file = os.path.join(materials_dir, f'{NEW_MATERIAL}.rad')
-    with open(mat_file, 'w') as f:
+    # encoding='utf-8' esplicito per evitare UnicodeEncodeError su Windows
+    # con cp1252 default. Solo ASCII nei commenti per safety con parser
+    # Radiance (oconv); 'alpha' invece di 'α' (greca) che non è in cp1252.
+    with open(mat_file, 'w', encoding='utf-8') as f:
         f.write(
-            f'# SolRatio v4.1.2 — Materiale pannello semitrasparente\n'
-            f'# Trasmittanza tau = {tau:.3f}\n'
-            f'# Mappatura: trans=tau, tspec=1.0 (vetro), spec=0.05\n'
+            f'# SolRatio v4.1.2 -- Materiale pannello semitrasparente (BRTDfunc alpha)\n'
+            f'# Trasmittanza speculare tau = {tau:.3f}\n'
+            f'# Trasmittanza diffusa  tau_diff = {tau_diff:.3f}\n'
+            f'# Trasmittanza totale  tau_total = {tau_total:.3f}\n'
+            f'# Mappatura Radiance trans: trans={trans_param:.3f}, tspec={tspec:.3f}\n'
             f'# Bilancio: rifl_spec + rifl_diff + trasm = '
             f'{spec:.3f} + {rgb_diff:.3f} + {trans_param:.3f}\n'
             f'\n'
@@ -166,8 +201,55 @@ def _apply_tau_material(rad, tau, module_name='sr_module'):
         rad.materialfiles.append(mat_file)
 
     if not already_applied:
-        print(f'  TAU: pannello semitrasparente attivato  '
-              f'(tau={tau:.2f}, materiale Radiance trans)')
+        if tau_diff > 0:
+            print(f'  TAU: pannello semitrasparente BRTDfunc alpha  '
+                  f'(tau_spec={tau:.2f}, tau_diff={tau_diff:.2f}, '
+                  f'tau_total={tau_total:.2f})')
+        else:
+            print(f'  TAU: pannello semitrasparente attivato  '
+                  f'(tau={tau:.2f}, materiale Radiance trans)')
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Layout cartella progetto (v4.2 item 5)
+# ══════════════════════════════════════════════════════════════════════════
+
+def find_pvgis_csv(project_dir, lat=None, lon=None):
+    """
+    Cerca un file PVGIS CSV nella cartella del progetto.
+
+    Supporta sia il layout v4.1.x ("piatto" — file nella root del
+    progetto) sia il layout v4.2 standardizzato (file in `<progetto>/input/`).
+
+    Ordine di ricerca:
+      1. <project_dir>/PVGIS_*.csv     (layout legacy)
+      2. <project_dir>/input/PVGIS_*.csv  (layout v4.2)
+
+    Se `lat` e `lon` sono forniti (in gradi decimali, formato `45.30`),
+    si filtrano i nomi che combaciano con `PVGIS_<lat>_<lon>_*.csv`.
+    Altrimenti si restituisce il primo CSV PVGIS trovato.
+
+    Returns
+    -------
+    pathlib.Path | None
+        Path al primo file PVGIS CSV trovato, oppure None se nessuno.
+    """
+    project_dir = _Path(project_dir)
+    candidates = [project_dir, project_dir / 'input']
+
+    for d in candidates:
+        if not d.is_dir():
+            continue
+        if lat is not None and lon is not None:
+            pattern = f'PVGIS_{float(lat):.4f}_{float(lon):.4f}_*.csv'
+            matches = sorted(d.glob(pattern))
+            if matches:
+                return matches[0]
+        # Fallback: qualsiasi PVGIS_*.csv
+        matches = sorted(d.glob('PVGIS_*.csv'))
+        if matches:
+            return matches[0]
+    return None
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -323,7 +405,8 @@ def _apply_irrPlot_patch():
         pass
 
 
-def run_annual(p, epw_path, n_points=51, sample_days=None):
+def run_annual(p, epw_path, n_points=51, sample_days=None,
+               use_scene_cache=True, project_dir=None):
     """
     Simulazione annuale bifacial_radiance con gendaylit ora-per-ora.
 
@@ -333,6 +416,13 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
       epw_path: percorso file EPW
       n_points: punti campionamento al suolo (default 51)
       sample_days: set di (month, day) per filtrare giorni, None = tutti
+      use_scene_cache: True (default) abilita la cache persistente delle
+         scene Radiance pre-compilate (.oct senza cielo). Speedup atteso
+         30-60% sul tempo per ora dopo il primo run sullo stesso progetto
+         con stessa geometria. Fail-safe: in caso di errore della cache
+         si applica il flusso legacy (full oconv per ora). v4.2.0+.
+      project_dir: cartella radice del progetto in cui creare `.cache/scenes/`.
+         Default None → derivata da `Path(epw_path).parent`.
 
     Restituisce dict:
       'IRR_hourly': np.ndarray (n_daylight_ok, n_points) — W/m² per ora
@@ -357,6 +447,22 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
     # ══════════════════════════════════════════════════════════════════
 
     print('  === SolRatio v4.1.2 — Motore bifacial_radiance ===')
+
+    # ── Cache scene .oct persistente (v4.2 item 4) ───────────────────
+    # Pre-compila il .oct di scena (matfiles+radfiles, senza cielo) una
+    # sola volta per progetto+geometria. Per ogni ora, oconv -i scene.oct
+    # sky.rad linka incrementalmente → speedup 30-60% atteso.
+    _cache_dir = None
+    if use_scene_cache and _SR_CACHE is not None:
+        try:
+            _proj_dir = _Path(project_dir) if project_dir else _Path(epw_path).parent
+            _cache_dir = _SR_CACHE.get_cache_dir(_proj_dir)
+            _stats = _SR_CACHE.stats(_cache_dir)
+            print(f'  Cache scene: {_stats.get("n_scenes", 0)} hit-set in '
+                  f'{_cache_dir} ({_stats.get("total_size_mb", 0):.1f}MB)')
+        except Exception as _exc:
+            print(f'  Cache scene: disabilitata ({_exc})')
+            _cache_dir = None
 
     # ── Work dir senza spazi ─────────────────────────────────────────
     temp_work = tempfile.mkdtemp(prefix='sr_v4_')
@@ -409,12 +515,16 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
         mod = rad.makeModule(name='sr_module', x=module_length,
                              y=p['W'], glass=False)
 
-        # ── Trasmittanza pannello (v4.1.0) ─────────────────────────────
-        # Se tau > 0, sostituisce il materiale opaco di default con
-        # un materiale Radiance 'trans' calibrato sulla trasmittanza tau.
+        # ── Trasmittanza pannello (v4.1.0 + BRTDfunc α v4.2 item 9) ────
+        # Se tau > 0 (e/o tau_diff > 0), sostituisce il materiale opaco
+        # di default con un materiale Radiance 'trans' calibrato.
+        # tau_diff (default 0) abilita la componente diffusa di
+        # trasmissione per pannelli organici/thin-film.
         _tau = float(p.get('tau', 0.0))
-        if _tau > 0:
-            _apply_tau_material(rad, _tau, module_name='sr_module')
+        _tau_diff = float(p.get('tau_diff', 0.0))
+        if _tau > 0 or _tau_diff > 0:
+            _apply_tau_material(rad, _tau, module_name='sr_module',
+                                tau_diff=_tau_diff)
 
         hub_height = p['H']
         print(f'  Hub height: {hub_height:.3f}m')
@@ -487,7 +597,7 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
         _tan_slope_cross = np.tan(_slope_cross_rad) if abs(_slope_cross_rad) > 1e-8 else 0.0
         # ── Slope L3 (v4.1.0): sensori sul piano terreno inclinato ───
         # Per slope trasversale all'asse tracker, i sensori vengono
-        # posizionati sul piano terreno reale (z = z0 + x * tan(slope_cross))
+        # posizionati sul piano terreno reale (z = z0 + v_local * tan(slope_cross))
         # invece che su un piano orizzontale fisso a z=0.05.
         # La normale del raggio resta (0,0,1) per misurare irradianza
         # orizzontale, coerente con la convenzione DLI agronomica.
@@ -498,63 +608,103 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
         # implementazione L3 completa con ground plane inclinato (v4.2).
         _z0 = 0.05  # quota base sensori (5 cm sopra il terreno locale)
 
-        def _sensor_z(x_local: float) -> float:
-            """Quota Z del sensore per la coordinata X locale, dato lo slope L3."""
-            return _z0 + float(x_local) * _tan_slope_cross
+        def _sensor_z(v_local: float) -> float:
+            """Quota Z del sensore per la coordinata locale v (perpendicolare al
+            tracker), dato lo slope L3 cross-tracker."""
+            return _z0 + float(v_local) * _tan_slope_cross
+
+        # ── Frame coordinate locale (v4.2 item 7) ─────────────────────
+        # Sensori posizionati in coordinate locali (u, v, w) ancorate al
+        # tracker: u = lungo asse tracker, v = perpendicolare (pitch),
+        # w = verticale. Trasformazione a coordinate mondo via rotazione
+        # phi = axis_azimuth - 180°. Per axis_azimuth=180° (N-S, default
+        # storico), phi=0 → coordinate identiche al precedente layout
+        # (sensori lungo world X). Per axis_azimuth diverso, il frame
+        # ruota con il tracker.
+        import math as _math
+        _axis_azimuth = float(p.get('axis_azimuth', 180.0))
+        _phi = _math.radians(_axis_azimuth - 180.0)
+        _cos_phi = _math.cos(_phi)
+        _sin_phi = _math.sin(_phi)
+
+        def _local_to_world(v_local: float):
+            """Trasforma coordinata locale v (perpendicolare al tracker) in
+            coordinate mondo (x, y). Per axis_azimuth=180° è identità
+            (x=v, y=0)."""
+            return (v_local * _cos_phi, -v_local * _sin_phi)
+
+        # v4.2: replica multi-fila slope L2 ora axis_azimuth-aware
+        # (vedi _local_to_world applicato a _dx nel wrapper sotto).
+        # Per axis=180 il comportamento e' bit-per-bit identico a v4.1.
 
         linepts_lines = []
         profile_slices = {}
 
-        # Profilo centrale: x = 0 .. pitch
+        # Profilo centrale: v = 0 .. pitch (locale, perpendicolare al tracker)
         s0 = 0
         for j in range(n_points):
-            x = j * xinc
-            linepts_lines.append(f'{x:.6f} 0 {_sensor_z(x):.6f} 0 0 1')
+            v = j * xinc
+            x_w, y_w = _local_to_world(v)
+            linepts_lines.append(f'{x_w:.6f} {y_w:.6f} {_sensor_z(v):.6f} 0 0 1')
         profile_slices['central'] = (s0, len(linepts_lines))
 
         # Profili bordo (se N_file > 0)
         strip_width_br = 0.0
         if compute_edge:
-            # Pitch edge: k*P .. (k+1)*P per k=1..n_ext-1
+            # Pitch edge: k*P .. (k+1)*P per k=1..n_ext-1 (in coord. locale v)
             for k in range(1, n_ext):
                 s = len(linepts_lines)
                 for j in range(n_points):
-                    x = k * p['pitch'] + j * xinc
-                    linepts_lines.append(f'{x:.6f} 0 {_sensor_z(x):.6f} 0 0 1')
+                    v = k * p['pitch'] + j * xinc
+                    x_w, y_w = _local_to_world(v)
+                    linepts_lines.append(f'{x_w:.6f} {y_w:.6f} {_sensor_z(v):.6f} 0 0 1')
                 profile_slices[f'edge_{k}'] = (s, len(linepts_lines))
 
-            # Fascia esterna: n_ext*P .. n_ext*P + strip_width
+            # Fascia esterna: v = n_ext*P .. n_ext*P + strip_width
             strip_width_br = _compute_strip_width_br(solpos, p)
             strip_xinc = strip_width_br / max(n_points - 1, 1)
             s = len(linepts_lines)
             for j in range(n_points):
-                x = n_ext * p['pitch'] + j * strip_xinc
-                linepts_lines.append(f'{x:.6f} 0 {_sensor_z(x):.6f} 0 0 1')
+                v = n_ext * p['pitch'] + j * strip_xinc
+                x_w, y_w = _local_to_world(v)
+                linepts_lines.append(f'{x_w:.6f} {y_w:.6f} {_sensor_z(v):.6f} 0 0 1')
             profile_slices['outer'] = (s, len(linepts_lines))
 
             print(f'  Profili bordo: {max(n_ext-1, 0)} edge + 1 outer '
                   f'(strip={strip_width_br:.1f}m)')
 
-        # ── Slope L3: calcolo quota ground per evitare sensori sotto-ground ─
-        # Se i sensori inclinati scendono sotto z=-0.01 (default ring),
-        # abbassiamo il groundplane sotto il sensore più basso, altrimenti
-        # i raggi colpiscono il ground dal basso → irradianza errata.
+        # -- Slope L3 v4.2: groundplane realmente inclinato (Rodrigues) --
+        # Per slope_cross != 0 il groundplane e' un ring inclinato con
+        # normale ruotata di slope_cross_rad attorno all'asse del tracker
+        # (formula di Rodrigues). Centro a (0,0,0): il piano passa per
+        # l'origine. I sensori a z = z0 + v*tan(slope_cross) sono per
+        # costruzione 5 cm sopra il piano inclinato in ogni posizione.
+        # Per slope_cross == 0 manteniamo il ring orizzontale a z=-0.01
+        # (bit-per-bit identico a v4.1).
         if abs(_tan_slope_cross) > 1e-8:
-            # Calcola x estremi effettivamente usati (in valore assoluto)
+            # Normale piano inclinato (Rodrigues, asse rotazione = asse tracker)
+            _sin_sl = np.sin(_slope_cross_rad)
+            _cos_sl = np.cos(_slope_cross_rad)
+            _gn_x = -_cos_phi * _sin_sl
+            _gn_y = -_sin_phi * _sin_sl
+            _gn_z = _cos_sl
+            _gc_x, _gc_y, _gc_z = 0.0, 0.0, 0.0  # ring passante per origine
+            # Range quota sensori (info diagnostica)
             _x_max_used = (n_ext * p['pitch'] + strip_width_br) if compute_edge \
                           else p['pitch']
-            # z_min globale = z al sensore più basso (può essere a x_max o x_min=0)
             _z_at_xmin = _sensor_z(0.0)
             _z_at_xmax = _sensor_z(_x_max_used)
             _z_min_sensors = min(_z_at_xmin, _z_at_xmax)
-            # Ground sotto il sensore più basso di 10 cm (margine sicurezza)
-            _ground_z = min(-0.01, _z_min_sensors - 0.10)
-            print(f'  Slope L3: sensori sul piano terreno '
+            _z_max_sensors = max(_z_at_xmin, _z_at_xmax)
+            print(f'  Slope L3: groundplane inclinato '
                   f'(dz/m={_tan_slope_cross:+.4f}, '
-                  f'z_sensori in [{_z_min_sensors:.2f}, {max(_z_at_xmin, _z_at_xmax):.2f}]m, '
-                  f'ground a z={_ground_z:.2f}m)')
+                  f'normale=({_gn_x:+.3f},{_gn_y:+.3f},{_gn_z:+.3f}), '
+                  f'z_sensori in [{_z_min_sensors:.2f}, {_z_max_sensors:.2f}]m)')
+            _ground_z = 0.0  # solo per legacy reference (non usato dal ring inclinato)
         else:
-            _ground_z = -0.01  # default bifacial_radiance
+            _gn_x, _gn_y, _gn_z = 0.0, 0.0, 1.0
+            _gc_x, _gc_y, _gc_z = 0.0, 0.0, -0.01
+            _ground_z = -0.01  # bit-per-bit v4.1 per slope=0
 
         n_total_points = len(linepts_lines)
         linepts_str = '\n'.join(linepts_lines)
@@ -583,7 +733,9 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
 
         for _i_ut, _ut in enumerate(unique_thetas):
             _tilt = abs(_ut)
-            _azimuth = 90.0 if _ut >= 0 else 270.0
+            # v4.2 item 7: azimuth scena calcolato da axis_azimuth ± 90
+            # Per axis_azimuth=180° riproduce il vecchio (90/270).
+            _azimuth = (_axis_azimuth + (-90.0 if _ut >= 0 else 90.0)) % 360.0
             _ch = hub_height - 0.5 * p['W'] * np.sin(np.radians(_tilt))
             _ch = max(0.01, _ch)
             clearance_cache[_ut] = _ch
@@ -637,6 +789,10 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
                         if _ro == 0:
                             _out.extend(_xform_cmds)
                         else:
+                            # v4.2 L2 fix: replica multi-fila in coord. mondo
+                            # tramite _local_to_world(_dx). Per axis=180 e'
+                            # identita' (dx_world=_dx, dy_world=0); per altri
+                            # axis_azimuth la replica e' nel frame ruotato.
                             _dx = _ro * p['pitch']
                             _dz = _dx * _tan_slope_cross
                             if _dz < -_dz_clamp:
@@ -645,6 +801,7 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
                             elif _dz > _dz_clamp:
                                 _dz = _dz_clamp
                                 _n_clamped += 1
+                            _dx_w, _dy_w = _local_to_world(_dx)
                             for _xc in _xform_cmds:
                                 # Inserisci -t prima del filename (ultimo token)
                                 _parts = _xc.split()
@@ -652,7 +809,7 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
                                 _opts = _parts[1:-1]
                                 _out.append(
                                     '!xform ' + ' '.join(_opts)
-                                    + f' -t {_dx:.6f} 0 {_dz:.6f} '
+                                    + f' -t {_dx_w:.6f} {_dy_w:.6f} {_dz:.6f} '
                                     + _fname)
                     if _n_clamped > 0:
                         print(f'    NOTA: {_n_clamped} file con dz clampato '
@@ -685,6 +842,411 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
               + (f' (slope L2: dz/row={p["pitch"]*_tan_slope_cross:+.3f}m)'
                  if _has_slope_scene else ''))
 
+        # ── FIX cache scene .oct: pre-espandi i radfiles modulo ──────
+        # Diagnosi 2026-05-04: oconv su Windows non gestisce la cascata
+        # `oconv → !xform "sr_module.rad" → !genbox|xform` quando lanciato
+        # via `subprocess.run(stdin=DEVNULL)`. Il popen interno annidato
+        # fallisce silenziosamente (rc=0, no stderr, ma scene.oct degenere).
+        # Il legacy worker funziona perché bifacial_radiance usa
+        # `_popen(stdin=PIPE)`, ma per la pre-compile useremmo subprocess
+        # standard. Soluzione: pre-espandi i file modulo (es. sr_module.rad)
+        # da `! genbox … | xform …` a polygon flat con `xform` standalone
+        # (verificato funzionare in subprocess.run). Così la cascata di
+        # popen si riduce a 1 livello compatibile con oconv. Sovrascrivere
+        # il file originale è sicuro: il worker legacy funziona ugualmente
+        # con il flat (anzi, più veloce).
+        if _cache_dir is not None and len(unique_thetas) <= 200:
+            import re as _re_flat
+            _modfiles_to_flatten = set()
+            for _ut_pf in unique_thetas:
+                _radfiles_pf, _ = scene_cache[_ut_pf]
+                for _rf_pf in _radfiles_pf:
+                    _rf_pf_abs = (_rf_pf if os.path.isabs(_rf_pf)
+                                  else os.path.join(temp_work, _rf_pf))
+                    if not os.path.exists(_rf_pf_abs):
+                        continue
+                    try:
+                        with open(_rf_pf_abs) as _frf_pf:
+                            _content_pf = _frf_pf.read()
+                        for _m_pf in _re_flat.finditer(
+                                r'!xform[^"]*"([^"]+\.rad)"', _content_pf):
+                            _modfiles_to_flatten.add(_m_pf.group(1))
+                    except Exception:
+                        pass
+            _n_flat = 0
+            for _modrel in _modfiles_to_flatten:
+                _modrel_norm = _modrel.replace('\\', '/')
+                _modabs = os.path.join(temp_work, _modrel_norm)
+                if not os.path.exists(_modabs):
+                    continue
+                try:
+                    with open(_modabs) as _fmm_pf:
+                        _modc_pf = _fmm_pf.read()
+                    if '!' not in _modc_pf:
+                        continue  # già flat, skip
+                except Exception:
+                    continue
+                try:
+                    _flat_tmp = _modabs + '.flat_tmp'
+                    with open(_flat_tmp, 'wb') as _fft_pf:
+                        _xres_pf = _subprocess.run(
+                            ['xform', _modrel_norm],
+                            stdin=_subprocess.DEVNULL,
+                            stdout=_fft_pf,
+                            stderr=_subprocess.PIPE,
+                            cwd=temp_work,
+                            timeout=60,
+                        )
+                    _flat_sz = os.path.getsize(_flat_tmp)
+                    if _xres_pf.returncode == 0 and _flat_sz > 100:
+                        shutil.move(_flat_tmp, _modabs)
+                        _n_flat += 1
+                    else:
+                        if os.path.exists(_flat_tmp):
+                            os.remove(_flat_tmp)
+                except Exception:
+                    try:
+                        if os.path.exists(_flat_tmp):
+                            os.remove(_flat_tmp)
+                    except Exception:
+                        pass
+            if _n_flat > 0:
+                print(f'  Cache scene: pre-espansi {_n_flat} radfile modulo '
+                      f'(workaround Windows nested-popen bug)')
+
+        # ── Pre-compile scene .oct con cache (item 4 v4.2) ───────────
+        # Per ogni theta unico calcolo l'.oct di scena (matfiles+radfiles,
+        # senza cielo). Se la cache è abilitata e c'è già un .oct con la
+        # stessa chiave, riutilizzo quello — altrimenti compilo e salvo.
+        # Fail-safe: in caso di errore lascio scene_oct_cache[theta] = None
+        # e il worker tornerà al full oconv legacy.
+        #
+        # ── Cache scene .oct (item 4 v4.2) ──────────────────────────
+        # Diagnosi 2026-05-04 e fix:
+        # - Bug originale: pre-compile produceva octree degeneri (~1.2 KB)
+        #   perché `_popen` non passava `cwd=temp_work` al subprocess
+        #   oconv. Risultato: i `!xform objects/sr_module.rad` con path
+        #   relativo dentro i radfiles non venivano risolti, oconv
+        #   compilava solo i materiali. Octree senza geometria → rtrace
+        #   100% errori al worker.
+        # - Fix: il pre-compile usa `_subprocess.run` esplicito con
+        #   `cwd=temp_work` per garantire che path relativi dei
+        #   radfiles vengano risolti correttamente. Stessa correttezza
+        #   per il worker `oconv -i scene.oct sky.rad`.
+        # - Soglia automatica: cache attiva solo per N_thetas <= 200
+        #   (validazione_br, single-day, tilt fisso). Per N grandi
+        #   (flusso annuale) il pre-compile è skippato per evitare
+        #   throttling OneDrive.
+        _CACHE_MAX_THETAS = 200
+        scene_oct_cache = {}
+        if _cache_dir is not None and len(unique_thetas) > _CACHE_MAX_THETAS:
+            print(f'  Cache scene: DISATTIVATA — {len(unique_thetas)} theta '
+                  f'unici > soglia {_CACHE_MAX_THETAS}. Pre-compile '
+                  f'sarebbe più lento del beneficio. Uso flusso legacy.')
+            _cache_dir = None
+        if _cache_dir is not None:
+            _n_hits = 0
+            _n_built = 0
+            _n_skip_oconv = 0
+            _n_skip_rtrace = 0
+            _n_skip_geom = 0
+            _t_pre = _time.time()
+            # Setup sky di test per validazione semantica scene cached.
+            # Sole zenit + DNI 500 produce IRR vicino a 500 W/m² su raggio
+            # verticale open-sky; con un pannello sopra (materiale black =
+            # assorbe), IRR scende a ~0. Soglia 100 W/m² discrimina robusto
+            # (fattore 5x).
+            _sky_test_rad = os.path.join(temp_work, '_cache_sky_test.rad')
+            with open(_sky_test_rad, 'w') as _fst:
+                _fst.write('!gendaylit -ang 89 0 -W 500 100 -g 0.2 -O 1\n'
+                           'skyfunc glow sky_mat\n0\n0\n4 1 1 1 0\n\n'
+                           'sky_mat source sky\n0\n0\n4 0 0 1 180\n')
+            # Raggio test: parte dal centro pannello, sotto la quota minima
+            # del modulo, e va verso lo zenit. Per qualsiasi tilt il modulo
+            # centrale (a y=0 surface) passa per (0, 0, hub_height).
+            _test_linepts = b'0 0 0.5 0 0 1\n'
+            _IRR_TEST_THRESHOLD = 100.0  # W/m²: sotto = blocco da pannello
+            for _ut in unique_thetas:
+                try:
+                    _radfiles_t, _matfiles_t = scene_cache[_ut]
+                    _ch_t = clearance_cache[_ut]
+                    _scene_params = {
+                        'sr_compat': '4.2',
+                        'tilt': abs(_ut),
+                        'azimuth': 90.0 if _ut >= 0 else 270.0,
+                        'clearance_height': _ch_t,
+                        'pitch': p['pitch'],
+                        'n_rows': n_rows,
+                        'module_x': module_length,
+                        'module_y': p['W'],
+                        'tau': _tau,
+                        'albedo': p.get('albedo', 0.23),
+                        'slope_cross_deg': p.get('slope_cross_deg', 0.0),
+                        'slope_along_deg': p.get('slope_along_deg', 0.0),
+                        'axis_azimuth': p.get('axis_azimuth', 180.0),
+                        'has_slope_scene': _has_slope_scene,
+                    }
+                    _key = _SR_CACHE.make_cache_key(_scene_params)
+                    _cached = _SR_CACHE.lookup(_cache_dir, _key)
+                    if _cached is not None:
+                        scene_oct_cache[_ut] = str(_cached)
+                        _n_hits += 1
+                        continue
+                    # Cache miss: compila e salva.
+                    _scene_oct_path = os.path.join(
+                        temp_work, f'scene_theta_{unique_thetas.index(_ut):04d}.oct')
+
+                    # FIX cache scene: pre-flatten i radfiles principali
+                    # interpretando manualmente le righe `!xform`. oconv→popen
+                    # e xform→popen via subprocess.run falliscono entrambi su
+                    # Windows. Workaround: leggiamo il radfile, troviamo
+                    # `!xform <args> "<file>"`, eseguiamo `xform <args> "<file>"`
+                    # come comando shell standalone (nessun nesting), catturiamo
+                    # stdout (polygon flat) e li scriviamo nel file flat. oconv
+                    # riceverà solo polygon puri senza shell command `!`.
+                    import re as _re_xf
+                    _xform_pat = _re_xf.compile(r'^\s*!xform\s+(.+?)\s*$')
+                    _radfiles_flat_t = []
+                    for _rf_main in _radfiles_t:
+                        _rf_main_abs = (_rf_main if os.path.isabs(_rf_main)
+                                        else os.path.join(temp_work, _rf_main))
+                        _flat_rel = (_rf_main.rsplit('.rad', 1)[0]
+                                     + f'_flat_{unique_thetas.index(_ut):04d}.rad')
+                        _flat_abs = (_flat_rel if os.path.isabs(_flat_rel)
+                                     else os.path.join(temp_work, _flat_rel))
+                        try:
+                            with open(_rf_main_abs) as _fmain_in:
+                                _rf_lines = _fmain_in.readlines()
+                            _flat_total_sz = 0
+                            # Funzione: rimuove commenti `#` e righe vuote che
+                            # potrebbero confondere oconv tra una primitive e
+                            # l'altra. xform stampa header `# xform ...` che
+                            # oconv su Windows sembra non gestire correttamente
+                            # quando intervallano polygon definition.
+                            def _clean_rad(_text_b):
+                                _out = []
+                                for _ln in _text_b.decode('utf-8',
+                                                          errors='replace').splitlines():
+                                    _s = _ln.strip()
+                                    if not _s:
+                                        continue
+                                    if _s.startswith('#'):
+                                        continue
+                                    _out.append(_ln)
+                                return ('\n'.join(_out) + '\n').encode('utf-8')
+                            with open(_flat_abs, 'wb') as _ff_main:
+                                # Header materiali base. bifacial_radiance usa
+                                # `black` come materiale di default per genbox
+                                # ma NON lo definisce in materials/ground.rad.
+                                # Senza, oconv scarta i polygon in silenzio.
+                                _mat_header = (
+                                    b'void plastic black\n0\n0\n5 0 0 0 0 0\n\n'
+                                    b'void glass stock_glass\n0\n0\n3 0.96 0.96 0.96\n\n'
+                                )
+                                _ff_main.write(_mat_header)
+                                _flat_total_sz += len(_mat_header)
+                                for _line_rf in _rf_lines:
+                                    _m_xf = _xform_pat.match(_line_rf)
+                                    if _m_xf:
+                                        _xf_cmdline = 'xform ' + _m_xf.group(1)
+                                        _xf_res = _subprocess.run(
+                                            _xf_cmdline,
+                                            shell=True,
+                                            stdin=_subprocess.DEVNULL,
+                                            stdout=_subprocess.PIPE,
+                                            stderr=_subprocess.PIPE,
+                                            cwd=temp_work,
+                                            timeout=60,
+                                        )
+                                        if (_xf_res.returncode == 0
+                                                and _xf_res.stdout
+                                                and len(_xf_res.stdout) > 50):
+                                            _cleaned = _clean_rad(_xf_res.stdout)
+                                            _ff_main.write(_cleaned)
+                                            _flat_total_sz += len(_cleaned)
+                                        else:
+                                            # xform fallito → scrivi linea originale
+                                            _ff_main.write(_line_rf.encode('utf-8'))
+                                            _flat_total_sz += len(_line_rf)
+                                    else:
+                                        # Skip commenti e righe vuote anche qui
+                                        _s_rf = _line_rf.strip()
+                                        if _s_rf and not _s_rf.startswith('#'):
+                                            _b_rf = (_line_rf if _line_rf.endswith('\n')
+                                                     else _line_rf + '\n').encode('utf-8')
+                                            _ff_main.write(_b_rf)
+                                            _flat_total_sz += len(_b_rf)
+                            if _flat_total_sz > 200:
+                                _radfiles_flat_t.append(_flat_rel)
+                            else:
+                                _radfiles_flat_t.append(_rf_main)
+                        except Exception:
+                            _radfiles_flat_t.append(_rf_main)
+                    _oconv_inputs = list(_matfiles_t) + _radfiles_flat_t
+                    _proc_result = None
+
+                    # `-b xmin ymin zmin size`: bbox esplicita 200m^3 centrata
+                    # sull'origine. Necessaria perché il sky.rad del worker
+                    # iniettato via `oconv -i` contiene `groundplane ring 100m`,
+                    # che senza bbox forzata va fuori dall'octree dei pannelli
+                    # (~30m) → "boundary does not encompass scene" fatal.
+                    with open(_scene_oct_path, 'w') as _f_oct:
+                        _proc_result = _subprocess.run(
+                            ['oconv', '-b', '-100', '-100', '-1', '200']
+                            + _oconv_inputs,
+                            stdin=_subprocess.DEVNULL,
+                            stdout=_f_oct,
+                            stderr=_subprocess.PIPE,
+                            cwd=temp_work,
+                            timeout=120,
+                        )
+                    _oct_size = os.path.getsize(_scene_oct_path) \
+                                if os.path.exists(_scene_oct_path) else 0
+
+                    # Validazione semantica via rtrace di test:
+                    # 1) linka sky_test (sole zenit) all'oct cached
+                    # 2) lancia rtrace con raggio verticale al centro pannello
+                    # 3) se IRR < soglia: pannello blocca → cache valida
+                    #    se IRR ≈ open-sky: nessuna geometria → fallback
+                    # Categorizziamo i fallimenti per warning informativi.
+                    _oct_valido = False
+                    _skip_reason = None
+                    _skip_detail = ''
+                    _test_oct_path = _scene_oct_path + '.test'
+                    if _proc_result.returncode != 0:
+                        _skip_reason = 'oconv'
+                        _skip_detail = (_proc_result.stderr.decode(errors='replace')[:200]
+                                        if _proc_result.stderr else
+                                        f'rc={_proc_result.returncode}')
+                    else:
+                        try:
+                            with open(_test_oct_path, 'w') as _ftst:
+                                _r_link = _subprocess.run(
+                                    ['oconv', '-i', _scene_oct_path,
+                                     _sky_test_rad],
+                                    stdin=_subprocess.DEVNULL,
+                                    stdout=_ftst,
+                                    stderr=_subprocess.PIPE,
+                                    cwd=temp_work,
+                                    timeout=30,
+                                )
+                            if _r_link.returncode != 0:
+                                _skip_reason = 'oconv'
+                                _skip_detail = (
+                                    _r_link.stderr.decode(errors='replace')[:200]
+                                    if _r_link.stderr else 'oconv -i fail')
+                            elif (not os.path.exists(_test_oct_path)
+                                    or os.path.getsize(_test_oct_path) < 100):
+                                _skip_reason = 'oconv'
+                                _skip_detail = 'test oct vuoto/troncato'
+                            else:
+                                _r_rt = _subprocess.run(
+                                    f'rtrace {rtrace_opts} "{_test_oct_path}"',
+                                    shell=True,
+                                    input=_test_linepts,
+                                    capture_output=True,
+                                    timeout=15,
+                                )
+                                if _r_rt.returncode != 0:
+                                    _skip_reason = 'rtrace'
+                                    _skip_detail = (
+                                        _r_rt.stderr.decode(errors='replace')[:200]
+                                        if _r_rt.stderr else
+                                        f'rc={_r_rt.returncode}')
+                                else:
+                                    _out_lines = _r_rt.stdout.decode().strip().split('\n')
+                                    if not _out_lines or not _out_lines[0]:
+                                        _skip_reason = 'rtrace'
+                                        _skip_detail = 'empty stdout'
+                                    else:
+                                        _parts_rt = _out_lines[0].split('\t')
+                                        if len(_parts_rt) >= 6:
+                                            try:
+                                                _r_v = float(_parts_rt[3])
+                                                _g_v = float(_parts_rt[4])
+                                                _b_v = float(_parts_rt[5])
+                                                _irr_test = (_r_v + _g_v + _b_v) / 3.0
+                                                if _irr_test < _IRR_TEST_THRESHOLD:
+                                                    _oct_valido = True
+                                                else:
+                                                    _skip_reason = 'geom'
+                                                    _skip_detail = (
+                                                        f'IRR test={_irr_test:.0f} '
+                                                        f'W/m² ≥ soglia '
+                                                        f'{_IRR_TEST_THRESHOLD:.0f}')
+                                            except ValueError as _ve:
+                                                _skip_reason = 'rtrace'
+                                                _skip_detail = f'parse err: {_ve}'
+                                        else:
+                                            _skip_reason = 'rtrace'
+                                            _skip_detail = (
+                                                f'stdout ill-formed: '
+                                                f'{_out_lines[0][:100]}')
+                        except Exception as _eval:
+                            _skip_reason = 'rtrace'
+                            _skip_detail = f'exception: {_eval}'
+                        finally:
+                            try:
+                                if os.path.exists(_test_oct_path):
+                                    os.remove(_test_oct_path)
+                            except Exception:
+                                pass
+                    if _oct_valido:
+                        _stored = _SR_CACHE.store(
+                            _cache_dir, _key, _scene_oct_path, _scene_params)
+                        scene_oct_cache[_ut] = str(_stored)
+                        _n_built += 1
+                    else:
+                        scene_oct_cache[_ut] = None
+                        if _skip_reason == 'oconv':
+                            _n_skip_oconv += 1
+                        elif _skip_reason == 'rtrace':
+                            _n_skip_rtrace += 1
+                        elif _skip_reason == 'geom':
+                            _n_skip_geom += 1
+                        # Stampa primo dettaglio per categoria (debug)
+                        if (_skip_reason == 'oconv' and _n_skip_oconv == 1) \
+                                or (_skip_reason == 'rtrace' and _n_skip_rtrace == 1) \
+                                or (_skip_reason == 'geom' and _n_skip_geom == 1):
+                            print(f'  Cache scene: primo skip "{_skip_reason}" '
+                                  f'(theta={_ut:.2f}): {_skip_detail}')
+                except Exception as _exc:
+                    if _ut not in scene_oct_cache:
+                        scene_oct_cache[_ut] = None
+                    if (_n_skip_oconv + _n_skip_rtrace + _n_skip_geom) == 0:
+                        import traceback as _tb
+                        print(f'  Cache scene: pre-compile exception: {_exc}')
+                        print(_tb.format_exc())
+                    _n_skip_rtrace += 1
+            _t_pre = _time.time() - _t_pre
+            _n_skip_tot = _n_skip_oconv + _n_skip_rtrace + _n_skip_geom
+            print(f'  Cache scene: {_n_hits} hit + {_n_built} built + '
+                  f'{_n_skip_tot} skip ({_t_pre:.1f}s)')
+            # Warning per categoria di skip
+            if _n_skip_oconv > 0:
+                print(f'  ⚠ Cache scene: {_n_skip_oconv}/{len(unique_thetas)} '
+                      f'scene oconv link fail (boundary, sintassi rad, IO?) '
+                      f'→ fallback legacy per quelle ore')
+            if _n_skip_rtrace > 0:
+                print(f'  ⚠ Cache scene: {_n_skip_rtrace}/{len(unique_thetas)} '
+                      f'scene rtrace test fail (timeout, parse err?) '
+                      f'→ fallback legacy per quelle ore')
+            if _n_skip_geom > 0:
+                print(f'  ⚠ Cache scene: {_n_skip_geom}/{len(unique_thetas)} '
+                      f'scene SENZA geometria pannelli (bug oconv/xform su '
+                      f'questa configurazione?) → fallback legacy. Verifica '
+                      f'che il modello pannello sia generato correttamente.')
+            # Housekeeping: mantieni 20 scene più recenti
+            try:
+                _n_rem = _SR_CACHE.housekeeping(_cache_dir, keep_n=20)
+                if _n_rem > 0:
+                    print(f'  Cache scene: rimosse {_n_rem} scene vecchie')
+            except Exception:
+                pass
+        else:
+            for _ut in unique_thetas:
+                scene_oct_cache[_ut] = None
+
         # ── Ground string (albedo) ───────────────────────────────────
         _ground_Rrefl = rad.ground.Rrefl[0]
         _ground_Grefl = rad.ground.Grefl[0]
@@ -695,8 +1257,9 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
         _nv = max(_ground_Rrefl, _ground_Grefl, _ground_Brefl)
         if _nv == 0:
             _nv = 1
-        # Slope L3: ground a quota dinamica (default -0.01 m, abbassato se
-        # sensori inclinati scendono sotto questa quota — vedi calcolo _ground_z)
+        # Slope L3 v4.2: groundplane reale (orizzontale per slope=0,
+        # inclinato per slope_cross != 0). Centro e normale calcolati a
+        # monte; per slope=0 riproduce esattamente il ring v4.1.
         _ground_str = (
             f'\nskyfunc glow ground_glow\n0\n0\n4 '
             f'{_ground_Rrefl/_nv} {_ground_Grefl/_nv} {_ground_Brefl/_nv} 0\n'
@@ -704,7 +1267,8 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
             f'\nvoid plastic {_ground_type}\n0\n0\n5 '
             f'{_ground_Rrefl:0.3f} {_ground_Grefl:0.3f} {_ground_Brefl:0.3f} 0 0\n'
             f'\n{_ground_type} ring groundplane\n'
-            f'0\n0\n8\n0 0 {_ground_z:.4f}\n0 0 1\n0 100'
+            f'0\n0\n8\n{_gc_x:.4f} {_gc_y:.4f} {_gc_z:.4f}\n'
+            f'{_gn_x:.6f} {_gn_y:.6f} {_gn_z:.6f}\n0 100'
         )
 
         _solpos_elev = metdata.solpos['elevation'].values
@@ -744,30 +1308,60 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
             radfiles, matfiles = scene_cache[theta]
             # Ordine BR ufficiale: materialfiles + skyfiles + radfiles
             oct_inputs = matfiles + [sky_path] + radfiles
+            scene_oct = scene_oct_cache.get(theta)
 
             task_list.append({
                 'task_idx': i,
                 'hour_idx': idx_int,
                 'oct_inputs': oct_inputs,
                 'sky_path': sky_path,
+                'scene_oct': scene_oct,  # path .oct cached o None (v4.2 item 4)
             })
 
         n_tasks = len(task_list)
-        print(f'  {n_tasks} ore da simulare')
+        n_with_cache = sum(1 for t in task_list if t['scene_oct'])
+        if n_with_cache > 0:
+            print(f'  {n_tasks} ore da simulare ({n_with_cache} con cache .oct, '
+                  f'{n_tasks - n_with_cache} legacy full-oconv)')
+        else:
+            print(f'  {n_tasks} ore da simulare')
 
         # ── Worker function ──────────────────────────────────────────
         def _worker(task):
-            """Esegue oconv + rtrace per una singola ora."""
+            """Esegue oconv + rtrace per una singola ora.
+
+            v4.2 item 4: se task['scene_oct'] è valorizzato (cache hit),
+            usa `oconv -i scene.oct sky.rad` (linkaggio incrementale)
+            invece del full `oconv matfiles + sky + radfiles`. La forma
+            incrementale evita la ri-compilazione della scena geometrica
+            che è invariante tra le ore.
+
+            FIX 2026-05-04: usa subprocess.run con cwd=temp_work esplicito
+            (no _popen) per garantire risoluzione corretta dei path
+            relativi nei radfiles dello scene.oct cached.
+            """
             oct_path = task['sky_path'].replace('.rad', '.oct')
 
-            # oconv (metodo BR ufficiale: _popen con lista, no shell)
-            oconv_cmd = ['oconv'] + task['oct_inputs']
+            if task.get('scene_oct'):
+                # Modalità cache: incrementale via -i
+                oconv_cmd = ['oconv', '-i', task['scene_oct'], task['sky_path']]
+            else:
+                # Legacy: full oconv
+                oconv_cmd = ['oconv'] + task['oct_inputs']
             try:
                 with open(oct_path, 'w') as f_oct:
-                    _popen(oconv_cmd, None, f_oct)
+                    rc = _subprocess.run(
+                        oconv_cmd,
+                        stdout=f_oct,
+                        stderr=_subprocess.DEVNULL,
+                        cwd=temp_work,
+                        timeout=60,
+                    )
+                if rc.returncode != 0:
+                    return task['task_idx'], task['hour_idx'], None
             except Exception:
                 return task['task_idx'], task['hour_idx'], None
-            if not os.path.exists(oct_path):
+            if not os.path.exists(oct_path) or os.path.getsize(oct_path) < 100:
                 return task['task_idx'], task['hour_idx'], None
 
             # rtrace
@@ -876,9 +1470,11 @@ def run_annual(p, epw_path, n_points=51, sample_days=None):
         # Posizionato sul piano terreno reale (slope L3) per coerenza con
         # i sensori del flusso principale, anche se fisicamente irrilevante:
         # in cielo aperto l'irradianza orizzontale non dipende dalla posizione.
-        _os_x = 5.0
-        _os_z = _sensor_z(_os_x)
-        opensky_linepts = f'{_os_x:.6f} 0 {_os_z:.6f} 0 0 1'.encode()
+        # v4.2 item 7: posizionato in coordinata locale v=5 e ruotato.
+        _os_v = 5.0
+        _os_x, _os_y = _local_to_world(_os_v)
+        _os_z = _sensor_z(_os_v)
+        opensky_linepts = f'{_os_x:.6f} {_os_y:.6f} {_os_z:.6f} 0 0 1'.encode()
 
         def _worker_opensky(task):
             """rtrace con solo sky+ground (no scene geometry)."""

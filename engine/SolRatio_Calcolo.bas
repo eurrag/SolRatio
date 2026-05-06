@@ -490,7 +490,7 @@ Sub AggiungiPulsanti()
     
     Set btn = ws.Shapes.AddShape(5, ws.Range("B5").Left, ws.Range("B5").Top, _
               ws.Range("B5:D6").Width, ws.Range("B5:D6").Height)
-    FormatButton btn, "BtnCalcola", "RicalcolaBR", "Ricalcola con BR v" & GetVersion()
+    FormatButton btn, "BtnCalcola", "RicalcolaBR", "Ricalcola"
     
     Set btn = ws.Shapes.AddShape(5, ws.Range("B8").Left, ws.Range("B8").Top, _
               ws.Range("B8:D9").Width, ws.Range("B8:D9").Height)

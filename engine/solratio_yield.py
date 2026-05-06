@@ -22,12 +22,34 @@ def compute_yield_curves(stats, x_pts, p, crop_keys=None):
     Per ogni punto x, mese, e tipologia colturale, calcola:
       RSR(x,mese) = 1 - DLI_P50(x,mese) / DLI_rif_P50(mese)
       Y_rel(x,mese,coltura) = laub_yield(RSR, coltura)
-    
+
     Aggrega per zona e SAU con integrale trapezoidale.
     Calcola K_agv = Ȳ/100 (resa relativa come coefficiente).
     """
     if crop_keys is None:
         crop_keys = list(LAUB_COEFFICIENTS.keys())
+
+    # ── Warning agronomico per asse E-W (v4.2 item 7) ────────────────
+    # Le curve di Laub et al. 2022 sono calibrate su regimi di ombra
+    # parziale e variabile (tipico tracker N-S). Con tracker E-W l'ombra
+    # forma strisce N-S quasi-fisse durante l'anno (piccola oscillazione
+    # stagionale), creando una distribuzione PAR/DLI fortemente bimodale
+    # (strisce in ombra permanente vs strisce in sole permanente).
+    # L'applicazione delle curve Laub a configurazioni E-W resta
+    # scientificamente delicata. Vedi documentazione/FORMULE.md.
+    _axis_azimuth = float(p.get('axis_azimuth', 180.0))
+    _delta_NS = abs((_axis_azimuth - 180.0 + 180.0) % 360.0 - 180.0)
+    if _delta_NS > 30.0:
+        print(
+            f'  ⚠ AVVISO agronomico: axis_azimuth={_axis_azimuth:.1f}° '
+            f'(deviazione {_delta_NS:.1f}° da N-S). Le curve di Laub '
+            f'et al. 2022 sono calibrate su regimi di ombreggiamento '
+            f'tipici tracker N-S; per assi prossimi a E-W la distribuzione '
+            f'spaziale di PAR/DLI è fortemente bimodale e i K_agv aggregati '
+            f'su SAU possono mascherare la divergenza fra strisce in ombra '
+            f'permanente e strisce in sole permanente. Considerare l\'uso '
+            f'di output spazialmente disaggregato.'
+        )
     
     x_arr  = np.array(x_pts)
     n_pts  = len(x_pts)
