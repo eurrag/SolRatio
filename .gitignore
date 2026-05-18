@@ -33,6 +33,15 @@ desktop.ini
 **/optimization_*.xlsx
 **/optimization_*.png
 
+# Cache generata dai motori (multiyear EPW, scene .oct, ecc.)
+**/.cache/
+
+# Output multi-anno e validazione (rigenerabili)
+**/multiyear_quantiles.json
+**/multiyear_results.csv
+**/validazione_*.csv
+**/profilo_pitch*.png
+
 # Cache analisi batteria (rigenerabile)
 progetti/*/99_ANALISI/
 
