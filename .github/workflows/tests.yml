@@ -1,0 +1,56 @@
+# CI SolRatio — smoke di regressione (gate K_agv su Sample N-S + Sample_EW).
+#
+# NB: il run completo richiede i binari Radiance: usiamo `pyradiance`, che li
+# distribuisce via pip. Esperimentale: trigger manuale o su tag, NON su ogni
+# push (il gate dura decine di minuti sui runner standard).
+name: tests
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  compile-e-ambiente:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Dipendenze
+        run: pip install -r requirements.txt pyradiance
+      - name: Compile check
+        run: python -m py_compile engine/*.py
+      - name: Radiance nel PATH (binari pyradiance)
+        run: |
+          RT=$(find "$(python -c 'import site,sys;print(site.getsitepackages()[0])')" -name rtrace -type f | head -1)
+          test -n "$RT" || { echo "rtrace non trovato in pyradiance"; exit 1; }
+          echo "$(dirname "$RT")" >> "$GITHUB_PATH"
+          echo "RAYPATH=$(dirname "$(dirname "$RT")")/lib:." >> "$GITHUB_ENV"
+      - name: check_environment
+        run: python engine/check_environment.py
+
+  smoke-gate:
+    needs: compile-e-ambiente
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Dipendenze
+        run: pip install -r requirements.txt pyradiance
+      - name: Radiance nel PATH (binari pyradiance)
+        run: |
+          RT=$(find "$(python -c 'import site,sys;print(site.getsitepackages()[0])')" -name rtrace -type f | head -1)
+          test -n "$RT" || { echo "rtrace non trovato in pyradiance"; exit 1; }
+          echo "$(dirname "$RT")" >> "$GITHUB_PATH"
+          echo "RAYPATH=$(dirname "$(dirname "$RT")")/lib:." >> "$GITHUB_ENV"
+      - name: Smoke regression (Sample N-S + Sample_EW, ±0.2 pp)
+        run: bash _smoke_regression.sh
+      - name: Log in caso di errore
+        if: failure()
+        run: tail -50 smoke_*.log || true
