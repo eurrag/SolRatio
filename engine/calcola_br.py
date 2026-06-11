@@ -39,12 +39,11 @@ from solratio_core import (
 )
 from solratio_excel import (
     read_parameters, num_cell,
-    write_riepilogo, write_calcolo_solare, write_par_raytracing,
+    write_riepilogo,
     write_par_dli_profilo, write_profilo_par_spaziale,
-    write_dli_percentili, write_dli_annuale, update_parametri_sheet,
-    write_validazione_pvlib, patch_chart_axes,
-    write_par_reduction_chart, write_fdir_vf_profile, write_validazione_chart,
-    write_heatmap_par, write_boxplot_dli,
+    write_dli_percentili, update_parametri_sheet,
+    patch_chart_axes,
+    write_heatmap_par,
 )
 from solratio_yield import (
     compute_yield_curves,
@@ -293,9 +292,8 @@ def main():
         wb_out = _Workbook()
         wb_out.active.title = 'Riepilogo'
 
-    needed_sheets = ['Parametri', 'Calcolo_Solare', 'PAR_RayTracing',
-                     'PAR_DLI_Profilo', 'Profilo_PAR_Spaziale',
-                     'DLI_Percentili', 'DLI_Annuale', 'Validazione_pvlib']
+    needed_sheets = ['Parametri', 'PAR_DLI_Profilo', 'Profilo_PAR_Spaziale',
+                     'DLI_Percentili']
     for sheet_name in needed_sheets:
         if sheet_name not in wb_out.sheetnames:
             wb_out.create_sheet(sheet_name)
@@ -315,42 +313,12 @@ def main():
         pass
 
     update_parametri_sheet(wb_out, p)
-    write_calcolo_solare(wb_out, df, zs, p)
-    write_par_raytracing(wb_out, zs, p)
     par_s, par_e, dli_s, dli_e, t3_s, t3_e, t4_s, t4_e = write_par_dli_profilo(
         wb_out, stats, x_pts, p)
     write_profilo_par_spaziale(wb_out, zs, p)
     write_dli_percentili(wb_out, zs, p)
-    write_dli_annuale(wb_out, zs, dli_daily, x_pts, p, dli_daily_ref=dli_daily_ref)
-    write_validazione_pvlib(wb_out, zs, df, p)
-    write_par_reduction_chart(wb_out, zs, p)
-    write_validazione_chart(wb_out, zs, p)
 
-    # Profilo f_dir e VF: in v4.x non sono calcolati analiticamente.
-    # Calcoliamo proxy dalla matrice IRR di BR:
-    #   f_dir_proxy ≈ IRR / GHI (rapporto trasmissione)
-    #   VF non disponibile separatamente dal ray-tracing
-    f_dir_proxy = np.zeros(n_pts)
-    vf_proxy = np.full(n_pts, 0.5)  # placeholder
-    for i, idx in enumerate(ok_indices):
-        if ghi_arr[idx] > 20:
-            f_dir_proxy += IRR_hourly[i, :] / ghi_arr[idx]
-    n_sun = (ghi_arr[ok_indices] > 20).sum()
-    if n_sun > 0:
-        f_dir_proxy /= n_sun
-
-    dli_annual_mean = dli_daily.mean(axis=0).values
-    dli_ref_annual_mean = dli_daily_ref.mean()
-    par_rel_annual = (dli_annual_mean / dli_ref_annual_mean
-                      if dli_ref_annual_mean > 0 else np.zeros(n_pts))
-    stats_extra = {
-        'f_dir_mean': f_dir_proxy,
-        'vf_mean': vf_proxy,
-        'par_rel_mean': par_rel_annual,
-    }
-    write_fdir_vf_profile(wb_out, stats_extra, x_pts, p)
     write_heatmap_par(wb_out, stats, x_pts, p)
-    write_boxplot_dli(wb_out, dli_daily, x_pts, p)
     print()
 
     # ── Curve di resa colturale ───────────────────────────────────────
