@@ -14,8 +14,10 @@ abstract: >-
   per il calcolo dei profili spaziali e temporali di PAR e DLI, con le curve
   dose-risposta di Laub et al. (2022) per stimare il coefficiente agrivoltaico
   K_agv per nove categorie colturali. Supporta la verifica dei requisiti
-  agronomici previsti dalle Linee Guida MASE (D.M. 436/2023) e la valutazione
-  della compatibilità tra produzione energetica e produzione agricola.
+  agronomici previsti dalle Linee Guida ministeriali in materia di impianti
+  agrivoltaici (MiTE, 2022) e dal D.M. 436/2023 sull'agrivoltaico innovativo,
+  e la valutazione della compatibilità tra produzione energetica e
+  produzione agricola.
   Validato vs bifacial_radiance ufficiale (NREL): MBE < 1%, R² ≥ 0.997, più
   un riferimento indipendente col workflow nativo set1axis (entro 0.5 punti
   percentuali sul rapporto suolo/GHI giornaliero).
@@ -96,5 +98,5 @@ references:
     journal: "Agronomy for Sustainable Development"
     year: 2022
     volume: 42
-    issue: 51
+    notes: "Article number 51"
     doi: "10.1007/s13593-022-00783-7"

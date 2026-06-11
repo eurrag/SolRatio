@@ -12,13 +12,15 @@ colture sottostanti ai pannelli fotovoltaici (tramite ray-tracing 3D) con le
 curve dose-risposta della letteratura scientifica (Laub et al., 2022) per
 stimare il coefficiente agrivoltaico K_agv per nove categorie colturali,
 fornendo i dati necessari alla verifica dei requisiti agronomici previsti
-dalle Linee Guida MASE (D.M. 436/2023) e alla valutazione della compatibilità
-tra produzione energetica e produzione agricola.
+dalle Linee Guida ministeriali in materia di impianti agrivoltaici (MiTE,
+giugno 2022) e dal D.M. 436/2023 sull'agrivoltaico innovativo, e alla
+valutazione della compatibilità tra produzione energetica e produzione
+agricola.
 
 Il motore di calcolo è basato su ray-tracing tridimensionale tramite Radiance
 (LBNL) e il framework bifacial_radiance (NREL): una simulazione fisicamente
 rigorosa della propagazione della luce nella scena dell'impianto, pannello per
-pannello e ora per ora. La linea v4.2 supporta orientamento arbitrario
+pannello e ora per ora. La versione corrente supporta orientamento arbitrario
 dell'asse tracker (nord-sud, est-ovest o intermedio), pannelli semitrasparenti
 (componente speculare e diffusa), terreni in pendenza, stima dell'energia
 bifacciale e modalità multi-anno con quantili statistici P10/P50/P90.
@@ -104,14 +106,14 @@ risultati:
 
 | Indicatore      | 21 marzo   | 21 giugno  |
 |-----------------|------------|------------|
-| MBE (bias medio)| +0.0%     | −0.0%      |
-| RMSE            | 0.0%       | 0.1%       |
-| R²              | 1.0000     | 0.9999     |
+| MBE (bias medio)| +0.1%     | −0.1%      |
+| RMSE            | 0.2%       | 0.1%       |
+| R²              | 0.9993     | 0.9999     |
 
 Lo scostamento medio inferiore all'1% e il coefficiente di determinazione
-prossimo all'unità (ri-esecuzioni indipendenti: R² ≥ 0.9975) confermano
+prossimo all'unità (ri-esecuzioni indipendenti: R² ≥ 0.997) confermano
 l'allineamento tra SolRatio e l'implementazione NREL di riferimento
-(misure con la versione 4.3.0, Radiance 6.0). Dalla versione 4.3.0 la
+(misure con la versione 4.3.0, Radiance 6.0, collaudo completo 2026-06-12). Dalla versione 4.3.0 la
 validazione comprende anche un riferimento indipendente costruito col
 workflow nativo 1-axis di bifacial_radiance (angoli del tracker calcolati
 da pvlib all'interno della libreria), con accordo entro 0.5 punti

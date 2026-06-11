@@ -7,7 +7,7 @@
 
 ## Panoramica
 
-`br_engine.py` implementa il motore di calcolo dell'irradianza al suolo per impianti agrivoltaici con tracker monoassiale. Utilizza bifacial_radiance v0.5.1 (wrapper NREL per Radiance) per la simulazione 3D ray-tracing ora-per-ora.
+`br_engine.py` implementa il motore di calcolo dell'irradianza al suolo per impianti agrivoltaici con tracker monoassiale. Utilizza bifacial_radiance ≥ 0.5.1 (wrapper NREL per Radiance) per la simulazione 3D ray-tracing ora-per-ora.
 
 Sostituisce il motore analitico di v3.3.x (pvlib view-factor + shadow + decomposizione Perez) con una simulazione fisicamente accurata basata su gendaylit/rtrace.
 
@@ -119,18 +119,19 @@ Script: `engine/validazione_br.py`. Esegue due simulazioni indipendenti sullo st
 - **Parte B**: workflow BR ufficiale (`gendaylit2manual` → `makeScene` → `makeOct` → rtrace, sequenziale)
 
 Risultati su località esempio (lat 45.30°N, lon 9.34°E), misurati con
-v4.3.0 (Radiance 6.0, 2026-06-11):
+v4.3.0 (Radiance 6.0, collaudo completo 2026-06-12):
 
 | Giorno campione | MBE | RMSE | R² |
 |-----------------|-----|------|----|
-| 21 marzo (equinozio) | +0.0% | 0.0% | 1.0000 |
-| 21 giugno (solstizio) | −0.0% | 0.1% | 0.9999 |
+| 21 marzo (equinozio) | +0.1% | 0.2% | 0.9993 |
+| 21 giugno (solstizio) | −0.1% | 0.1% | 0.9999 |
 
 Il residuo è attribuibile alla stocasticità dell'ambient sampling di
 Radiance (ri-esecuzioni indipendenti: R² ≥ 0.9975). Dalla v4.3.0 la
 validazione include anche un riferimento INDIPENDENTE col workflow nativo
 1-axis di bifacial_radiance (`set1axis` → `analysis1axisground`): scarto sul
-rapporto giornaliero suolo/GHI −0.1 pp (21/3) e −0.4 pp (21/6). Il controllo
+rapporto giornaliero suolo/GHI entro 0.5 pp (collaudo 2026-06-12: −0.3 pp
+su entrambi i giorni). Il controllo
 indipendente esiste perché il confronto code-to-code condivide la
 convenzione di scena col motore ed era cieco alla contro-rotazione
 v4.1.0–v4.2.2 (vedi CHANGELOG v4.3.0).
@@ -153,8 +154,15 @@ v4.1.0–v4.2.2 (vedi CHANGELOG v4.3.0).
 - **axis_azimuth arbitrario**: sensori in frame locale (u,v,w) ancorato
   all'asse tracker, rotazione φ = axis_azimuth − 180°; scene azimuth derivato
   coerentemente. Per axis_azimuth = 180° il comportamento coincide col v4.1.
-- **Materiali pannello**: `trans` per trasmittanza speculare (τ) e BRTDfunc
-  per la componente Lambertiana addizionale (τ_diff).
+- **Materiali pannello semitrasparenti**: un unico materiale Radiance
+  `trans` parametrizzato da τ (speculare) e τ_diff (Lambertiana):
+  trans = τ + τ_diff, t_spec = τ/(τ+τ_diff) (`_apply_tau_material`).
+  ⚠ Known issue: nella mappatura attuale il residuo 1−τ_tot−spec è scritto
+  nel COLORE del materiale, che in Radiance MOLTIPLICA la trasmissione —
+  la trasmissione effettiva è quindi molto più bassa della τ_tot nominale
+  (un pannello τ_tot=0.9 trasmette ~4%). Le sentinelle τ/τ_diff del gate
+  sono misurate con questo materiale; correzione in valutazione per una
+  release successiva.
 - **Terreno in pendenza**: componenti lungo/trasversale derivate da pendenza %
   e azimut di discesa; ground plane realmente inclinato (rotazione di Rodrigues
   attorno all'asse) e sensori riposizionati sul piano reale.

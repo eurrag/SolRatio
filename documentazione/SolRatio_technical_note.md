@@ -3,12 +3,12 @@ title: "SolRatio: A Ground-Irradiance and Crop-Yield Model for Single-Axis Track
 subtitle: "Technical Note — Version 4.3.0 (Reference Edition)"
 author:
   - Stefano Pesavento (ORCID 0009-0008-0720-4539)
-date: 2026-06-11
+date: 2026-06-12
 version: v4.3.0
-license: Apache-2.0
+license: "Text: CC-BY-4.0 (proposed at deposit). Software described: Apache-2.0"
 software_doi_concept: 10.5281/zenodo.19959581
 # DOI di versione v4.3.0: assegnato al deposito Zenodo (aggiornare qui).
-# v4.2.1 (K_agv in tracking sovrastimati, vedi §2.3): 10.5281/zenodo.20642574
+# v4.2.1 (K_agv in tracking sovrastimati, vedi §2.1): 10.5281/zenodo.20642574
 repository: https://github.com/eurrag/SolRatio
 keywords:
   - agrivoltaics
@@ -54,7 +54,7 @@ agrivoltaics; ground irradiance; ray tracing; Radiance; bifacial_radiance; pvlib
 
 Agrivoltaic systems combine in situ photovoltaic generation with continued agricultural production on the same parcel of land. The concept was first articulated by Goetzberger and Zastrow (1982) and quantitatively revived by Dupraz et al. (2011), who showed through detailed light- and yield-modelling analyses that the land-equivalent ratio of an agrivoltaic system can exceed unity for several crops. Subsequent experimental work — most notably Marrou et al. (2013) — confirmed the agronomic viability of partial-shade cropping under photovoltaic arrays, and more recent system-design studies (Trommsdorff et al., 2021) have established design principles for combined food and energy production.
 
-The design of agrivoltaic systems must therefore reconcile two objectives that are partially in conflict: maximising the electricity captured by the modules, and preserving sufficient ground-level photosynthetically active radiation (PAR) to sustain crop physiological development. The amount of light that reaches the ground in such systems is highly heterogeneous in both space and time, depending on the geometry of the array (pitch, module width, hub height, axis azimuth, terrain slope), on the operating logic of the tracker (backtracking, maximum tilt), on the optical properties of the modules (opaque vs. semi-transparent, monofacial vs. bifacial), and on the local solar climate. Quantitative tools capable of estimating, at the design stage, the daily light integral (DLI) and its spatial distribution under the array are therefore essential for evaluating agronomic compatibility and for satisfying the regulatory requirements that several European jurisdictions have begun to introduce — in Italy, for example, the Guidelines for Innovative Agrivoltaic Systems issued by the Ministero dell'Ambiente e della Sicurezza Energetica (D.M. 436/2023) prescribe minimum thresholds for the agronomic yield maintained under the array, expressed as a coefficient relative to open-field production for the reference crop.
+The design of agrivoltaic systems must therefore reconcile two objectives that are partially in conflict: maximising the electricity captured by the modules, and preserving sufficient ground-level photosynthetically active radiation (PAR) to sustain crop physiological development. The amount of light that reaches the ground in such systems is highly heterogeneous in both space and time, depending on the geometry of the array (pitch, module width, hub height, axis azimuth, terrain slope), on the operating logic of the tracker (backtracking, maximum tilt), on the optical properties of the modules (opaque vs. semi-transparent, monofacial vs. bifacial), and on the local solar climate. Quantitative tools capable of estimating, at the design stage, the daily light integral (DLI) and its spatial distribution under the array are therefore essential for evaluating agronomic compatibility and for satisfying the regulatory requirements that several European jurisdictions have begun to introduce — in Italy, for example, the ministerial Guidelines on agrivoltaic systems (MiTE, 2022) and the incentive decree for innovative agrivoltaics (D.M. 436/2023) require demonstrating that agricultural activity is preserved under the array, with crop production assessed against open-field references.
 
 The existing open-source modelling landscape is fragmented along the two sides of the problem. Tools focused on the electrical side — most prominently pvlib-python (Holmgren et al., 2018) and the bifacial_radiance framework (Ayala Pelaez and Deline, 2020) — capture the photovoltaic energy yield and the back-side plane-of-array irradiance with high fidelity, but offer only limited support for the under-canopy PAR distribution that drives crop physiology. Conversely, tools focused on crop response (canopy models such as DSSAT, STICS, APSIM) model plant development in detail but rely on coarse analytical or empirical proxies for the irradiance environment under the array. Recent ray-tracing-based approaches to agrivoltaic system simulation (e.g. Zainali et al., 2023) have begun to bridge this gap by adapting general-purpose photometric engines to the specific geometry of single-axis tracker arrays. The objective of SolRatio is to provide an open-source, end-user-operable tool that couples a physically rigorous ground-irradiance model — based on three-dimensional ray tracing — with calibrated crop-yield curves, in a workflow that can be operated from a parameter-driven Excel workbook without writing code, and whose outputs are directly usable for regulatory compliance assessment.
 
@@ -81,7 +81,7 @@ The simulated scene is a periodic array of identical rows of single-axis trackin
 | $H_{\min}$                     | Minimum panel-to-ground clearance        | m       | 1.5–4.5       | B17        |
 | $\beta_{\max}$                 | Maximum tracker tilt                     | °       | 55–60         | B18        |
 | tracker mode                   | 0 = astronomical, 1 = backtracking, 2 = fixed tilt | — | — | B19 |
-| $\theta_{\mathrm{fix}}$        | Fixed tilt angle (mode 2 only)           | °       | −60–60        | B20        |
+| $\theta_{\mathrm{fix}}$        | Fixed tilt angle (mode 2 only; pvlib sign convention, positive = module face west) | ° | −60–60 | B20 |
 | $\tau$                         | Module specular transmittance            | —       | 0–0.4         | B23        |
 | $\rho_{\mathrm{g}}$            | Ground albedo                            | —       | 0.15–0.25     | B24        |
 | $\tau_{\mathrm{diff}}$         | Module Lambertian transmittance          | —       | 0–0.2         | B25        |
@@ -90,9 +90,12 @@ The simulated scene is a periodic array of identical rows of single-axis trackin
 | $L_{\mathrm{tot}}$             | Total tracker row length                 | m       | —             | B31        |
 | external SAU                   | External utilised agricultural area      | m²      | —             | B32        |
 | SANU                           | Uncultivated strip flanking each tracker row, per side (SAU = P − 2·SANU) | m | 0–1 | B33 |
+| $n_{\mathrm{points}}$          | Ground sensor grid points per pitch (default 51) | — | ≥ 3   | B40        |
 | years                          | PVGIS series interval                    | —       | ≥ 3 years     | B41–B42    |
+| CSV path                       | Explicit PVGIS CSV path (optional)       | —       | —             | B43        |
 | $n_{\mathrm{ext}}$             | Number of external rows per side         | —       | 2–4           | B44        |
-| Radiance params                | `-ab`, `-ad`, `-as`, scene rows override | —       | see docs      | B48–B51    |
+| $n_{\mathrm{sub}}$             | Hourly sub-sampling steps (default 4 = 15 min) | — | 1–60       | B47        |
+| Radiance params                | `-ab`, `-ad`, `-as` (defaults 2, 2048, 256), scene rows override | — | see docs | B48–B51 |
 
 The K_agv is computed for all nine Laub (2022) crop categories in every run;
 no target-crop cell is required. The module electrical efficiency used by the
@@ -126,17 +129,17 @@ $$\mathrm{trans} = \tau + \tau_{\mathrm{diff}}, \qquad t_{\mathrm{spec}} = \frac
 
 Setting $\tau_{\mathrm{diff}} = 0$ (the default) is bit-for-bit identical to v4.1.
 
-Ground-level sensors are positioned at $z = 0.05$ m above the ground plane, on a uniform grid spanning the pitch interval between two adjacent rows. The downward hemisphere irradiance is sampled via Radiance `rtrace -I` with the standard bifacial_radiance simulation parameters (two ambient bounces, 2048 ambient divisions, 256 super-samples; configurable via cells B48–B51). For terrain with non-zero across-axis slope ($\mathrm{slope\_cross} \neq 0$) the ground plane is no longer horizontal: in v4.2.0 it is rendered as a Radiance ring tilted by $\mathrm{slope\_cross}$ around the tracker axis (Rodrigues rotation formula), and sensor positions are recomputed as $z = z_0 + v \tan(\mathrm{slope\_cross})$, preserving the constant 5 cm clearance above the inclined plane at every position.
+Ground-level sensors are positioned at $z = 0.05$ m above the ground plane, on a uniform grid spanning the pitch interval between two adjacent rows. The downward hemisphere irradiance is sampled via Radiance `rtrace -I`; the ambient parameters default to the standard bifacial_radiance values (two ambient bounces, 2048 ambient divisions, 256 super-samples) and are configurable via cells B48–B50 (plus the scene-rows override in B51). The bundled Sample projects set `-ab 1 -ad 1024 -as 128` in those cells (see Section 4.1). For terrain with non-zero across-axis slope ($\mathrm{slope\_cross} \neq 0$) the ground plane is no longer horizontal: in v4.2.0 it is rendered as a Radiance ring tilted by $\mathrm{slope\_cross}$ around the tracker axis (Rodrigues rotation formula), and sensor positions are recomputed as $z = z_0 + v \tan(\mathrm{slope\_cross})$, preserving the constant 5 cm clearance above the inclined plane at every position.
 
-The raw `rtrace` output (radiance triplets *R*, *G*, *B*) is converted to broadband irradiance using the CIE 1931 luminance weighting and the standard photopic efficacy of 179 lm W⁻¹:
+The raw `rtrace -I` output (irradiance triplets *R*, *G*, *B*) is converted to broadband irradiance as the arithmetic mean of the three channels, following the bifacial_radiance convention for spectrally neutral scenes:
 
-$$E\,[\mathrm{W\,m^{-2}}] = 179 \cdot (0.265\,R + 0.670\,G + 0.065\,B)$$
+$$E\,[\mathrm{W\,m^{-2}}] = (R + G + B)\,/\,3$$
 
 A parallel open-sky simulation, with the same sky description but with the panels removed, provides the reference irradiance against which the under-panel measurements are normalised.
 
 ### 2.4 Spectral and temporal aggregation
 
-Hourly broadband irradiance is converted to PAR using a variable PAR fraction following Jacovides et al. (2004):
+Hourly broadband irradiance is converted to PAR using a variable PAR fraction in the spirit of Jacovides et al. (2003), who characterised the PAR/global ratio and its dependence on sky conditions:
 
 $$f_{\mathrm{PAR}}(k_t) = \mathrm{clip}\,(0.500 - 0.082 \cdot k_t,\ 0.42,\ 0.48)$$
 
@@ -154,7 +157,7 @@ with RSR ranging from 0 (full sun) to 1 (full shade). RSR is the input to the cr
 
 ### 2.5 Crop yield response
 
-Crop responses are modelled through the empirical dose-response curves published by Laub et al. (2022), which fit a third-order polynomial in RSR to a meta-analytic dataset of dual-land-use experiments. The functional form is:
+Crop responses are modelled through the empirical dose-response curves published by Laub et al. (2022), derived from a meta-analytic dataset of dual-land-use experiments. SolRatio encodes them as a log-quadratic form in RSR:
 
 $$Y_{\mathrm{rel}}(\mathrm{RSR}) = 10^{\,2 + \alpha\,\mathrm{RSR} + \beta\,\mathrm{RSR}^2}\ [\%], \qquad K_{\mathrm{agv}} = Y_{\mathrm{rel}}/100$$
 
@@ -162,7 +165,7 @@ with two crop-specific coefficients $\alpha, \beta$ (fitted to Laub Table S2 by 
 
 ### 2.6 Field-level aggregation and edge effects
 
-The point-wise $K_{\mathrm{agv}}$ values are aggregated to a plant-level coefficient by an area-weighted average across spatial zones. The standard agronomic zones — under-tracker, edge, central — are extracted from the pitch profile using the panel half-width and the maximum tracker tilt. An additional outer strip beyond the last row models the spill of direct radiation onto fields adjacent to the array, with a width estimated as the 95th percentile of the across-pitch shadow length over all diurnal hours of the year (capped between $W$ and $5P$).
+The point-wise $K_{\mathrm{agv}}$ values are aggregated to a field-level coefficient by an area-weighted average across spatial zones. The standard agronomic zones — under-tracker, edge, central — are extracted from the pitch profile using the panel half-width and the maximum tracker tilt. An additional outer strip beyond the last row models the spill of direct radiation onto fields adjacent to the array, with a width estimated as the 95th percentile of the across-pitch shadow length over all diurnal hours of the year (capped between $W$ and $5P$).
 
 A longitudinal correction factor *FC_NS* quantifies the extra light reaching the north and south ends of the tracker rows, where the projected shadow no longer fully covers the adjacent strip:
 
@@ -217,8 +220,8 @@ Version 4.2.0 closed the planned v4.2 scope, including three items that had been
 - **Multi-year stochastic mode and P10/P50/P90 quantiles** (`engine/solratio_multiyear.py`): a sequential orchestrator that, given the available PVGIS multi-year time series, executes one annual simulation per year and aggregates the per-KPI distribution. Output is saved incrementally; runs interrupted mid-way can be resumed.
 - **Generalised tracker frame coordinates for arbitrary axis_azimuth**: the sensor and scene transformations have been refactored to support arbitrary tracker azimuth orientations, while remaining bit-for-bit identical to v4.1 for the historical north-south default. A runtime warning is emitted when the deviation from north-south exceeds 30°, because the Laub et al. (2022) yield curves are calibrated on north-south shading regimes.
 - **Across-axis slope (L2 / L3 anticipated)**: the row replication for non-zero cross-axis slope is now azimuth-aware, and the Radiance ground plane is genuinely tilted using a Rodrigues rotation around the tracker axis. For $\mathrm{slope\_cross} = 0$ the behaviour reduces to the v4.1 default.
-- **Single-axis bifaciality module (beta tier)** (`engine/solratio_bifacial.py`): an additive module that, given the module efficiency and bifaciality factor, computes the total plane-of-array irradiance as $\mathrm{POA}_{\mathrm{total}} = \mathrm{POA}_{\mathrm{front}} + b_{\mathrm{f}} \cdot \mathrm{POA}_{\mathrm{back}}$ and the resulting annual electrical yield. The default $b_{\mathrm{f}} = 0$ preserves monofacial behaviour. The back-side POA is currently estimated using a simplified view-factor model ($0.5 \cdot \rho_{\mathrm{g}} \cdot \mathrm{GHI}$); a dedicated Radiance back-side simulation is planned for v4.2.x.
-- **Semi-transparent panel materials via BRTDfunc (alpha tier)**: the `_apply_tau_material` routine now accepts an optional $\tau_{\mathrm{diff}}$ parameter that introduces a Lambertian diffuse component in the transmitted radiation; the mapping to the Radiance `trans` material is given in Section 2.3. Full BSDF (`prism2`, XML) support is planned for v4.5+.
+- **Single-axis bifaciality module (beta tier)** (`engine/solratio_bifacial.py`): an additive module that, given the module efficiency and bifaciality factor, computes the total plane-of-array irradiance as $\mathrm{POA}_{\mathrm{total}} = \mathrm{POA}_{\mathrm{front}} + b_{\mathrm{f}} \cdot \mathrm{POA}_{\mathrm{back}}$ and the resulting annual electrical yield. The default $b_{\mathrm{f}} = 0$ preserves monofacial behaviour. The back-side POA is currently estimated using a simplified view-factor model ($0.5 \cdot \rho_{\mathrm{g}} \cdot \mathrm{GHI}$); a dedicated Radiance back-side simulation is not included in this edition (Section 6).
+- **Semi-transparent panel materials with diffuse transmission (alpha tier)**: the `_apply_tau_material` routine now accepts an optional $\tau_{\mathrm{diff}}$ parameter that introduces a Lambertian diffuse component in the transmitted radiation; the mapping to the Radiance `trans` material is given in Section 2.3. Full BSDF (`prism2`, XML) support is not included in this edition.
 
 **Engineering improvements**
 
@@ -230,37 +233,37 @@ Version 4.2.0 closed the planned v4.2 scope, including three items that had been
 
 ## 4. Validation
 
-The validation strategy compares SolRatio against the *official* bifacial_radiance workflow — that is, the same ray-tracing engine driven directly without the SolRatio orchestration — applied to the same scene, the same sky description, and the same numerical parameters. Because both pipelines share Radiance as the underlying ray tracer, the residual between them is a measure of the consistency of the SolRatio implementation rather than of the physical accuracy of Radiance itself; the latter is established in the extensive NREL and LBNL literature on Radiance validation.
+The validation strategy compares SolRatio against the *official* bifacial_radiance workflow — that is, the same ray-tracing engine driven directly without the SolRatio orchestration — applied to the same scene, the same sky description, and the same numerical parameters. Because both pipelines share Radiance as the underlying ray tracer, the residual between them is a measure of the consistency of the SolRatio implementation rather than of the physical accuracy of Radiance itself; the latter is established in the extensive NREL and LBNL literature on Radiance validation (Ward, 1994; Mardaljevic, 1995).
 
 It is important to emphasise that the validation reported in this section is a *code-to-code* consistency check, not a *code-to-measurement* validation against ground-truth photometric data. Experimental validation against PAR/DLI measurements at instrumented agrivoltaic test sites is identified as a parallel objective in the roadmap (Section 7).
 
 ### 4.1 Reference setup
 
-The benchmark scene is the `Sample` project distributed with the repository: a typical Po Valley site at 45.30° N, 9.34° E, with a 4-row demonstration scene (`br_n_rows = 4`), $\mathrm{pitch} = 5.0$ m, $\mathrm{GCR} = 0.476$, $W = 2.38$ m, hub height $3.13$ m ($H_{\min} = 2.1$ m), $\beta_{\max} = 60°$, $\mathrm{axis\_azimuth} = 180°$ (north-south), backtracking on, opaque modules ($\tau = 0$), and a horizontal ground plane ($\mathrm{slope} = 0$). Two representative days are used: the vernal equinox (21 March) and the summer solstice (21 June).
+The benchmark scene is the `Sample` project distributed with the repository: a typical Po Valley site at 45.30° N, 9.34° E, with a 4-row demonstration scene (`br_n_rows = 4`), $\mathrm{pitch} = 5.0$ m, $\mathrm{GCR} = 0.476$, $W = 2.38$ m, hub height $3.13$ m ($H_{\min} = 2.1$ m), $\beta_{\max} = 60°$, $\mathrm{axis\_azimuth} = 180°$ (north-south), backtracking on, opaque modules ($\tau = 0$), and a horizontal ground plane ($\mathrm{slope} = 0$). The Sample projects configure the rtrace ambient parameters to `-ab 1 -ad 1024 -as 128` via cells B48–B50 (the engine defaults are `-ab 2 -ad 2048 -as 256`); both validation pipelines use the project-configured values. Two representative days are used: the vernal equinox (21 March) and the summer solstice (21 June).
 
 For each day, both pipelines compute the hourly irradiance on the same 51-point sensor grid spanning the pitch interval. The metrics reported are the mean bias error (MBE), the root-mean-square error (RMSE), and the coefficient of determination (R²) between the two hourly time series, evaluated jointly over the sensor grid.
 
 ### 4.2 Results
 
-Table 2 reports the validation metrics for both days, jointly evaluated across the 51-point sensor grid and all diurnal hours. The metrics were re-measured with v4.3.0 after the tracking-scene correction (Section 2.3).
+Table 2 reports the validation metrics for both days, jointly evaluated across the 51-point sensor grid and all diurnal hours. The metrics were re-measured with v4.3.0 after the tracking-scene correction (Section 2.1).
 
-**Table 2.** Validation metrics of SolRatio against the official bifacial_radiance workflow on the *Sample* scene (45.30° N, 9.34° E; `br_n_rows` = 4), v4.3.0, Radiance 6.0, 2026-06-11.
+**Table 2.** Validation metrics of SolRatio against the official bifacial_radiance workflow on the *Sample* scene (45.30° N, 9.34° E; `br_n_rows` = 4), v4.3.0, Radiance 6.0, full acceptance battery of 2026-06-12.
 
 | Indicator       | 21 March | 21 June |
 | --------------- | -------- | ------- |
-| MBE (mean bias) | +0.0%    | −0.0%   |
-| RMSE            | 0.0%     | 0.1%    |
-| R²              | 1.0000   | 0.9999  |
+| MBE (mean bias) | +0.1%    | −0.1%   |
+| RMSE            | 0.2%     | 0.1%    |
+| R²              | 0.9993   | 0.9999  |
 
-The mean bias is well below 1% in absolute value on both dates and the coefficient of determination is essentially unity. Independent re-executions return R² ≥ 0.9975: the residual scatter is consistent with the intrinsic stochastic nature of the Radiance Monte Carlo ray tracer (ambient sampling) and with small differences in scene-boundary handling between the two pipelines at low solar elevations.
+The mean bias is well below 1% in absolute value on both dates and the coefficient of determination is at least 0.999. Independent re-executions return R² ≥ 0.9975: the residual scatter is consistent with the intrinsic stochastic nature of the Radiance Monte Carlo ray tracer (ambient sampling) and with small differences in scene-boundary handling between the two pipelines at low solar elevations.
 
-It must be stressed that this comparison is a *consistency* check: both pipelines build the scene with the same θ→(tilt, azimuth) convention, so a convention error affects both identically and is invisible here — which is precisely how the counter-rotated scene of v4.1.0–v4.2.2 survived this validation (Section 2.3). The independent check of Section 4.3 addresses this structural blindness.
+It must be stressed that this comparison is a *consistency* check: both pipelines build the scene with the same θ→(tilt, azimuth) convention, so a convention error affects both identically and is invisible here — which is precisely how the counter-rotated scene of v4.1.0–v4.2.2 survived this validation (Section 2.1). The independent check of Section 4.3 addresses this structural blindness.
 
 A scene-dimension consistency check was added in v4.1.1 after a debugging session revealed that `validazione_br._run_br_official()` was ignoring the `br_n_rows` parameter while `br_engine.run_annual()` was respecting it; the two pipelines were therefore comparing arrays of seven rows against arrays of four rows, generating a spurious systematic bias of +4.5% on the equinox and +1.2% on the solstice. After the fix the two pipelines simulate identical scenes and the comparison returns the residuals reported above. As a corollary of that investigation, an explicit recommendation has been added to the parameter documentation: `n_ext ≥ 3` (`n_rows ≥ 7`) for routine use, and `n_ext ≥ 4` (`n_rows ≥ 9`) for benchmarking and scientific publications. The bundled Sample project uses `br_n_rows = 4` to keep the regression-gate runtime short; with fewer rows the radiation at the central pitch is somewhat overestimated at grazing sun angles (see `documentazione/PARAMETRI_RADIANCE.md`), which is acceptable for a regression sentinel but should be kept in mind when reading the absolute gate values below.
 
 ### 4.3 Independent reference: native 1-axis workflow (added in v4.3.0)
 
-A second, structurally independent check runs the same scene through the *native* bifacial_radiance 1-axis chain — `set1axis` → `gendaylit1axis` → `makeScene1axis` → `makeOct1axis` → `analysis1axisground` — in which the tracker angles are computed by pvlib *inside the library* (`surface_tilt`/`surface_azimuth`) and the ground sensors are positioned by the library itself across one full pitch. No SolRatio code participates in the geometry, so a convention error in the engine cannot propagate to this reference. Because the native workflow fixes its own rtrace parameters (`accuracy='low'`, `-ab 2`) while the engine uses the project-configured ones (the engine default is also `-ab 2`, but the bundled Sample sets `-ab 1` via cell B48), point-by-point profiles are not comparable at the sub-percent level; the comparison metric is the daily ground-to-GHI ratio (spatial mean of the ground irradiance, summed over the day, divided by the daily GHI). Measured agreement on the Sample project (v4.3.0, 2026-06-11): **−0.1 percentage points** on 21 March and **−0.4 percentage points** on 21 June. The same metric evaluated against the historical (counter-rotated) engine showed **+24.3 percentage points** on the clear-sky solstice day — the defect signature — and +0.6 pp on the overcast equinox day, where diffuse light dominates and panel orientation matters little.
+A second, structurally independent check runs the same scene through the *native* bifacial_radiance 1-axis chain — `set1axis` → `gendaylit1axis` → `makeScene1axis` → `makeOct1axis` → `analysis1axisground` — in which the tracker angles are computed by pvlib *inside the library* (`surface_tilt`/`surface_azimuth`) and the ground sensors are positioned by the library itself across one full pitch. No SolRatio code participates in the geometry, so a convention error in the engine cannot propagate to this reference. Because the native workflow fixes its own rtrace parameters (`accuracy='low'`, `-ab 2`) while the engine uses the project-configured ones (the engine default is also `-ab 2`, but the bundled Sample sets `-ab 1 -ad 1024 -as 128` via cells B48–B50), point-by-point profiles are not comparable at the sub-percent level; the comparison metric is the daily ground-to-GHI ratio (spatial mean of the ground irradiance, summed over the day, divided by the daily GHI). Measured agreement on the Sample project is within 0.5 percentage points on both days (full acceptance battery of 2026-06-12: **−0.3 percentage points** on both 21 March and 21 June; individual runs vary with the stochastic ambient sampling). The same metric evaluated against the historical (counter-rotated) engine showed **+24.3 percentage points** on the clear-sky solstice day — the defect signature — and +0.6 pp on the overcast equinox day, where diffuse light dominates and panel orientation matters little.
 
 ### 4.4 Regression gate
 
@@ -321,7 +324,7 @@ The current release has the following declared limitations.
 
 ## 7. Roadmap
 
-**v4.2.x — reference edition (this repository).** The public line is
+**v4.3.x — reference edition (this repository).** The public line is
 maintained for correctness and reproducibility: bug fixes, documentation
 clarifications, and updates to this technical note. No new modelling
 features are planned for the public repository.
@@ -345,7 +348,7 @@ available.
 
 ## 8. Conclusions
 
-SolRatio is an open-source modelling tool that addresses the agronomic side of agrivoltaic design through a physically rigorous ray-tracing pipeline integrated with calibrated crop-yield curves. The v4.2 line extended the modelling scope to multi-year stochastic analysis, arbitrary tracker axis orientation, basic bifaciality, semi-transparent modules, and inclined terrain. The v4.3.0 release corrects the counter-rotated tracking scene inherited from v4.1.0 (Section 2.3): tracking-mode ground-light estimates of all previous releases are overestimated and must not be reused, and the regression-gate references have been re-measured accordingly. The episode also reshaped the validation strategy: a consistency check between pipelines that share a geometric convention cannot detect an error in that convention, which is why the independent native-workflow reference of Section 4.3 is now part of the released validation.
+SolRatio is an open-source modelling tool that addresses the agronomic side of agrivoltaic design through a physically rigorous ray-tracing pipeline integrated with calibrated crop-yield curves. The v4.2 line extended the modelling scope to multi-year stochastic analysis, arbitrary tracker axis orientation, basic bifaciality, semi-transparent modules, and inclined terrain. The v4.3.0 release corrects the counter-rotated tracking scene inherited from v4.1.0 (Section 2.1): tracking-mode ground-light estimates of all previous releases are overestimated and must not be reused, and the regression-gate references have been re-measured accordingly. The episode also reshaped the validation strategy: a consistency check between pipelines that share a geometric convention cannot detect an error in that convention, which is why the independent native-workflow reference of Section 4.3 is now part of the released validation.
 
 Validation against the official bifacial_radiance workflow returns sub-percent mean bias errors and coefficients of determination of at least 0.997 on both equinox and solstice days for a representative Po Valley scene, and the independent native-workflow reference agrees within 0.5 percentage points on the daily ground-to-GHI ratio. Field validation against *in situ* PAR measurements is a parallel objective in the roadmap. The tool is operated through a parameter-driven Excel workbook with one-click launchers, and is released on GitHub under the Apache 2.0 licence; every release is deposited on Zenodo with both a concept DOI and a version-specific DOI for citation.
 
@@ -359,7 +362,7 @@ The source code is hosted on GitHub at <https://github.com/eurrag/SolRatio> unde
 
 - **Concept DOI** (recommended for general citation, always resolves to the latest version): [10.5281/zenodo.19959581](https://doi.org/10.5281/zenodo.19959581)
 - **Version-specific DOI for v4.3.0**: assigned at the Zenodo deposit of this release.
-- Version-specific DOI for v4.2.1 (immutable; ⚠ tracking-mode results overestimated, see Section 2.3 — not recommended for new citations): [10.5281/zenodo.20642574](https://doi.org/10.5281/zenodo.20642574)
+- Version-specific DOI for v4.2.1 (immutable; ⚠ tracking-mode results overestimated, see Section 2.1 — not recommended for new citations): [10.5281/zenodo.20642574](https://doi.org/10.5281/zenodo.20642574)
 - Version-specific DOI for v4.2.0 (immutable; same caveat): [10.5281/zenodo.20277335](https://doi.org/10.5281/zenodo.20277335)
 
 The reference *Sample* project used for the validation in Section 4 is included in the repository under `progetti/Sample/`. The east-west variant *Sample_EW* used for the comparison of Section 5 is included under `progetti/Sample_EW/` and exercised, together with *Sample*, by the release regression gate.
@@ -382,7 +385,7 @@ Holmgren, W. F., C. W. Hansen, and M. A. Mikofski (2018). pvlib python: a python
 
 Huld, T., R. Müller, and A. Gambardella (2012). A new solar radiation database for estimating PV performance in Europe and Africa. *Solar Energy*, 86(6), 1803–1815. <https://doi.org/10.1016/j.solener.2012.03.006>
 
-Jacovides, C. P., F. S. Tymvios, V. D. Assimakopoulos, and N. A. Kaltsounides (2004). Comparative study of various correlations in estimating hourly diffuse fraction of global solar radiation. *Renewable Energy*, 31(15), 2492–2504. <https://doi.org/10.1016/j.renene.2006.03.009>
+Jacovides, C. P., F. S. Tymvios, D. N. Asimakopoulos, K. M. Theofilou, and S. Pashiardes (2003). Global photosynthetically active radiation and its relationship with global solar radiation in the Eastern Mediterranean basin. *Theoretical and Applied Climatology*, 74(3–4), 227–233. <https://doi.org/10.1007/s00704-002-0685-5>
 
 Joint Research Centre (n.d.). *PVGIS — Photovoltaic Geographical Information System*. European Commission. <https://re.jrc.ec.europa.eu/pvg_tools/> (accessed 2026-05-19).
 
@@ -392,13 +395,15 @@ Mardaljevic, J. (1995). Validation of a lighting simulation program under real s
 
 Marrou, H., L. Guilioni, L. Dufour, C. Dupraz, and J. Wery (2013). Microclimate under agrivoltaic systems: Is crop growth rate affected in the partial shade of solar panels? *Agricultural and Forest Meteorology*, 177, 117–132. <https://doi.org/10.1016/j.agrformet.2013.04.012>
 
-Ministero dell'Ambiente e della Sicurezza Energetica (2023). *Linee Guida in materia di impianti agrivoltaici di natura innovativa* (D.M. 436/2023). Republic of Italy.
+Ministero della Transizione Ecologica (2022). *Linee Guida in materia di Impianti Agrivoltaici*. Republic of Italy. <https://www.mase.gov.it/portale/documents/d/guest/linee_guida_impianti_agrivoltaici-pdf>
+
+Ministero dell'Ambiente e della Sicurezza Energetica (2023). *D.M. 436/2023 — Incentivazione di impianti agrivoltaici di natura innovativa*. Republic of Italy.
 
 Perez, R., R. Seals, and J. Michalsky (1993). All-weather model for sky luminance distribution — preliminary configuration and validation. *Solar Energy*, 50(3), 235–245. <https://doi.org/10.1016/0038-092X(93)90017-I>
 
 Pesavento, S. (2026a). *SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale* (v4.2.0) [Software]. Zenodo. <https://doi.org/10.5281/zenodo.20277335>
 
-Pesavento, S. (2026b). *SolRatio: A Ground-Irradiance and Crop-Yield Model for Single-Axis Tracker Agrivoltaic Systems. Technical Note* (v1.3). Zenodo. https://doi.org/10.5281/zenodo.[DOI_PLACEHOLDER]
+Pesavento, S. (2026b). *SolRatio: A Ground-Irradiance and Crop-Yield Model for Single-Axis Tracker Agrivoltaic Systems. Technical Note* (v1.6). Zenodo. https://doi.org/10.5281/zenodo.[DOI_PLACEHOLDER]
 
 Trommsdorff, M., J. Kang, C. Reise, S. Schindele, G. Bopp, A. Ehmann, A. Weselek, P. Högy, and T. Obergfell (2021). Combining food and energy production: Design of an agrivoltaic system applied in arable and vegetable farming in Germany. *Renewable and Sustainable Energy Reviews*, 140, 110694. <https://doi.org/10.1016/j.rser.2020.110694>
 
@@ -481,4 +486,4 @@ The following figures are recommended for the deposited PDF; placeholders are li
 
 ---
 
-*Document version: 1.5 (2026-06-11). Revision history: v1.0 initial draft; v1.1 first internal review (literature, validation framing, formula notation, references); v1.2 second internal review (notation consistency, terminology, table numbering, references, conclusions); v1.3 third internal review (uniform math notation across tables and corpus, Ward 1994 reference, nomenclature appendix, structural cleanup of §1 and §3.3); v1.4 alignment with the v4.2.1 reference edition (pruned scope in §3, corrected Table 1 cell references against the code, UTC EPW header, updated regression gate in §4.2, new application example in §5, open-core roadmap in §7); v1.5 alignment with the v4.3.0 corrective release (counter-rotated tracking scene corrected and documented in §2.3, validation re-measured and independent native-workflow reference added in §4, regression gate and §5 comparison updated, corrected benchmark-scene parameters in §4.1). Prepared from the SolRatio v4.3.0 repository and release artefacts. For corrections and updates, please open an issue at <https://github.com/eurrag/SolRatio/issues>.*
+*Document version: 1.6 (2026-06-12). Revision history: v1.0 initial draft; v1.1 first internal review (literature, validation framing, formula notation, references); v1.2 second internal review (notation consistency, terminology, table numbering, references, conclusions); v1.3 third internal review (uniform math notation across tables and corpus, Ward 1994 reference, nomenclature appendix, structural cleanup of §1 and §3.3); v1.4 alignment with the v4.2.1 reference edition (pruned scope in §3, corrected Table 1 cell references against the code, UTC EPW header, updated regression gate in §4.2, new application example in §5, open-core roadmap in §7); v1.5 alignment with the v4.3.0 corrective release (counter-rotated tracking scene corrected and documented in §2.1, validation re-measured and independent native-workflow reference added in §4, regression gate and §5 comparison updated, corrected benchmark-scene parameters in §4.1); v1.6 full documentation review against the code and the 2026-06-12 acceptance battery (Table 2 and §4.3 re-measured after a degenerate validation artefact was found and regenerated; rtrace→irradiance conversion corrected to the (R+G+B)/3 convention actually implemented; benchmark rtrace parameters declared in §4.1; section cross-references fixed; Jacovides reference corrected to the 2003 PAR paper; Italian regulatory references disentangled — MiTE 2022 Guidelines vs D.M. 436/2023; Table 1 extended with B40/B43/B47 and the θ_fix sign convention). Prepared from the SolRatio v4.3.0 repository and release artefacts. For corrections and updates, please open an issue at <https://github.com/eurrag/SolRatio/issues>.*

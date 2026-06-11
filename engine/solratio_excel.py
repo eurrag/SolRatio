@@ -89,7 +89,8 @@ def read_parameters(wb):
         B44: N tracker per lato (n_ext, default 2, range 1-6)
         (B46: rimossa, theta_fix ora in B20)
         B47: N sub-sampling orario (n_sub, default 4 = 15 min, range 1-60)
-      GRANDEZZE DERIVATE: scritte dallo script da B50 in poi.
+        B48-B50: parametri rtrace -ab/-ad/-as (default 2/2048/256)
+        B51: override numero file scena (br_n_rows, 0 = auto)
     """
     if 'Parametri' not in wb.sheetnames:
         raise ValueError(
@@ -169,7 +170,7 @@ def read_parameters(wb):
         'yr_start':         int(get('B41', float, 2005)),
         'yr_end':           int(get('B42', float, 2023)),
         'csv_path':         get('B43', str, ''),
-        'n_ext':            int(get('B44', float, 2)),   # N tracker per lato (default 2, range 1-6)
+        'n_ext':            int(get('B44', float, 2)),   # N tracker per lato (default 2, range 0-6)
         # theta_fix ora letto da B20 (sopra)
         'n_sub':            int(get('B47', float, 4)),   # N sub-sampling orario (default 4 = 15 min)
         # ── PARAMETRI RADIANCE (introdotti in v4.0.0) ──
@@ -343,7 +344,7 @@ def read_parameters(wb):
         print(f"  Il modello e meno accurato; i risultati sono conservativi.")
     if p['L_tracker'] > 0 and p['L_tracker'] < 15:
         print(f"  NOTA: L_tracker={p['L_tracker']:.1f}m (< 15m). La correzione FC_NS")
-        print(f"  e significativa (>2%). Per file molto corte considerare la v4.0 con KML.")
+        print(f"  e significativa (>2%): interpretare il K_agv d'impianto con cautela.")
 
     return p
 

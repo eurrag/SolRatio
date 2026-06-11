@@ -1,8 +1,8 @@
 """
 solratio_yield.py  |  SolRatio v4.3.0 (2026-06-11)
 =====================================================
-Resa colturale (Laub et al. 2022) e impatto pali di sostegno.
-Calcolo + scrittura Excel per i fogli Resa_Colturale e Impatto_Pali.
+Resa colturale (Laub et al. 2022): calcolo + scrittura Excel del foglio
+Resa_Colturale (incl. K_agv d'impianto dall'effetto bordo).
 """
 
 from datetime import datetime
@@ -411,10 +411,4 @@ def update_resa_with_edge(wb, kagv_imp, p):
         row += 1  # riga vuota tra colture
 
     print('  Foglio Resa_Colturale aggiornato con K_agv impianto.')
-
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCRITTURA IMPATTO_PALI
-# ══════════════════════════════════════════════════════════════════════════════
 

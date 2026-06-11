@@ -5,7 +5,7 @@
 
 **Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale.**
 
-SolRatio è uno strumento integrato che combina la simulazione della radiazione solare disponibile per le colture sottostanti ai pannelli fotovoltaici (tramite ray-tracing 3D fisicamente accurato Radiance + bifacial_radiance) con le curve dose-risposta di Laub et al. (2022) per la stima delle rese colturali in regime di ombreggiamento agrivoltaico. Fornisce profili spaziali e temporali di PAR e DLI, e il coefficiente agrivoltaico K_agv per nove categorie colturali, necessari alla verifica dei requisiti agronomici previsti dalle Linee Guida MASE (D.M. 436/2023) e alla valutazione della compatibilità tra produzione energetica e produzione agricola.
+SolRatio è uno strumento integrato che combina la simulazione della radiazione solare disponibile per le colture sottostanti ai pannelli fotovoltaici (tramite ray-tracing 3D fisicamente accurato Radiance + bifacial_radiance) con le curve dose-risposta di Laub et al. (2022) per la stima delle rese colturali in regime di ombreggiamento agrivoltaico. Fornisce profili spaziali e temporali di PAR e DLI, e il coefficiente agrivoltaico K_agv per nove categorie colturali, necessari alla verifica dei requisiti agronomici previsti dalle Linee Guida ministeriali in materia di impianti agrivoltaici (MiTE, 2022) e dal D.M. 436/2023 sull'agrivoltaico innovativo, e alla valutazione della compatibilità tra produzione energetica e produzione agricola.
 
 > **⚠ Correzione maggiore (v4.3.0).** Dal v4.1.0 al v4.2.2 la scena Radiance
 > ruotava il pannello dalla parte opposta al sole in ogni ora di tracking: i
@@ -162,16 +162,16 @@ Documentazione tecnica nella cartella `documentazione/`:
 
 Il modello è validato in due modi complementari (script: `engine/validazione_br.py`).
 
-**1) Code-to-code** vs il workflow ufficiale di bifacial_radiance (AnalysisObj) sullo stesso progetto, stessi parametri rtrace, stessi dati meteorologici. Risultati sul progetto *Sample* incluso (pianura padana, lat 45.30°N lon 9.34°E, dati PVGIS-SARAH3 2005-2023; scena demo con `br_n_rows = 4`), misurati con v4.3.0 (Radiance 6.0, 2026-06-11):
+**1) Code-to-code** vs il workflow ufficiale di bifacial_radiance (AnalysisObj) sullo stesso progetto, stessi parametri rtrace, stessi dati meteorologici. Risultati sul progetto *Sample* incluso (pianura padana, lat 45.30°N lon 9.34°E, dati PVGIS-SARAH3 2005-2023; scena demo con `br_n_rows = 4`), misurati con v4.3.0 (Radiance 6.0, collaudo completo 2026-06-12):
 
 | Giorno | MBE | RMSE | R² |
 |--------|-----|------|----|
-| 21 marzo (equinozio) | +0.0% | 0.0% | 1.0000 |
-| 21 giugno (solstizio) | −0.0% | 0.1% | 0.9999 |
+| 21 marzo (equinozio) | +0.1% | 0.2% | 0.9993 |
+| 21 giugno (solstizio) | −0.1% | 0.1% | 0.9999 |
 
 Lo scostamento residuo è rumore numerico intrinseco di Radiance (stocasticità ambient sampling); ri-esecuzioni indipendenti restituiscono R² ≥ 0.9975.
 
-**2) Riferimento canonico indipendente** (parte D della validazione, introdotta in v4.3.0): la stessa scena è simulata col workflow nativo 1-axis di bifacial_radiance (`set1axis` → `gendaylit1axis` → `analysis1axisground`), in cui gli angoli del tracker li calcola pvlib *dentro la libreria* e i sensori a terra li posiziona la libreria stessa — nessuna convenzione SolRatio nella geometria. Scarto sul rapporto suolo/GHI giornaliero: −0.1 pp (21/3) e −0.4 pp (21/6). Questo controllo è stato aggiunto dopo la scoperta della scena contro-ruotata (v4.1.0–v4.2.2): la sola validazione code-to-code condivideva la convenzione di scena col motore ed era cieca per costruzione agli errori di convenzione.
+**2) Riferimento canonico indipendente** (parte D della validazione, introdotta in v4.3.0): la stessa scena è simulata col workflow nativo 1-axis di bifacial_radiance (`set1axis` → `gendaylit1axis` → `analysis1axisground`), in cui gli angoli del tracker li calcola pvlib *dentro la libreria* e i sensori a terra li posiziona la libreria stessa — nessuna convenzione SolRatio nella geometria. Scarto sul rapporto suolo/GHI giornaliero entro 0.5 pp (misure del collaudo 2026-06-12: −0.3 pp su entrambi i giorni; il valore puntuale varia col campionamento ambient stocastico). Questo controllo è stato aggiunto dopo la scoperta della scena contro-ruotata (v4.1.0–v4.2.2): la sola validazione code-to-code condivideva la convenzione di scena col motore ed era cieca per costruzione agli errori di convenzione.
 
 Test di regressione nel workflow di rilascio: i progetti inclusi *Sample* (N-S) e *Sample_EW* (E-W) devono riprodurre un K_agv SAU per Cereali C3 di **57.5%** e **55.3%** rispettivamente (riferimenti misurati con v4.3.0), con tolleranza **±0.2 punti percentuali**: l'ambient sampling di Radiance è stocastico e il risultato non è bit-identico tra run. Lancio: `_smoke_regression.bat` (Windows) o `./_smoke_regression.sh` (Linux/macOS). Ogni release candidate deve passare questo gate.
 

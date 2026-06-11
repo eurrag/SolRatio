@@ -14,7 +14,7 @@ SolRatio/
 │   ├── br_engine.py              # motore bifacial_radiance: PVGIS→EPW, scena, rtrace parallelo
 │   ├── _scene_cache.py           # cache octree .oct (frozen, per workflow ≤200 angoli unici)
 │   ├── solratio_core.py          # fisica: solare/tracker, VF, ombre, Perez, PAR/DLI, zone, self-test
-│   ├── solratio_excel.py         # read_parameters + scrittura workbook risultati (9 fogli)
+│   ├── solratio_excel.py         # read_parameters + scrittura workbook risultati (8 fogli, +Bifacciale se b_f>0)
 │   ├── solratio_edge.py          # effetto bordo perimetrale, correzione FC_NS
 │   ├── solratio_yield.py         # curve Laub 2022 → K_agv per coltura/zona/campo
 │   ├── solratio_pdf.py           # report PDF di sintesi (reportlab + matplotlib)

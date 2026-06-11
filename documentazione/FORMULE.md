@@ -4,14 +4,16 @@
 
 ### Radianza Radiance → Irradianza [W/m²]
 
-rtrace in modo `-I` restituisce radianza spettrale RGB. Conversione:
+rtrace in modo `-I` restituisce irradianza RGB. Conversione:
 
 ```
-IRR = 179 × (0.265·R + 0.670·G + 0.065·B)   [W/m²]
+IRR = (R + G + B) / 3   [W/m²]
 ```
 
-- 179 lm/W = efficacia luminosa standard CIE
-- Coefficienti RGB = pesi luminanza CIE 1931 (Y = 0.265R + 0.670G + 0.065B)
+- Media aritmetica dei tre canali = convenzione di bifacial_radiance per
+  l'irradianza broadband (i materiali della scena sono spettralmente neutri).
+- NB: la conversione FOTOMETRICA `179 × (0.265·R + 0.670·G + 0.065·B)`
+  (lux, pesi luminanza CIE) NON è usata da SolRatio.
 
 ### Irradianza → PAR [µmol/m²/s]
 
@@ -19,7 +21,7 @@ IRR = 179 × (0.265·R + 0.670·G + 0.065·B)   [W/m²]
 PAR_mol = IRR × par_frac × W_TO_UMOL
 ```
 
-- `par_frac` = frazione PAR della radiazione solare (variabile, ~0.43-0.48)
+- `par_frac` = frazione PAR della radiazione solare (variabile, ~0.42-0.48)
 - `W_TO_UMOL` = 4.57 µmol/J (fattore di conversione W → µmol/s per PAR)
 
 ### PAR → DLI [mol/m²/d]
@@ -29,10 +31,12 @@ DLI_h = PAR_mol × 3600 / 1e6    [mol/m²] per ora
 DLI_d = Σ(DLI_h)                 [mol/m²/d] somma giornaliera
 ```
 
-## PAR_FRAC — Jacovides et al. (2004)
+## PAR_FRAC — Jacovides et al. (2003)
 
 La frazione PAR della radiazione solare globale varia con le condizioni
-atmosferiche. Il metodo Jacovides usa il clearness index kt:
+atmosferiche (Jacovides et al. 2003, *Theor. Appl. Climatol.* 74:227-233:
+rapporto PAR/globale e sua dipendenza dal cielo nel Mediterraneo
+orientale). La parametrizzazione usa il clearness index kt:
 
 ```
 kt = GHI / (I₀ × cos(θz))
@@ -45,7 +49,7 @@ par_frac(kt) = clip(0.500 - 0.082·kt, 0.42, 0.48)
 ```
 
 (parametrizzazione lineare sul clearness index nello spirito di Jacovides
-et al. 2004; coefficienti del fit implementato in `compute_par_frac` —
+et al. 2003; coefficienti del fit implementato in `compute_par_frac` —
 v4.2.2 allinea la documentazione al codice validato).
 Range operativo: 0.42-0.43 (cielo sereno, kt alto) — 0.48 (coperto).
 
@@ -105,7 +109,8 @@ foglia, tuberi/radici, cereali C3, leguminose granella, mais (C4).
 ```
 
 - Con backtracking: θ limitato per evitare ombreggiamento reciproco
-- Senza backtracking: θ = min(ideal_angle, beta_max)
+- Senza backtracking: |θ| ≤ β_max — θ è firmato (negativo al mattino),
+  quindi θ = sign(θ_ideale) × min(|θ_ideale|, β_max)
 
 ### Hub height e clearance
 
@@ -130,7 +135,7 @@ Range tipico agrivoltaico: 0.25 - 0.50 (vs. 0.40 - 0.60 per fotovoltaico puro).
 ```
 d_ombra(t) = H_max / tan(α_sole(t))
 H_max = H_mozzo + (W/2)·sin(β_max)
-strip_width = P95(d_ombra) su tutte le ore diurne annuali
+strip_width = P95(d_ombra) su tutte le ore annuali con elevazione solare > 3°
 ```
 
 Limitata a: `W ≤ strip_width ≤ 5 × pitch`

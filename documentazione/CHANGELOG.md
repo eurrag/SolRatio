@@ -59,13 +59,16 @@ frame mattina/pomeriggio).
 
 ### Validazione e riferimenti aggiornati
 
-- Parte B (code-to-code, stessi parametri rtrace): R² = 1.0000 (21/3) e
-  0.9999 (21/6) sul Sample; ri-esecuzione indipendente R² ≥ 0.9975.
+- Parte B (code-to-code, stessi parametri rtrace): R² = 0.9993 (21/3) e
+  0.9999 (21/6) sul Sample (collaudo completo 2026-06-12); ri-esecuzione
+  indipendente R² ≥ 0.9975.
 - **Nuova parte D**: riferimento canonico `set1axis`/`analysis1axisground`
   nativo (indipendente dalla convenzione di scena del motore) — scarto sul
-  K giornaliero suolo/GHI: −0.1 pp (21/3) e −0.4 pp (21/6).
+  K giornaliero suolo/GHI entro 0.5 pp (misure collaudo 2026-06-12:
+  −0.3 pp su entrambi i giorni).
 - Nuovi riferimenti del gate (±0.2 pp): Sample **57.5**, Sample_EW **55.3**.
-  Varianti di collaudo (misure 2026-06-11): tilt fisso 68.7, astronomico
+  Varianti di collaudo (misure 2026-06-11, riconfermate dal collaudo
+  completo 2026-06-12): tilt fisso 68.7, astronomico
   57.4, slope 56.9, tau 60.2, tau_diff 60.2, bifacciale 57.5, input/ 57.5.
   K_agv impianto Cereali C3: Sample 64.9% (l'effetto bordo pesa di più ora
   che il campo interno è più ombreggiato), Sample_EW 63.2%.
@@ -214,6 +217,10 @@ cambia il K_agv di impianto (effetto bordo): sul progetto Sample
 
 ## v4.2.1 (2026-06-11) — Reference edition: potatura al minimo riproducibile + fix
 
+> ⚠ **Avvertenza retrospettiva**: i K_agv in modalità TRACKING di questa
+> versione (incluso il gate 84.1/79.2) sono SOVRASTIMATI per la scena
+> contro-ruotata, corretta in v4.3.0. Non riutilizzarli.
+
 Edizione di riferimento citabile: il perimetro è ridotto al "minimo
 riproducibile" (pipeline core + validazione + sentinella + esempi), con fix
 limitati a ciò che resta. Ogni rimozione è elencata sotto per trasparenza
@@ -323,8 +330,11 @@ verso chi usava v4.2.0 (che resta taggata e depositata su Zenodo).
 
 ## v4.2.0 (2026-05-05) — Multi-anno, frame coord ruotato, bifacciale, BRTDfunc, cache scene .oct
 
+> ⚠ **Avvertenza retrospettiva**: i K_agv in modalità TRACKING di questa
+> versione sono SOVRASTIMATI (scena contro-ruotata, corretta in v4.3.0).
+
 Release minor che chiude lo scope v4.2 (9 item) come pianificato in
-`PIANO_v4.2.md`. Decisioni utente del 2026-05-02 hanno spostato i pali
+`PIANO_v4.2.md` (file rimosso in v4.2.1). Decisioni utente del 2026-05-02 hanno spostato i pali
 dalla v4.2 alla v4.3 e anticipato in v4.2 i 3 item v4.3 originali (con
 scope ridotti α e β rispettivamente). Trade-off costo H_min spostato
 a v4.4.
@@ -448,7 +458,8 @@ temperatura modulo, perdite di sistema, soiling. Estensione PVWatts-like
   in `br_engine.py` e `validazione_br.py`. La pipeline di validazione
   vs BR ufficiale resta coerente.
 - ROADMAP riorganizzata: v4.2 / v4.3 (Pali) / v4.4 (Economia). Vedi
-  `documentazione/ROADMAP.md` e `documentazione/PIANO_v4.2.md`.
+  `documentazione/ROADMAP.md` e `documentazione/PIANO_v4.2.md` (quest'ultimo
+  rimosso in v4.2.1; la roadmap attuale è quella open-core).
 
 ### Tool nuovi v4.2.0
 
@@ -725,6 +736,10 @@ n_ext ≥ 3 (n_rows ≥ 7) per uso di routine, n_ext ≥ 4 (n_rows ≥ 9) per
 benchmark e pubblicazioni scientifiche.
 
 ## v4.1.0 (2026-05-01) — Prima release pubblica
+
+> ⚠ **Avvertenza retrospettiva**: i K_agv in modalità TRACKING delle
+> versioni v4.1.x sono SOVRASTIMATI (scena contro-ruotata introdotta qui,
+> corretta in v4.3.0).
 
 Versione preparata per la pubblicazione open source con DOI Zenodo.
 

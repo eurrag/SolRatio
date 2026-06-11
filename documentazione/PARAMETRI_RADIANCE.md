@@ -16,8 +16,8 @@ Numero massimo di rimbalzi di luce indiretta che rtrace simula.
 | Valore | Significato | Tempo relativo | Quando usare |
 |--------|-------------|----------------|--------------|
 | 0 | Solo luce diretta, nessun rimbalzo | 1× (più veloce) | Test rapidi, debug. Sottostima la diffusa. |
-| **1** | **1 rimbalzo (default)** | **2-3×** | **Uso standard. Cattura la maggior parte della diffusa e la riflessione suolo→pannello→suolo.** |
-| 2 | 2 rimbalzi | 5-8× | Maggiore accuratezza per scene complesse, albedo alto. |
+| 1 | 1 rimbalzo — config. dei progetti Sample inclusi | 2-3× | Uso standard. Cattura la maggior parte della diffusa e la riflessione suolo→pannello→suolo. |
+| **2** | **2 rimbalzi (default del codice)** | **5-8×** | **Maggiore accuratezza per scene complesse, albedo alto.** |
 | 3 | 3 rimbalzi | 10-20× | Massima accuratezza. Raramente necessario per agrivoltaico. |
 
 Effetto fisico: con `-ab 0` la luce colpisce il suolo una sola volta (dal cielo).
@@ -25,8 +25,10 @@ Con `-ab 1`, la luce che rimbalza dal suolo e colpisce il retro del pannello
 viene poi riflessa nuovamente verso il suolo (inter-row reflection). Questo è il
 contributo dominante per l'accuratezza in agrivoltaico.
 
-Raccomandazione: **ab=1** per simulazioni di routine; **ab=2** per validazione
-o quando l'albedo è alto (> 0.4, es. neve, teli riflettenti).
+Raccomandazione: **ab=1** per simulazioni di routine veloci (è la
+configurazione dei progetti Sample del gate, celle B48-B50 = 1/1024/128);
+**ab=2** (default del codice se la cella è vuota) per validazione o quando
+l'albedo è alto (> 0.4, es. neve, teli riflettenti).
 
 
 ### `-ad` — Ambient Divisions (cella B49)
@@ -38,8 +40,8 @@ dell'irradianza indiretta.
 |--------|---------|----------------|--------------|
 | 128 | Bassa | 0.5× | Test rapidi |
 | 512 | Media | 0.8× | Simulazioni preliminari |
-| **1024** | **Standard (default)** | **1×** | **Uso standard** |
-| 2048 | Alta | 1.5× | Validazione |
+| 1024 | Standard — config. dei progetti Sample | 1× | Uso standard |
+| **2048** | **Alta (default del codice)** | **1.5×** | **Validazione** |
 | 4096 | Massima | 3× | Benchmark di riferimento |
 
 Effetto fisico: `-ad` controlla il campionamento dell'emisfera diffusa.
@@ -58,8 +60,8 @@ iniziale (`-ad`) rileva elevata varianza.
 | Valore | Comportamento | Quando usare |
 |--------|---------------|--------------|
 | 32 | Super-sampling minimo | Test rapidi |
-| **128** | **Standard (default)** | **Uso standard** |
-| 256 | Conservativo | Scene complesse |
+| 128 | Standard — config. dei progetti Sample | Uso standard |
+| **256** | **Conservativo (default del codice)** | **Scene complesse** |
 | 512 | Massimo | Benchmark |
 
 Effetto fisico: `-as` raffina il campionamento dove c'è forte contrasto
@@ -94,7 +96,14 @@ calcolati.
 
 Misurazioni empiriche su progetto pianura padana (lat 45.30°N, pitch=5m,
 W=2.38m, H=3.13m) confrontando SolRatio v4 con bifacial_radiance ufficiale
-NREL come reference:
+NREL come reference.
+
+> ⚠ NOTA (v4.3.0): i bias quantitativi della tabella furono misurati con
+> la v4.1.1, cioè con la convenzione di scena PRE-correzione (la scena
+> tracking contro-ruotata corretta in v4.3.0). La raccomandazione
+> qualitativa (n_ext ≥ 3 per uso routine, ≥ 4 per benchmark) resta valida;
+> gli ordini di grandezza dei bias andranno riconfermati con la scena
+> canonica.
 
 | n_rows | n_ext | Bias eq. (21 mar) | Bias solst. (21 giu) | Uso consigliato |
 |-------:|------:|------------------:|---------------------:|-----------------|
@@ -133,14 +142,14 @@ Questi valori sono adeguati per agrivoltaico e non richiedono tuning.
 
 ## Profili di tempo tipici
 
-Riferimento: località esempio (lat 45.30°N, lon 9.34°E) (lat 45.27°, 51 punti, 5 file, TMY ~4000 ore
-diurne, 25 workers su 32 CPU).
+Riferimento: località esempio (lat 45.30°N, lon 9.34°E; 51 punti, 5 file,
+TMY ~4000 ore diurne, 25 workers su 32 CPU).
 
 | Configurazione | ab | ad | as | Tempo stimato |
 |----------------|----|----|-----|---------------|
 | Test rapido | 0 | 128 | 32 | ~1 min |
-| Standard | 1 | 1024 | 128 | ~5 min |
-| Alta qualità | 2 | 2048 | 256 | ~15-25 min |
+| Sample/gate (celle B48-B50 dei progetti inclusi) | 1 | 1024 | 128 | ~5 min |
+| Default del codice (celle vuote) | 2 | 2048 | 256 | ~15-25 min |
 | Benchmark | 3 | 4096 | 512 | ~45-90 min |
 
 Il tempo scala linearmente con: n_ore_diurne × n_total_points × (1 + ab overhead).
@@ -150,14 +159,15 @@ al tempo base, proporzionale al numero di edge pitches.
 
 ## Conversione output rtrace → irradianza
 
-rtrace in modo `-I` restituisce radianza spettrale (R, G, B) in W/sr/m².
-La conversione a irradianza [W/m²] è:
+rtrace in modo `-I` restituisce irradianza RGB (R, G, B). La conversione
+a irradianza broadband [W/m²] è la media aritmetica dei tre canali
+(convenzione bifacial_radiance, scena spettralmente neutra):
 
 ```
-IRR = 179 × (0.265 × R + 0.670 × G + 0.065 × B)
+IRR = (R + G + B) / 3
 ```
 
-dove 179 lm/W è l'efficacia luminosa standard e i coefficienti RGB sono i
-pesi per la luminanza CIE. Con `-I` e sensori che puntano verso l'alto
-(direzione 0 0 1), il risultato è l'irradianza totale incidente sulla
-superficie orizzontale.
+NB: la conversione FOTOMETRICA `179 × (0.265·R + 0.670·G + 0.065·B)`
+(lux, pesi luminanza CIE) NON è usata da SolRatio. Con `-I` e sensori che
+puntano verso l'alto (direzione 0 0 1), il risultato è l'irradianza totale
+incidente sulla superficie orizzontale.
