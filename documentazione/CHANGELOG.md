@@ -83,6 +83,24 @@ verso chi usava v4.2.0 (che resta taggata e depositata su Zenodo).
 - Igiene: rimossi path personali dalle celle/commenti (xlsm, .bas,
   .gitignore); EPW dei progetti rigenerati con header UTC.
 
+### Template e fogli di output (rifinitura da collaudo)
+
+- Foglio Parametri: etichetta SANU riscritta ("fascia non coltivata per
+  lato, lungo ogni fila" — quella storica suggeriva il perimetro del
+  campo); righe dei parametri non modellati (d_palo, spaziatura pali,
+  ottimizza pitch) SVUOTATE (non eliminate: la lettura è per indirizzo
+  di cella); aggiunte le righe-etichetta per i parametri opzionali
+  B25 (tau_diff) e B26 (fattore bifaccialità), che il motore leggeva
+  ma il template non esponeva.
+- Fogli `Profilo_PAR_Spaziale` e `PAR_DLI_Profilo`: titoli, banner e
+  intestazioni di colonna ora generati dal codice (prima erano demandati
+  a un template di formattazione non distribuito: i dati apparivano
+  senza intestazioni).
+- vbaProject degli xlsm rigenerato in sessione Excel (moduli reimportati
+  dai .bas ripuliti, pulsanti rigenerati senza "Analisi Sensitivita",
+  foglio Sensitivita_Config eliminato); Launcher!B3 vuota (il percorso
+  Python viene rilevato automaticamente al primo uso).
+
 ### Note
 
 - La technical note allineata a questa edizione è in preparazione

@@ -2,7 +2,7 @@
 
 ## Panoramica
 
-SolRatio v4.1.0 usa Radiance rtrace in modalità irradianza (`-I`) per calcolare
+SolRatio usa Radiance rtrace in modalità irradianza (`-I`) per calcolare
 l'irradianza al suolo sotto un impianto agrivoltaico a tracker mono-assiale.
 I tre parametri principali controllano il trade-off accuratezza/velocità.
 

@@ -1,4 +1,8 @@
-# SolRatio v4.1.0 — Architettura br_engine
+# SolRatio — Architettura br_engine (v4.2.1)
+
+> Documento nato con la v4.1.0; la pipeline sotto descritta resta valida.
+> Le estensioni della linea v4.2 sono riassunte in fondo
+> ("Aggiornamenti v4.2.x") e dettagliate nella technical note.
 
 ## Panoramica
 
@@ -45,7 +49,7 @@ La funzione principale `run_annual()` esegue questa sequenza:
 
 ## Parametri rtrace
 
-Configurabili dal foglio Excel Parametri (celle B48-B50). I default nel codice corrispondono alla modalità `accuracy='low'` di bifacial_radiance:
+Configurabili dal foglio Excel Parametri (celle B48-B50; B51 = override del numero di file in scena, vedi PARAMETRI_RADIANCE.md). I default nel codice corrispondono alla modalità `accuracy='low'` di bifacial_radiance:
 
 | Parametro | Cella | Default | Significato |
 |-----------|-------|---------|-------------|
@@ -120,7 +124,27 @@ Risultati su località esempio (lat 45.30°N, lon 9.34°E) (2026-04-10):
 | 21 marzo (equinozio) | +0.54% | 0.80% | 0.9982 |
 | 21 giugno (solstizio) | +0.42% | 0.49% | 0.9989 |
 
-Il residuo ~0.5% è attribuibile alla stocasticità dell'ambient sampling di Radiance.
+Il residuo ~0.5% è attribuibile alla stocasticità dell'ambient sampling di
+Radiance. Riverificato sulla v4.2.1 (Radiance 6.0, 2026-06-11): R² ≥ 0.9985,
+RMSE ≤ 0.2% su entrambe le giornate.
+
+
+## Aggiornamenti v4.2.x
+
+- **axis_azimuth arbitrario**: sensori in frame locale (u,v,w) ancorato
+  all'asse tracker, rotazione φ = axis_azimuth − 180°; scene azimuth derivato
+  coerentemente. Per axis_azimuth = 180° il comportamento coincide col v4.1.
+- **Materiali pannello**: `trans` per trasmittanza speculare (τ) e BRTDfunc
+  per la componente Lambertiana addizionale (τ_diff).
+- **Terreno in pendenza**: componenti lungo/trasversale derivate da pendenza %
+  e azimut di discesa; ground plane realmente inclinato (rotazione di Rodrigues
+  attorno all'asse) e sensori riposizionati sul piano reale.
+- **Cache scene .oct** (`_scene_cache.py`): attiva quando gli angoli unici di
+  tracker sono ≤ 200 (validazione single-day, tilt fisso); dalla v4.2.1 gli
+  octree sono compilati con `oconv -f` (frozen, self-contained) e il riuso
+  cross-run è affidabile.
+- **Header EPW in UTC** (v4.2.1): coerente coi timestamp PVGIS; il vecchio
+  `round(lon/15)` anticipava la posizione solare di ~40 minuti.
 
 
 ## Log di esecuzione

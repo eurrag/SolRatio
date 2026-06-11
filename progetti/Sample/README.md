@@ -36,8 +36,10 @@ python engine\calcola_br.py "progetti\Sample\SolRatio_progetto.xlsm"
 2. **Modifica i parametri** nel foglio `Parametri` di `SolRatio_progetto.xlsm`:
    - Coordinate del sito (B4 = lat, B5 = lon)
    - Slope terreno (B6 = pendenza %, B7 = azimut discesa)
-   - Geometria tracker (B14-B22)
-   - Ottica (B23 = trasmittanza tau, B24 = albedo)
+   - Geometria tracker (B14-B20: azimut asse, pitch, W, H_min, beta_max,
+     modalità tracker, theta_fix)
+   - Ottica (B23 = trasmittanza tau, B24 = albedo; opzionali: B25 =
+     tau_diff, B26 = fattore bifaccialità)
    - Effetto bordo (B30 = larghezza blocco, B31 = lunghezza tracker, B32 = SAU esterna)
    - Parametri Radiance (B48-B51) lasciali ai default per la prima prova
 3. **Aggiorna il titolo** nella cella A1 del foglio Parametri (per identificare il progetto nei report)

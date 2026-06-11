@@ -1,4 +1,4 @@
-# SolRatio v4.1.0 — Riferimento formule
+# SolRatio — Riferimento formule (v4.2.1)
 
 ## Conversioni fondamentali
 
@@ -80,13 +80,16 @@ RSR(x) = 1 - PAR_rel(x) = (DLI_ref - DLI_sotto) / DLI_ref
 K_agv = Y_agv / Y_pieno_sole = f(RSR)
 ```
 
-Relazione empirica da Laub et al. (2022), specifica per coltura:
+Relazione empirica da Laub et al. (2022), specifica per coltura
+(fit log-quadratico della Table S2, RMSE < 1.6%):
 
 ```
-K_agv = (a₀ + a₁·RSR + a₂·RSR² + a₃·RSR³) / 100
+Y_rel(RSR) = 10^(2 + α·RSR + β·RSR²)   [%],  clip a [0, 200]
+K_agv      = Y_rel / 100
 ```
 
-dove a₀, a₁, a₂, a₃ sono coefficienti polinomiali per coltura (in `LAUB_COEFFICIENTS`).
+dove α e β sono i due coefficienti per coltura (in `LAUB_COEFFICIENTS`,
+implementazione `solratio_core.laub_yield`).
 
 9 colture disponibili: bacche, frutta, ortaggi da frutto, foraggere, ortaggi da
 foglia, tuberi/radici, cereali C3, leguminose granella, mais (C4).
@@ -183,5 +186,6 @@ x_j  0  0.05  0  0  1     (posizione x_j, y=0, z=5cm, direzione verso l'alto)
 ```
 
 - z = 0.05 m: leggermente sopra il ground plane per evitare self-intersection
+  (su terreno in pendenza la quota segue il piano reale: z = z₀ + v·tan(slope_cross))
 - Direzione (0, 0, 1): coseno-pesata, misura irradianza su piano orizzontale
 - n_points punti equispaziati nel pitch: x = j × pitch/(n_points-1), j = 0..n_points-1

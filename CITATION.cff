@@ -1,24 +1,24 @@
-﻿# Metadati di citazione standard GitHub (Citation File Format v1.2.0)
+# Metadati di citazione standard GitHub (Citation File Format v1.2.0)
 # https://citation-file-format.github.io/
 #
-# Aggiornare il campo `version` e `date-released` ad ogni nuova release.
-# Inserire l'ORCID nel campo `orcid` prima del primo tag pubblico.
-# Inserire il DOI Zenodo nel campo `doi` dopo il primo deposito.
+# Aggiornare `version`, `date-released` e `doi` ad ogni nuova release.
 
 cff-version: 1.2.0
 message: "Se usi SolRatio in lavori pubblici, ti chiediamo cortesemente di citarlo con i metadati seguenti."
 type: software
 title: "SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale"
 abstract: >-
-  SolRatio Ã¨ uno strumento integrato di simulazione dell'irradianza solare al
+  SolRatio è uno strumento integrato di simulazione dell'irradianza solare al
   suolo e di stima delle rese colturali in impianti agrivoltaici con tracker
   monoassiale. Il modello combina ray-tracing 3D (Radiance + bifacial_radiance)
   per il calcolo dei profili spaziali e temporali di PAR e DLI, con le curve
   dose-risposta di Laub et al. (2022) per stimare il coefficiente agrivoltaico
   K_agv per nove categorie colturali. Supporta la verifica dei requisiti
-  agronomici previsti dalle Linee Guida MiTE (D.M. 436/2023) e la valutazione
-  della compatibilitÃ  tra produzione energetica e produzione agricola.
-  Validato vs bifacial_radiance ufficiale (NREL): MBE < 1%, RÂ² > 0.998.
+  agronomici previsti dalle Linee Guida MASE (D.M. 436/2023) e la valutazione
+  della compatibilità tra produzione energetica e produzione agricola.
+  Validato vs bifacial_radiance ufficiale (NREL): MBE < 1%, R² > 0.998.
+  La v4.2.1 è l'edizione di riferimento citabile (minimo riproducibile,
+  technical note inclusa, gate di regressione multipiattaforma).
 
 authors:
   - family-names: "Pesavento"
@@ -57,7 +57,7 @@ keywords:
   - "DLI"
   - "K_agv"
   - "single-axis tracker"
-  - "MiTE"
+  - "MASE"
   - "Italia"
 
 references:
