@@ -238,6 +238,11 @@ def _run_br_official(p, epw_path, target_month, target_day, n_points):
     from pvlib import tracking as pvlib_tracking
 
     temp_work = tempfile.mkdtemp(prefix='sr_val_br_')
+    try:
+        _cwd_orig = os.getcwd()
+    except OSError:
+        _cwd_orig = tempfile.gettempdir()
+        os.chdir(_cwd_orig)
 
     try:
         rad = br.RadianceObj(name='validation', path=temp_work)
@@ -422,6 +427,13 @@ def _run_br_official(p, epw_path, target_month, target_day, n_points):
         return cumulative_irr
 
     finally:
+        # RadianceObj fa chdir in temp_work: ripristina la CWD PRIMA di
+        # cancellarla (su Linux rmtree della CWD riesce e il run successivo
+        # nello stesso processo morirebbe su os.getcwd()).
+        try:
+            os.chdir(_cwd_orig)
+        except OSError:
+            os.chdir(tempfile.gettempdir())
         try:
             shutil.rmtree(temp_work)
         except Exception:

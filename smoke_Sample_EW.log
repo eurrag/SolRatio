@@ -38,8 +38,8 @@
 3. Simulazione bifacial_radiance (anno intero)...
   === SolRatio v4.2.1 — Motore bifacial_radiance ===
   Cache scene: 0 hit-set in /home/utente/SolRatio_public/progetti/Sample_EW/.cache/scenes (0.0MB)
-  Work dir: /tmp/sr_v4_7aoldan5
-path = /tmp/sr_v4_7aoldan5
+  Work dir: /tmp/sr_v4_38x6j8vb
+path = /tmp/sr_v4_38x6j8vb
 Making path: images
 Making path: objects
 Making path: results
@@ -87,16 +87,16 @@ Module sr_module updated in module.json
     [3400/3919 87%] 3400 ok, 0 err | 0.2min, ETA 0.0min
     [3600/3919 92%] 3600 ok, 0 err | 0.2min, ETA 0.0min
     [3800/3919 97%] 3800 ok, 0 err | 0.2min, ETA 0.0min
-    [3919/3919 100%] 3919 ok, 0 err | 0.2min, ETA 0.0min
+    [3919/3919 100%] 3919 ok, 0 err | 0.3min, ETA 0.0min
 
-  Completato in 0.2 minuti
+  Completato in 0.3 minuti
   Ore simulate: 3919/3919 (0 errori)
   Profili estratti: ['outer']
 
   Simulazione cielo aperto (riferimento, no pannelli)...
-  Cielo aperto: 3919/3919 ore in 5s
-  IRR open-sky medio: 376.0 W/m²  (GHI medio diurno: 366.4 W/m²)
-  Irradianza media al suolo: 1016575 Wh/m²
+  Cielo aperto: 3919/3919 ore in 6s
+  IRR open-sky medio: 375.9 W/m²  (GHI medio diurno: 366.4 W/m²)
+  Irradianza media al suolo: 1016646 Wh/m²
   Trasmissione media: 68.2%
 
 4. Post-processing (DLI, percentili, resa colturale)...
@@ -110,16 +110,16 @@ Module sr_module updated in module.json
 
    Mese    DLI_rif P50  Sotto P50  Bordo P50  Centr P50    SAU P50  Media P50
    --------------------------------------------------------------------------
-   Gen            10.3        8.2        8.0        7.0        7.4        7.5
-   Feb            16.2        7.8        8.9       12.6       11.3       10.6
-   Mar            27.7       23.0       21.9       22.5       22.2       22.4
+   Gen            10.2        8.3        8.0        7.0        7.4        7.5
+   Feb            16.2        7.9        8.9       12.6       11.3       10.6
+   Mar            27.7       23.0       21.9       22.5       22.3       22.4
    Apr            38.1       31.5       30.4       24.1       26.3       27.3
    Mag            44.9       29.6       25.6       29.0       27.8       28.2
-   Giu            51.1       26.8       26.3       35.3       32.1       31.1
-   Lug            52.2       31.4       27.7       35.0       32.5       32.2
+   Giu            51.1       26.7       26.3       35.3       32.1       31.1
+   Lug            52.2       31.4       27.7       35.0       32.5       32.3
    Ago            44.7       35.7       32.4       27.6       29.3       30.6
    Set            33.2       29.1       29.1       25.2       26.6       27.1
-   Ott            19.4       12.4       11.7       15.7       14.3       13.9
+   Ott            19.3       12.4       11.7       15.7       14.3       13.9
    Nov            10.7        8.2        7.9        7.2        7.4        7.6
    Dic             8.4        6.5        6.4        6.0        6.1        6.2
 
@@ -145,7 +145,7 @@ Module sr_module updated in module.json
    Ortaggi da foglia              88.0%         87.8%         73%
    Tuberi/radici                  84.1%         84.0%         71%
    Cereali C3                     79.2%         79.1%         66%
-   Leguminose granella            65.3%         65.2%         53%
+   Leguminose granella            65.4%         65.2%         53%
    Mais (C4)                      61.1%         61.1%         47%
 
 8. Calcolo effetto bordo (BR ray-tracing)...
@@ -161,12 +161,12 @@ Module sr_module updated in module.json
    --------------------------------------------------------------------
    Bacche                        106.6%      107.6% 1.010    +1.0%
    Frutta                        105.6%      106.7% 1.012    +1.2%
-   Ortaggi da frutto              98.2%      100.3% 1.023    +2.2%
+   Ortaggi da frutto              98.2%      100.4% 1.023    +2.2%
    Foraggere                      92.6%       95.5% 1.032    +2.9%
    Ortaggi da foglia              88.0%       91.6% 1.043    +3.6%
-   Tuberi/radici                  84.1%       88.2% 1.051    +4.1%
-   Cereali C3                     79.2%       83.9% 1.063    +4.7%
-   Leguminose granella            65.3%       72.0% 1.107    +6.6%
+   Tuberi/radici                  84.1%       88.2% 1.050    +4.1%
+   Cereali C3                     79.2%       83.9% 1.062    +4.7%
+   Leguminose granella            65.4%       72.0% 1.107    +6.6%
    Mais (C4)                      61.1%       68.2% 1.122    +7.1%
 
   Foglio Riepilogo scritto.
@@ -184,7 +184,7 @@ Riepilogo annuo (DLI medio giornaliero):
     Jul=2008, Aug=2018, Sep=2020, Oct=2008, Nov=2008, Dec=2012
   Ore simulate BR: 3919
   GHI annuo: 1490925 Wh/m²
-  Irradianza media sotto pannelli: 1016575 Wh/m²
+  Irradianza media sotto pannelli: 1016646 Wh/m²
 
 Completato.
    Sentinella creata: /home/utente/SolRatio_public/progetti/Sample_EW/.br_done

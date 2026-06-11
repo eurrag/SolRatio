@@ -483,7 +483,13 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
     # ── Work dir senza spazi ─────────────────────────────────────────
     temp_work = tempfile.mkdtemp(prefix='sr_v4_')
     print(f'  Work dir: {temp_work}')
-    _cwd_orig = os.getcwd()  # RadianceObj fa chdir in temp_work (vedi finally)
+    try:
+        _cwd_orig = os.getcwd()  # RadianceObj fa chdir in temp_work (vedi finally)
+    except OSError:
+        # un chiamante precedente (altro run nello stesso processo) ha
+        # lasciato la CWD su una directory cancellata: riparti da tmp
+        _cwd_orig = tempfile.gettempdir()
+        os.chdir(_cwd_orig)
 
     try:
         rad = br.RadianceObj(name='SolRatio_v4', path=temp_work)
