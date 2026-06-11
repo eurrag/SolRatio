@@ -296,8 +296,6 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
     if p.get('slope_pct', 0) > 0:
         params.append(['Pendenza', f'{p["slope_pct"]:.1f}% (az. discesa {p.get("slope_azimuth", 0):.0f} deg)'])
     # Pali: disabilitati in v4.1.0 — vedi CHANGELOG
-    # if p.get('d_palo', 0) > 0:
-    #     params.append(['Pali', f'd={p["d_palo"]}m  spaz.={p["spaziatura_pali"]}m'])
 
     # Due colonne
     n_half = (len(params) + 1) // 2

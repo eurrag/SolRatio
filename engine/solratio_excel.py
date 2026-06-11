@@ -74,7 +74,6 @@ def read_parameters(wb):
         B18: beta_max
         B19: Modalità tracker (0=astronomico, 1=backtracking, 2=tilt fisso)
         B20: theta_fix [deg] (tilt fisso, usato solo se B19=2; |theta_fix| <= beta_max)
-        B21: d_palo (sezione palo)
         B22: Spaziatura pali
         B23: Trasmittanza pannello tau
         B24: Albedo terreno
@@ -131,10 +130,8 @@ def read_parameters(wb):
         'beta_max':         beta_max,
         'backtracking':     int(get('B19', float, 1)),
         'theta_fix':        get('B20', float, 0.0),      # theta_fix [deg] - usato solo se B19=2 (tilt fisso)
-        # B21/B22 letti per retrocompatibilità foglio Parametri,
-        # ma IGNORATI nel flusso v4.1.0 (pali rimandati a v4.2 con scena Radiance 3D)
-        'd_palo':           get('B21', float, 0.0),
-        'spaziatura_pali':  get('B22', float, 5.0),
+        # B21/B22 (pali) non letti: percorso pali fuori scope di questa
+        # edizione (vedi CHANGELOG); le celle restano nel foglio per layout.
         'tau':              get('B23', float, 0.0),  # trasmittanza pannello speculare (0=opaco, 0.1-0.3=semitrasparente)
         'albedo':           get('B24', float, 0.23),
         # v4.2 item 9: tau_diff (BRTDfunc α) - trasmittanza diffusa addizionale.
@@ -163,7 +160,6 @@ def read_parameters(wb):
         'yr_end':           int(get('B42', float, 2023)),
         'csv_path':         get('B43', str, ''),
         'n_ext':            int(get('B44', float, 2)),   # N tracker per lato (default 2, range 1-6)
-        'ottimizza_pitch':  int(get('B45', float, 0)),   # 1=esegui ottimizzazione pitch, 0=salta
         # theta_fix ora letto da B20 (sopra)
         'n_sub':            int(get('B47', float, 4)),   # N sub-sampling orario (default 4 = 15 min)
         # ── PARAMETRI RADIANCE (introdotti in v4.0.0) ──
@@ -405,8 +401,6 @@ def write_riepilogo(wb, p, zs, yield_data, proj_dir, dli_daily_ref,
     if p['slope_pct'] > 0:
         params_display.append(('Pendenza', f'{p["slope_pct"]:.1f}% (az. discesa {p["slope_azimuth"]:.0f}°)'))
     # Pali: display disabilitato in v4.1.0
-    # if p['d_palo'] > 0:
-    #     params_display.append(('Pali', f'd={p["d_palo"]}m  spaziatura={p["spaziatura_pali"]}m'))
     if p.get('tau', 0) > 0:
         params_display.append(('Trasmittanza τ', f'{p["tau"]:.2f}'))
 
@@ -1437,7 +1431,7 @@ def update_parametri_sheet(wb, p):
     """
     ws = wb['Parametri']
 
-    # Sezione grandezze derivate (riga 50+, dopo B45=ottimizza_pitch — layout v3.3.5)
+    # Sezione grandezze derivate (riga 50+, layout v3.3.5)
     DERIVED_START = 50
     ws.cell(DERIVED_START, 1).value = 'GRANDEZZE DERIVATE (calcolate dallo script)'
     ws.cell(DERIVED_START, 1).font  = Font(name='Arial', bold=True, size=10,
@@ -2671,71 +2665,3 @@ def patch_chart_axes(xlsx_path, profilo_rows=None):
 # SCRITTURA OTTIMIZZAZIONE PITCH
 # ══════════════════════════════════════════════════════════════════════════════
 
-def write_pitch_optimization(wb, opt_results, p):
-    """
-    Popola foglio Ottimizzazione_Pitch (predisposto nel template).
-    Layout: r1=titolo, r2=subtitle, r3=pitch ottimale, r5=header, r6+=dati.
-    Nessun merge di celle.
-    """
-    if opt_results is None:
-        return
-
-    if 'Ottimizzazione_Pitch' not in wb.sheetnames:
-        wb.create_sheet('Ottimizzazione_Pitch')
-    ws = wb['Ottimizzazione_Pitch']
-
-    crop_key = opt_results['crop_key']
-    crop_label = LAUB_COEFFICIENTS.get(crop_key, {}).get('label_it', crop_key)
-
-    # Titolo e subtitle (sovrascrive placeholder del template)
-    ws['A1'].value = (
-        f'Ottimizzazione pitch — Coltura: {crop_label} | '
-        f'W={p["W"]:.2f}m  β_max={p["beta_max"]:.0f}°  '
-        f'τ={p.get("tau", 0):.2f}'
-    )
-    ws['A1'].font = Font(name='Arial', bold=True, size=11, color='1F4E79')
-
-    ws['A3'].value = 'Pitch ottimale'
-    ws['A3'].font = Font(name='Arial', bold=True, size=10)
-    ws['B3'].value = (
-        f'{opt_results["optimal_pitch"]:.2f} m  '
-        f'(GCR={p["W"]/opt_results["optimal_pitch"]:.3f})'
-    )
-    ws['B3'].font = Font(name='Arial', bold=True, size=11, color='70AD47')
-
-    # Header tabella riga 5
-    headers = ['Pitch [m]', 'GCR', 'PAR rel. SAU', 'K_agv SAU', 'K_agv Centr.']
-    for c, h in enumerate(headers, 1):
-        cell = ws.cell(5, c, h)
-        cell.font = Font(name='Arial', bold=True, size=10, color='FFFFFF')
-        cell.fill = PatternFill('solid', fgColor='2E75B6')
-        cell.alignment = Alignment(horizontal='center')
-
-    pitches = opt_results['pitches']
-    optimal = opt_results['optimal_pitch']
-    opt_fill = PatternFill('solid', fgColor='E2EFDA')
-
-    for i, pitch_val in enumerate(pitches):
-        row = 6 + i
-        is_opt = abs(pitch_val - optimal) < 0.01
-        bold = is_opt
-
-        ws.cell(row, 1).value = round(float(pitch_val), 2)
-        ws.cell(row, 1).number_format = '0.00'
-        ws.cell(row, 1).font = Font(name='Arial', size=10, bold=bold)
-        ws.cell(row, 1).alignment = Alignment(horizontal='center')
-
-        num_cell(ws.cell(row, 2), opt_results['gcr'][i], '0.000', bold=bold)
-        num_cell(ws.cell(row, 3), opt_results['par_rel_sau'][i], '0.000', bold=bold)
-        num_cell(ws.cell(row, 4), opt_results['kagv_sau'][i], '0.000', bold=bold)
-        num_cell(ws.cell(row, 5), opt_results['kagv_centr'][i], '0.000', bold=bold)
-
-        if is_opt:
-            for c in range(1, 6):
-                ws.cell(row, c).fill = opt_fill
-
-    ws.column_dimensions['A'].width = 12
-    for c_letter in 'BCDE':
-        ws.column_dimensions[c_letter].width = 14
-    ws.sheet_properties.tabColor = '70AD47'
-    print('  Foglio Ottimizzazione_Pitch scritto.')

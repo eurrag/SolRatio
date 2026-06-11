@@ -49,7 +49,6 @@ from solratio_excel import (
 from solratio_yield import (
     compute_yield_curves,
     write_resa_colturale,
-    # write_impatto_pali,  # disabilitato in v4.1.0 — vedi project_pali_fuori_v4.md
     update_resa_with_edge,
 )
 from br_engine import pvgis_to_epw, run_annual, find_pvgis_csv
@@ -140,8 +139,6 @@ def main():
     else:
         print('   Terreno: pianeggiante')
     # Pali: trattamento disabilitato in v4.1.0 — vedi project_pali_fuori_v4.md / CHANGELOG
-    # if p['d_palo'] > 0:
-    #     print(f'   Pali: d={p["d_palo"]}m  spaziatura={p["spaziatura_pali"]}m')
     n_panels = 2 * (p['n_ext'] + 1)
     print(f'   N_punti={p["n_points"]}  N_ext={p["n_ext"]} ({n_panels} pannelli)')
     print(f'   Albedo terreno: {p["albedo"]:.2f}')
@@ -361,7 +358,6 @@ def main():
     crop_keys = list(LAUB_COEFFICIENTS.keys())
     yield_data = compute_yield_curves(stats, x_pts, p, crop_keys)
     write_resa_colturale(wb_out, yield_data, stats, x_pts, p)
-    # write_impatto_pali(wb_out, yield_data, stats, x_pts, p)  # disabilitato v4.1.0
 
     # ── Bifacciale energia PV (v4.2 item 11, scope β) ──────────────────
     # Attivo solo se p['bifaciality_factor'] > 0 (default 0 = monofacciale,

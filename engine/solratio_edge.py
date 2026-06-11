@@ -23,7 +23,6 @@ from datetime import datetime
 from solratio_core import (
     PAR_FRAC, W_TO_UMOL, LAUB_COEFFICIENTS, laub_yield,
     compute_vf_matrix, compute_shadow_matrix,
-    # compute_post_shadow,  # rimosso v4.1.0 (pali fuori scope, vedi CHANGELOG)
     compute_perez_components, compute_monthly_stats, zone_stats,
     zone_masks, trapz_zone_mean, _trapz, compute_irradiance_matrix,
     compute_par_frac,
@@ -154,13 +153,6 @@ def _compute_single_profile(df, p, axes, x_pts, sun_mask, df_sun,
         f_dir_sun = np.where(f_dir_sun < 1.0,
                              np.maximum(f_dir_sun, tau), f_dir_sun)
 
-    # Pali: trattamento post-shadow disabilitato in v4.1.0
-    # I pali saranno modellati come geometria 3D nella scena Radiance in v4.2
-    # if p.get('d_palo', 0) > 0:
-    #     f_palo_sun = compute_post_shadow(x_pts, df_sun, p)
-    #     illuminated = f_dir_sun > 0
-    #     f_dir_sun = np.where(illuminated,
-    #                          f_dir_sun * (1.0 - f_palo_sun), f_dir_sun)
 
     f_dir = np.zeros((n_all, n_pts))
     VF_full = np.zeros((n_all, n_pts))
