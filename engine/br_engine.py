@@ -51,7 +51,15 @@ except (ImportError, ValueError):
 
 warnings.filterwarnings('ignore')
 
-__version__ = '4.2.0'
+def _read_version():
+    _vp = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'VERSION')
+    try:
+        with open(_vp, encoding='utf-8') as _f:
+            return _f.read().strip()
+    except FileNotFoundError:
+        return '0.0.0'
+
+__version__ = _read_version()
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -179,7 +187,7 @@ def _apply_tau_material(rad, tau, module_name='sr_module', tau_diff=0.0):
     # Radiance (oconv); 'alpha' invece di 'α' (greca) che non è in cp1252.
     with open(mat_file, 'w', encoding='utf-8') as f:
         f.write(
-            f'# SolRatio v4.2.0 -- Materiale pannello semitrasparente (BRTDfunc alpha)\n'
+            f'# SolRatio v{__version__} -- Materiale pannello semitrasparente (BRTDfunc alpha)\n'
             f'# Trasmittanza speculare tau = {tau:.3f}\n'
             f'# Trasmittanza diffusa  tau_diff = {tau_diff:.3f}\n'
             f'# Trasmittanza totale  tau_total = {tau_total:.3f}\n'
@@ -454,7 +462,7 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
     # per l'utente (parametri, progresso %, tempi, errori).
     # ══════════════════════════════════════════════════════════════════
 
-    print('  === SolRatio v4.2.0 — Motore bifacial_radiance ===')
+    print(f'  === SolRatio v{__version__} — Motore bifacial_radiance ===')
 
     # ── Cache scene .oct persistente (v4.2 item 4) ───────────────────
     # Pre-compila il .oct di scena (matfiles+radfiles, senza cielo) una

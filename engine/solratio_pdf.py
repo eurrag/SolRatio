@@ -804,7 +804,7 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
     # ── Footer ────────────────────────────────────────────────────────────
     story.append(Spacer(1, 10*mm))
     story.append(Paragraph(
-        f'SolRatio v{__version__} -- GRIEN STP SRL | '
+        f'SolRatio v{__version__} -- Stefano Pesavento, PhD (ORCID 0009-0008-0720-4539) | '
         'Motore: Radiance + bifacial_radiance (NREL) + Laub et al. 2022 | '
         f'Generato: {datetime.now().strftime("%d/%m/%Y %H:%M")}',
         S['small']))
