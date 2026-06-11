@@ -93,6 +93,10 @@ def read_parameters(wb):
         B47: N sub-sampling orario (n_sub, default 4 = 15 min, range 1-60)
       GRANDEZZE DERIVATE: scritte dallo script da B50 in poi.
     """
+    if 'Parametri' not in wb.sheetnames:
+        raise ValueError(
+            "Foglio 'Parametri' mancante nel file di progetto: il file non e' "
+            "un progetto SolRatio valido (usare progetti/Sample come template).")
     ws = wb['Parametri']
 
     def get(cell, typ=float, default=None):
@@ -104,6 +108,8 @@ def read_parameters(wb):
         try:
             return typ(v)
         except (ValueError, TypeError):
+            print(f"  ATTENZIONE: cella {cell} del foglio Parametri non "
+                  f"interpretabile ({v!r}): uso il default {default!r}.")
             return default
 
     H_min_terra = get('B17')
@@ -168,8 +174,8 @@ def read_parameters(wb):
         'br_as':            int(get('B50', float, 256)), # Ambient super-samples (32-512, default 256 = BR 'low')
         'br_n_rows':        int(get('B51', float, 0)),   # N file scena (0=auto da n_ext, altrimenti valore esplicito)
     }
-    p['GCR'] = p['W'] / p['pitch']
-    p['SAU'] = p['pitch'] - 2 * p['sanu']
+    # GCR/SAU calcolati dopo le validazioni (vedi sotto): con celle vuote
+    # il None-check deve produrre il messaggio chiaro, non un TypeError.
     # Validazione n_ext (range 0-6)
     # n_ext=0 → solo i 2 tracker che delimitano il pitch (caso diagnostico/campo isolato)
     # n_ext=2 → default (6 pannelli, ±2 pitch)
@@ -221,11 +227,16 @@ def read_parameters(wb):
     if p['H_min_terra'] < 0:
         raise ValueError(
             f"H_min_terra = {p['H_min_terra']}m: deve essere >= 0 (cella B17).")
+    if not (0 < p['beta_max'] <= 90):
+        raise ValueError(
+            f"beta_max = {p['beta_max']}°: fuori range (0, 90] (cella B18).")
     if p['W'] <= 0:
         raise ValueError(f"W = {p['W']}m: deve essere > 0 (cella B16).")
     if p['pitch'] <= p['W']:
         raise ValueError(
             f"Pitch ({p['pitch']}m) deve essere > W ({p['W']}m).")
+    p['GCR'] = p['W'] / p['pitch']
+    p['SAU'] = p['pitch'] - 2 * p['sanu']
     if p['SAU'] <= 0:
         raise ValueError(f"SAU = {p['SAU']:.2f} m: SANU troppo grande per il pitch.")
     if not (0.0 <= p['albedo'] <= 1.0):
@@ -441,14 +452,14 @@ def write_riepilogo(wb, p, zs, yield_data, proj_dir, dli_daily_ref,
             annual = np.mean([zs[m]['dli_ref_p50'] for m in range(1, 13)])
             for ci, (_, months) in enumerate(SEASONS.items()):
                 num_cell(ws.cell(row, 3 + ci),
-                         np.mean([zs[m]['dli_ref_p50'] for m in months]), '0.1')
+                         np.mean([zs[m]['dli_ref_p50'] for m in months]), '0.0')
         else:
             annual = np.mean([zs[m][zona_label]['p50'] for m in range(1, 13)])
             for ci, (_, months) in enumerate(SEASONS.items()):
                 num_cell(ws.cell(row, 3 + ci),
-                         np.mean([zs[m][zona_label]['p50'] for m in months]), '0.1')
+                         np.mean([zs[m][zona_label]['p50'] for m in months]), '0.0')
 
-        num_cell(ws.cell(row, 2), annual, '0.1', bold=is_key)
+        num_cell(ws.cell(row, 2), annual, '0.0', bold=is_key)
         row += 1
 
     row += 1
@@ -605,7 +616,7 @@ def write_profilo_par_spaziale(wb, zs, p):
             if zona == 'DLI_ref':
                 num_cell(ws.cell(row=row, column=col_idx), dli_ref, '0.0')
             else:
-                num_cell(ws.cell(row=row, column=col_idx), zs[m][zona]['p50'], '0.1',
+                num_cell(ws.cell(row=row, column=col_idx), zs[m][zona]['p50'], '0.0',
                          bold=(zona == 'Media pitch'))
 
     # ── Righe dati per grafici chart5 e chart6 (v3.1) ─────────────
@@ -636,7 +647,7 @@ def write_profilo_par_spaziale(wb, zs, p):
         # DLI rif in r41
         num_cell(ws.cell(row=41, column=col_idx), zs[m]['dli_ref_p50'], '0.0')
         for row, zona in CHART_DLI_ZONES:
-            num_cell(ws.cell(row=row, column=col_idx), zs[m][zona]['p50'], '0.1')
+            num_cell(ws.cell(row=row, column=col_idx), zs[m][zona]['p50'], '0.0')
 
     print('  Foglio Profilo_PAR_Spaziale scritto.')
 
@@ -744,7 +755,7 @@ def write_par_dli_profilo(wb, stats, x_pts, p):
         for m_idx in range(12):
             m   = m_idx + 1
             col = m_idx + 4
-            num_cell(ws.cell(r, col), stats[m]['p50'][pt_idx], '0.1')
+            num_cell(ws.cell(r, col), stats[m]['p50'][pt_idx], '0.0')
 
     # ══════════════════════════════════════════════════════════════════════════
     # TABELLE 3-4: COMPILAZIONE DATI STAGIONALI E ANNUALI
@@ -844,10 +855,10 @@ def write_par_dli_profilo(wb, stats, x_pts, p):
 
         for si, (s_name, s_months) in enumerate(SEASONS.items()):
             dli_s = season_avg('p50', pt_idx, s_months)
-            num_cell(ws.cell(r4, 4 + si), dli_s, '0.1')
+            num_cell(ws.cell(r4, 4 + si), dli_s, '0.0')
 
         dli_a = annual_avg('p50', pt_idx)
-        num_cell(ws.cell(r4, 8), dli_a, '0.1')
+        num_cell(ws.cell(r4, 8), dli_a, '0.0')
 
     # Pulizia righe residue dopo Tab4 (da esecuzioni precedenti)
     T4_END = T4_DATA + N - 1
@@ -952,7 +963,7 @@ def write_dli_percentili(wb, zs, p):
                 m   = i + 1
                 val = zs[m][zona][perc_key]
                 c   = ws.cell(row, i + 3)
-                num_cell(c, val, '0.1', bold=(perc_label=='P50'))
+                num_cell(c, val, '0.0', bold=(perc_label=='P50'))
                 c.fill = PatternFill('solid', fgColor=PERC_COLORS[perc_label])
             ws.row_dimensions[row].height = 16
             row += 1
@@ -967,7 +978,7 @@ def write_dli_percentili(wb, zs, p):
             m   = i + 1
             val = zs[m]['dli_ref_p50']
             c   = ws.cell(row, i + 3)
-            num_cell(c, val, '0.1')
+            num_cell(c, val, '0.0')
             c.font = Font(name='Arial', size=9, italic=True, color='FF595959')
         ws.row_dimensions[row].height = 14
         row += 2   # spazio tra zone
@@ -1283,7 +1294,7 @@ def write_effetto_bordo(wb, edge_data, dns_monthly, fc_ns, kagv_imp, zs_inf, p):
         ws.cell(row, 1).value = 'd_NS medio [m]'
         ws.cell(row, 1).font = val_font
         for i in range(12):
-            num_cell(ws.cell(row, i + 2), dns_monthly.get(i + 1, 0), '0.1')
+            num_cell(ws.cell(row, i + 2), dns_monthly.get(i + 1, 0), '0.0')
         row += 1
 
         ws.cell(row, 1).value = 'Zona transizione / L_tracker'

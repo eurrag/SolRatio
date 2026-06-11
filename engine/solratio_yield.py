@@ -237,7 +237,7 @@ def write_resa_colturale(wb, yield_data, stats, x_pts, p):
                 c_avg.number_format = '0.0'
                 c_avg.font = Font(name='Arial', size=10, bold=True)
                 c_avg.alignment = Alignment(horizontal='center')
-                fill_val_avg = avg_ms * 100 if is_sau else avg_ms
+                fill_val_avg = avg_ms
                 f_avg = yield_fill(fill_val_avg)
                 if f_avg: c_avg.fill = f_avg
             row += 1

@@ -18,12 +18,8 @@ desktop.ini
 
 # Output di simulazione (nelle cartelle progetti/)
 **/.br_done
-**/.pvlib_done
 **/br_log.txt
 **/br_err.txt
-**/pvlib_log.txt
-**/pvlib_error.txt
-**/batteria_log.txt
 **/risultati_*.xlsx
 **/report_SolRatio_*.pdf
 **/report_AGV_*.pdf
@@ -38,10 +34,8 @@ desktop.ini
 **/multiyear_quantiles.json
 **/multiyear_results.csv
 **/validazione_*.csv
-**/profilo_pitch*.png
 
 # Cache analisi batteria (rigenerabile)
-progetti/*/99_ANALISI/
 
 # File di lavoro Radiance (generati da bifacial_radiance)
 images/
@@ -63,7 +57,6 @@ analisi/release_report_*.md
 analisi/optimize_hmin_fail_*.log
 
 # Helper di rilascio personale: spostato in cartella esterna
-# C:\Users\Utente\OneDrive\Documenti\Claude\Projects\Versioning\
 # (toolbox condiviso tra progetti, non versionato).
 
 # Bat di workflow personale (push automatizzato verso il proprio repo GitHub).

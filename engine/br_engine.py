@@ -467,6 +467,7 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
     # ── Work dir senza spazi ─────────────────────────────────────────
     temp_work = tempfile.mkdtemp(prefix='sr_v4_')
     print(f'  Work dir: {temp_work}')
+    _cwd_orig = os.getcwd()  # RadianceObj fa chdir in temp_work (vedi finally)
 
     try:
         rad = br.RadianceObj(name='SolRatio_v4', path=temp_work)
@@ -1544,6 +1545,14 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
         }
 
     finally:
+        # bifacial_radiance (RadianceObj) fa chdir in temp_work: ripristina la
+        # CWD PRIMA di cancellarla. Su Linux rmtree della CWD riesce e lascia
+        # il processo senza directory corrente -> i successivi import che
+        # chiamano os.getcwd() (es. reportlab) fallirebbero: PDF mai scritto.
+        try:
+            os.chdir(_cwd_orig)
+        except OSError:
+            os.chdir(tempfile.gettempdir())
         try:
             shutil.rmtree(temp_work)
         except Exception:

@@ -1,4 +1,4 @@
-# SolRatio v4.1.0 — Dipendenze Python
+# SolRatio — Dipendenze Python
 # Installazione:  pip install -r requirements.txt
 #
 # DIPENDENZA ESTERNA NON-PIP (richiesta!):
@@ -19,4 +19,4 @@ lxml>=4.6        # editing XML interno .xlsx (write_effetto_bordo)
 
 # === Reportistica PDF (opzionale ma consigliata) ===
 reportlab>=3.6
-matplotlib>=3.4  # grafici nel PDF + analisi batteria
+matplotlib>=3.4  # grafici nel PDF

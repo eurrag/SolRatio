@@ -188,7 +188,10 @@ def main():
     ghi_annual = br_result['ghi_annual']
 
     print(f'  Irradianza media al suolo: {br_result["IRR_daily_cum"].mean():.0f} Wh/m²')
-    print(f'  Trasmissione media: {br_result["IRR_daily_cum"].mean()/ghi_annual*100:.1f}%')
+    if ghi_annual > 0:
+        print(f'  Trasmissione media: {br_result["IRR_daily_cum"].mean()/ghi_annual*100:.1f}%')
+    else:
+        print('  Trasmissione media: n/d (GHI annuo nullo nei dati EPW)')
     print()
 
     # ── Ricostruzione DataFrame e matrice full ──────────────────────
@@ -300,7 +303,9 @@ def main():
 
     # Copia parametri dal file di input
     ws_param_dst = wb_out['Parametri']
-    for row in wb['Parametri'].iter_rows(min_row=1, max_row=49, max_col=5):
+    for row in wb['Parametri'].iter_rows(min_row=1,
+                                         max_row=wb['Parametri'].max_row,
+                                         max_col=5):
         for cell in row:
             ws_param_dst.cell(cell.row, cell.column).value = cell.value
     ws_param_dst['A1'].value = (f'PARAMETRI IMPIANTO - SolRatio v4.2.0 '

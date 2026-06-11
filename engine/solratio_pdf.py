@@ -287,7 +287,11 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
         ['GCR', f'{p["GCR"]:.3f}'],
         ['beta_max', f'{p["beta_max"]:.0f} deg'],
         ['SAU', f'{p["SAU"]:.2f} m ({p["SAU"]/p["pitch"]*100:.0f}% pitch)'],
-        ['Backtracking', 'ON' if p['backtracking'] else 'OFF'],
+        ['Modalità tracker',
+         {0: 'Astronomico (no backtracking)',
+          1: 'Backtracking',
+          2: f'Tilt fisso θ={p.get("theta_fix", 0.0):+.1f}°'
+          }.get(int(p['backtracking']), 'Backtracking')],
         ['Albedo', f'{p.get("albedo", 0.23):.2f}'],
         ['Serie PVGIS', f'{p["yr_start"]}-{p["yr_end"]}'],
     ]
