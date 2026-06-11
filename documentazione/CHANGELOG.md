@@ -1,5 +1,85 @@
 # SolRatio — Changelog
 
+## v4.2.1 (2026-06-11) — Reference edition: potatura al minimo riproducibile + fix
+
+Edizione di riferimento citabile: il perimetro è ridotto al "minimo
+riproducibile" (pipeline core + validazione + sentinella + esempi), con fix
+limitati a ciò che resta. Ogni rimozione è elencata sotto per trasparenza
+verso chi usava v4.2.0 (che resta taggata e depositata su Zenodo).
+
+### Rimozioni (codice E output)
+
+- **Analisi di sensitività**: `solratio_sensitivity.py`, fogli
+  `Sensitivita_OAT`/`Sensitivita_Morris`, pulsante e Sub VBA dedicati.
+- **Tooling di release/QA del maintainer**: `release_helper.py`,
+  `_NUOVA_VERSIONE.bat`, `orchestratore_sweep.py`, `plot_profilo_pitch.py`,
+  `migrate_project_layout.py`, `engine/test/` (la batteria dipendeva da
+  `progetti/test_battery`, mai pubblicato), `_patch_button_label.py`,
+  `_test_slope_battery.py`, launcher .bat relativi, `analisi/`,
+  `documentazione/PIANO_v4.2.md`.
+- **Percorso pali (dormiente dal v4.1.0)**: `compute_post_shadow`,
+  `compute_post_impact`, `write_impatto_pali`; il foglio `Impatto_Pali`
+  non veniva comunque scritto. Le celle B21/B22 del foglio Parametri non
+  sono più lette.
+- **Ottimizzazione pitch (inerte)**: `optimize_pitch` e
+  `write_pitch_optimization` non avevano alcun chiamante; il parametro
+  B45 (`ottimizza_pitch`) non è più letto. L'ottimizzazione H_min
+  (`solratio_optimization.py`) RESTA.
+- **Fogli diagnostici** non descritti dalla technical note né necessari
+  alla sentinella: `Calcolo_Solare`, `PAR_RayTracing`, `Profilo_fdir_VF`,
+  `Variabilita_DLI`, `DLI_Annuale`, `Riduzione_PAR`, `Validazione_pvlib`.
+  Fogli prodotti ora: Riepilogo, Parametri, PAR_DLI_Profilo,
+  Profilo_PAR_Spaziale, DLI_Percentili, Heatmap_PAR, Resa_Colturale,
+  Effetto_Bordo (+ Bifacciale se `bifaciality_factor > 0`).
+
+### Fix
+
+- **Header EPW dichiara UTC (F1)**: i CSV PVGIS sono UTC ma l'header
+  LOCATION dichiarava `round(lon/15)` (=+1 in Italia) → posizione solare
+  ~40 min in anticipo sulle irradianze. Effetto misurato sul gate
+  (Cereali C3, media Mar-Set): Sample N-S 84.0 → **84.1** (+0.1 pp),
+  Sample_EW 79.3 → **79.2** (−0.1 pp); ore diurne simulate 3995 → 3919.
+- **Linux: CWD ripristinata dopo la fase ray-tracing**: bifacial_radiance
+  fa chdir nella work dir temporanea; alla sua cancellazione il processo
+  restava senza directory corrente e la generazione del PDF falliva
+  (`import reportlab` → `os.getcwd()`): su Linux il PDF non veniva MAI
+  prodotto.
+- **Number format Excel `'0.1'` → `'0.0'`** (11 celle writer): in
+  ECMA-376 l'`1` è un letterale, Excel mostrava l'intero arrotondato
+  + ".1" (es. 29.62 → "30.1").
+- **PDF "Backtracking: ON" anche in tilt fisso** (`bool(2)`): ora mappa
+  a 3 valori identica al foglio Riepilogo.
+- Colore della media Mar-Set in Resa_Colturale: doppio ×100 (sempre verde).
+- `read_parameters`: GCR/SAU calcolati dopo la validazione (cella vuota →
+  messaggio chiaro, non TypeError); avviso sui valori non interpretabili;
+  range check `beta_max ∈ (0, 90]`; foglio Parametri mancante → errore
+  chiaro. Copia del foglio Parametri senza `max_row=49` hardcoded;
+  guardia su GHI annuo nullo. Multiyear: timestamp sintetici di fallback
+  su anno non bisestile (col 2020 i mesi si sfalsavano dopo il 29/02).
+- **Attribuzione**: footer PDF → Stefano Pesavento, PhD (ORCID
+  0009-0008-0720-4539); l'attribuzione precedente era errata.
+
+### Progetti e sentinella
+
+- Aggiunto `progetti/Sample_EW/` (variante E-W, `axis_azimuth=90`),
+  promesso da README e technical note ma mai pubblicato; gli smoke
+  storici vi puntavano (erano quindi non eseguibili da un clone).
+- Smoke di regressione ridefinito: `_smoke_regression.bat` (Windows) e
+  `_smoke_regression.sh` (Linux/macOS) girano su ENTRAMBI i progetti;
+  riferimenti v4.2.1: N-S 84.1, E-W 79.2, tolleranza ±0.2 pp (la
+  dicitura "bit-per-bit" è stata rimossa: l'ambient sampling di Radiance
+  è stocastico).
+- Igiene: rimossi path personali dalle celle/commenti (xlsm, .bas,
+  .gitignore); EPW dei progetti rigenerati con header UTC.
+
+### Note
+
+- La technical note allineata a questa edizione è in preparazione
+  (deposito Zenodo con DOI gemello).
+- Il foglio `Sensitivita_Config` e i pulsanti legacy negli xlsm esistenti
+  si rimuovono riaprendo il file in Excel e reimportando i moduli VBA
+  aggiornati (i pulsanti sono rigenerati dalla macro `AggiungiPulsanti`).
+
 ## v4.2.0 (2026-05-05) — Multi-anno, frame coord ruotato, bifacciale, BRTDfunc, cache scene .oct
 
 Release minor che chiude lo scope v4.2 (9 item) come pianificato in

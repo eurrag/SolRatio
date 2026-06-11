@@ -1,4 +1,4 @@
-# SolRatio v4.2.0
+# SolRatio v4.2.1
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19959581.svg)](https://doi.org/10.5281/zenodo.19959581)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -23,9 +23,8 @@ SolRatio è uno strumento integrato che combina la simulazione della radiazione 
 - Curve di resa colturale Laub et al. (2022) — 9 colture — con calcolo K_agv di campo
 - Output: report Excel multi-foglio + report PDF di sintesi
 - Interfaccia Excel/VBA per gestione progetti senza scrivere codice; auto-update della label di versione via `Workbook_Open()`
-- Sweep parametrico 2D `H_min × axis_azimuth` (`orchestratore_sweep.py`) per analisi di sensibilità del K_agv di campo
-- Script di release end-to-end (`release_helper.py`) per automatizzare bump versione, DOI Zenodo, smoke test
 - Validazione vs bifacial_radiance ufficiale: MBE < 1%, R² > 0.998 (Sample N-S, due giornate rappresentative)
+- Test di regressione (smoke) multipiattaforma sui progetti Sample N-S ed E-W inclusi
 
 ---
 
@@ -84,14 +83,6 @@ python engine\solratio_multiyear.py "progetti\Sample\SolRatio_progetto.xlsm" --y
 
 Output: `multiyear_results.csv` + `multiyear_quantiles.json` nella cartella del progetto.
 
-### Sweep parametrico 2D
-
-```cmd
-_lancia_sweep.bat
-```
-
-Esegue 9 H_min × 5 axis_azimuth = 45 simulazioni del Sample; produce `results.csv`, `heatmap_kagv.png`, `curves_kagv.png` in `analisi/sweep_<timestamp>/`. Resume da run interrotti via `--resume <timestamp>`.
-
 ### Esempi inclusi
 
 Nella cartella `progetti/` sono inclusi:
@@ -120,25 +111,16 @@ SolRatio/
 │   ├── solratio_optimization.py     # Ottimizzazione H_min (curva K_agv vs H_min)
 │   ├── solratio_multiyear.py        # Modalità multi-anno + quantili P10/P50/P90
 │   ├── solratio_bifacial.py         # Calcolo energia PV bifacciale (beta tier)
-│   ├── solratio_sensitivity.py      # Analisi di sensitività parametrica
 │   ├── validazione_br.py            # Confronto SR vs BR ufficiale
 │   ├── check_environment.py         # Verifica dipendenze
-│   ├── migrate_project_layout.py    # Migrazione progetti al layout standardizzato (input/)
-│   ├── release_helper.py            # CLI release: bump, update-doi, status
-│   ├── orchestratore_sweep.py       # Sweep parametrico 2D H_min × axis_azimuth
-│   ├── plot_profilo_pitch.py        # Plot PAR(x/pitch) da risultati Excel
 │   ├── SolRatio_Calcolo.bas         # Modulo VBA Excel launcher (Calcola)
-│   ├── SolRatio_VersionLabel.bas    # Modulo VBA auto-update label versione
-│   └── test/                        # Batteria di test automatica
+│   └── SolRatio_VersionLabel.bas    # Modulo VBA auto-update label versione
 ├── documentazione/                  # Docs tecnica (architettura, formule, roadmap, technical note)
 ├── progetti/
 │   ├── Sample/                      # Progetto demo N-S (benchmark validazione)
 │   └── Sample_EW/                   # Progetto demo E-W (sweep axis_azimuth)
-├── analisi/                         # Output di analisi cross-progetto e sweep
-├── _NUOVA_VERSIONE.bat              # Orchestratore release end-to-end
-├── _lancia_sweep.bat                # Launcher sweep parametrico
-├── _lancia_test_slope.bat           # Launcher battery test slope L2+L3
-├── _smoke_regression_v42.bat        # Smoke test bit-per-bit
+├── _smoke_regression.bat            # Smoke test di regressione (Windows)
+├── _smoke_regression.sh             # Smoke test di regressione (Linux/macOS)
 ├── requirements.txt
 ├── LICENSE                          # Apache 2.0
 ├── CITATION.cff                     # Metadati di citazione
@@ -155,7 +137,6 @@ Documentazione tecnica nella cartella `documentazione/`:
 - `architettura_br_engine.md` — pipeline di calcolo del motore BR
 - `FORMULE.md` — formule fisiche implementate
 - `PARAMETRI_RADIANCE.md` — parametri rtrace e loro effetto (incluse linee guida `n_rows`)
-- `PIANO_v4.2.md` — piano dei 9 item del rilascio v4.2
 - `CHANGELOG.md` — storico delle versioni
 - `ROADMAP.md` — sviluppi futuri (v4.3, v4.4, v4.5+)
 - `introduzione_solratio_relazione.md` — descrizione del modello in linguaggio non-tecnico
@@ -174,7 +155,7 @@ Il modello è validato confrontando i risultati con il workflow ufficiale di bif
 
 Lo scostamento residuo è rumore numerico intrinseco di Radiance (stocasticità ambient sampling). Script: `engine/validazione_br.py`.
 
-Test di regressione bit-per-bit nel workflow di rilascio: il *Sample* deve riprodurre K_agv = 84.00% per Cereali C3 con tutte le feature secondarie disabilitate (`axis_azimuth = 180°`, `tau_diff = 0`, `bifaciality_factor = 0`, scene cache off). Ogni release candidate deve passare questo gate.
+Test di regressione nel workflow di rilascio: i progetti inclusi *Sample* (N-S) e *Sample_EW* (E-W) devono riprodurre un K_agv SAU per Cereali C3 di **84.1%** e **79.2%** rispettivamente (riferimenti misurati con v4.2.1), con tolleranza **±0.2 punti percentuali**: l'ambient sampling di Radiance è stocastico e il risultato non è bit-identico tra run. Lancio: `_smoke_regression.bat` (Windows) o `./_smoke_regression.sh` (Linux/macOS). Ogni release candidate deve passare questo gate.
 
 ---
 

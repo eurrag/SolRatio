@@ -1,15 +1,31 @@
 """
-Smoke regression v4.2: estrae K_agv SAU dai risultati Sample_EW e
-confronta con il riferimento v4.1.2.
+Smoke regression v4.2.1: estrae il K_agv SAU (media Mar-Set) dai risultati dei
+progetti Sample (N-S) e Sample_EW (E-W) e lo confronta con i riferimenti.
+
+Riferimenti misurati con v4.2.1 (potatura + fix + header EPW UTC, vedi
+CHANGELOG). Tolleranza ±0.2 punti percentuali: il ray-tracing Radiance ha una
+componente stocastica (ambient sampling) e il risultato NON è bit-identico
+tra run — oscillazioni di ~0.1 pp sono normali.
 """
 import sys
 from pathlib import Path
+
 from openpyxl import load_workbook
 
-REFERENCE_KAGV_SAU_CEREALI = 84.0  # v4.1.2 atteso (Mar-Set, axis=180, tau=0)
-TOLERANCE_PCT = 0.5  # rumore stocastico rtrace ammesso
+# progetto -> K_agv SAU Cereali C3 atteso [%] (media Mar-Set, v4.2.1)
+REFERENCES = {
+    'Sample': 84.1,
+    'Sample_EW': 79.2,
+}
+TOLERANCE_PP = 0.2  # punti percentuali
+GATE_CROP = 'Cereali C3'
 
-def extract_kagv_sau(results_xlsx: str) -> dict:
+CROPS = ('Cereali C3', 'Mais', 'Bacche', 'Frutta', 'Ortaggi',
+         'Foraggere', 'Tuberi', 'Leguminose')
+
+
+def extract_kagv_sau(results_xlsx):
+    """K_agv SAU per coltura dal foglio Resa_Colturale (colonna O = Mar-Set)."""
     wb = load_workbook(results_xlsx, data_only=True, read_only=True)
     ws = wb['Resa_Colturale']
     out = {}
@@ -18,14 +34,11 @@ def extract_kagv_sau(results_xlsx: str) -> dict:
         a = ws.cell(r, 1).value
         if a and isinstance(a, str):
             a = a.strip()
-            # Header coltura (es. "  Cereali C3 (cereals_C3)")
-            if any(c in a for c in ('Cereali C3', 'Mais', 'Bacche', 'Frutta',
-                                     'Ortaggi', 'Foraggere', 'Tuberi',
-                                     'Leguminose')):
+            if any(c in a for c in CROPS):
                 cur_crop = a
             elif a == 'SAU' and cur_crop:
-                v = ws.cell(r, 15).value  # colonna O = Media Mar-Set
-                if v is not None and isinstance(v, (int, float)):
+                v = ws.cell(r, 15).value
+                if isinstance(v, (int, float)):
                     out[cur_crop] = float(v)
                 cur_crop = None
     wb.close()
@@ -33,50 +46,40 @@ def extract_kagv_sau(results_xlsx: str) -> dict:
 
 
 def main():
-    project = Path('progetti/Sample_EW')
-    results_xlsx = project / f'risultati_{project.name.replace("_EW", "")}.xlsx'
-    # Fallback: cerca qualunque risultati_*.xlsx
-    if not results_xlsx.exists():
-        candidates = list(project.glob('risultati_*.xlsx'))
+    base = Path(__file__).resolve().parent / 'progetti'
+    failures = 0
+    for proj, ref in REFERENCES.items():
+        candidates = sorted((base / proj).glob('risultati_*.xlsx'))
         if not candidates:
-            print(f'ERR: nessun risultati_*.xlsx in {project}')
-            sys.exit(2)
-        results_xlsx = candidates[0]
-
-    print(f'Leggo: {results_xlsx}')
-    kagv = extract_kagv_sau(str(results_xlsx))
-    if not kagv:
-        print('ERR: nessun K_agv SAU trovato.')
-        sys.exit(2)
-
-    print('\n=== K_agv SAU (Mar-Set) per coltura ===')
-    for crop, v in kagv.items():
-        print(f'  {crop}: {v:.2f}%')
-
-    # Verifica regression sul Cereali C3 (riferimento storico)
-    target = None
-    for k, v in kagv.items():
-        if 'Cereali C3' in k:
-            target = v
-            break
-    if target is None:
-        print('\nWARNING: Cereali C3 non trovato, skip regression check.')
-        return
-
-    diff = target - REFERENCE_KAGV_SAU_CEREALI
-    print(f'\n=== Regression check (Cereali C3) ===')
-    print(f'  Atteso v4.1.2: {REFERENCE_KAGV_SAU_CEREALI:.2f}%')
-    print(f'  Misurato v4.2: {target:.2f}%')
-    print(f'  Differenza:    {diff:+.2f}%  (tolleranza: +/-{TOLERANCE_PCT})')
-
-    if abs(diff) <= TOLERANCE_PCT:
-        print(f'\n[OK] REGRESSION ({abs(diff):.2f}% <= {TOLERANCE_PCT}%)')
-        sys.exit(0)
-    else:
-        print(f'\n[FAIL] REGRESSION ({abs(diff):.2f}% > {TOLERANCE_PCT}%)')
-        print('  Indagare prima del bump v4.2.0.')
-        sys.exit(1)
+            print(f'ERR [{proj}]: nessun risultati_*.xlsx — lanciare prima calcola_br.')
+            failures += 1
+            continue
+        kagv = extract_kagv_sau(str(candidates[0]))
+        print(f'\n{proj} ({candidates[0].name}):')
+        gate_val = None
+        for crop, v in kagv.items():
+            mark = ''
+            if GATE_CROP in crop:
+                gate_val = v
+                mark = '  <- GATE'
+            print(f'  {crop}: {v:.2f}{mark}')
+        if gate_val is None:
+            print(f'ERR [{proj}]: riga {GATE_CROP}/SAU non trovata.')
+            failures += 1
+            continue
+        delta = gate_val - ref
+        ok = abs(delta) <= TOLERANCE_PP
+        print(f'  Riferimento {ref:.1f} ±{TOLERANCE_PP} pp -> delta {delta:+.2f} pp: '
+              f'{"OK" if ok else "FUORI TOLLERANZA"}')
+        if not ok:
+            failures += 1
+    print()
+    if failures:
+        print(f'SMOKE REGRESSION: FAIL ({failures} controlli falliti)')
+        return 1
+    print('SMOKE REGRESSION: OK')
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
