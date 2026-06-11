@@ -363,7 +363,9 @@ def run_multiyear(project_xlsm: Path, years_spec: str = "tmy",
         try:
             ts_list = [metdata.datetime[i] for i in range(n_all)]
         except Exception:
-            ts_list = pd.date_range('2020-01-01', periods=n_all, freq='h').tolist()
+            # Anno NON bisestile (E15): col 2020 i timestamp sintetici
+            # includevano il 29/02 e sfalsavano i mesi successivi.
+            ts_list = pd.date_range('2019-01-01', periods=n_all, freq='h').tolist()
         df = pd.DataFrame(index=pd.DatetimeIndex(ts_list))
 
         # PAR_W: irradianza al suolo (già in W/m²)
