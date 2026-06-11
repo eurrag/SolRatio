@@ -92,35 +92,32 @@ cumulativa). Per il pitch centrale, oltre 7 file il guadagno è trascurabile.
 Per l'effetto bordo, il numero di file determina quanti profili edge vengono
 calcolati.
 
-### Raccomandazione minima n_rows (v4.1.1)
+### Raccomandazione minima n_rows (rimisurata con la scena canonica v4.3.0)
 
-Misurazioni empiriche su progetto pianura padana (lat 45.30°N, pitch=5m,
-W=2.38m, H=3.13m) confrontando SolRatio v4 con bifacial_radiance ufficiale
-NREL come reference.
-
-> ⚠ NOTA (v4.3.0): i bias quantitativi della tabella furono misurati con
-> la v4.1.1, cioè con la convenzione di scena PRE-correzione (la scena
-> tracking contro-ruotata corretta in v4.3.0). La raccomandazione
-> qualitativa (n_ext ≥ 3 per uso routine, ≥ 4 per benchmark) resta valida;
-> gli ordini di grandezza dei bias andranno riconfermati con la scena
-> canonica.
+Misure del 2026-06-12 sul progetto Sample (pianura padana, lat 45.30°N,
+pitch=5m, W=2.38m, H=3.13m): run single-day 21/3 e 21/6, bias del cumulato
+giornaliero medio sul pitch centrale rispetto alla scena di riferimento a
+n_rows=13 (asintoto "campo grande"); rumore ambient run-to-run ~±0.1-0.3%.
+(I bias storici v4.1.1, misurati con la scena pre-correzione, erano
++4.5%/+1.2% a n_rows=4: la scena canonica, coi pannelli rivolti al sole,
+intercetta di più e il bias del campo piccolo è MAGGIORE.)
 
 | n_rows | n_ext | Bias eq. (21 mar) | Bias solst. (21 giu) | Uso consigliato |
 |-------:|------:|------------------:|---------------------:|-----------------|
-| 4      | 1     | +4.5%             | +1.2%                | Sconsigliato (sotto-stima inter-row) |
-| 5      | 2     | +1-2% (stimato)   | <1%                  | Test rapidi, debug |
-| **7**  | **3** | **<1%**           | **<0.5%**            | **Uso routine, default raccomandato** |
-| 9      | 4     | <0.5%             | <0.3%                | Benchmark, pubblicazioni |
-| 11+    | 5+    | <0.3% (asintoto)  | <0.2%                | Validazione di riferimento |
+| 4      | 1     | +6.8%             | +9.8%                | Solo demo/gate (sovrastima il campo piccolo) |
+| 5      | 2     | +2.4%             | +3.5%                | Test rapidi, debug |
+| **7**  | **3** | **+0.9%**         | **+1.6%**            | **Uso routine** |
+| 9      | 4     | +0.3%             | +1.1%                | Accuratezza alta |
+| 11     | 5     | +0.2%             | +0.0%                | Benchmark, pubblicazioni |
+| 13     | 6     | riferimento       | riferimento          | Validazione di riferimento |
 
-**Causa fisica**: con sole basso (equinozio, mattina/sera), la luce arriva
-con angoli obliqui e le file lontane dal pitch centrale intercettano una
-porzione significativa di raggi diretti e diffusi che altrimenti
-raggiungerebbero il terreno. Una scena con poche file simula implicitamente
-un campo agrivoltaico piccolo (es. 4 file = pilota di pochi tracker), dove
-il pitch centrale "vede" meno ombreggiamento mutuo. Per simulare il
-comportamento di un pitch interno a un impianto medio-grande (10+ file)
-serve usare n_ext ≥ 3.
+**Causa fisica**: le file lontane dal pitch centrale intercettano raggi
+diretti e diffusi che altrimenti raggiungerebbero il terreno; una scena
+con poche file simula implicitamente un campo agrivoltaico piccolo (es.
+4 file = pilota di pochi tracker), dove il pitch centrale "vede" meno
+ombreggiamento mutuo. Per simulare il comportamento di un pitch interno a
+un impianto medio-grande (10+ file) serve usare n_ext ≥ 3; per benchmark
+e pubblicazioni n_ext ≥ 5 (bias ≤0.2%).
 
 A partire da v4.1.1, `br_engine.run_annual()` emette un avviso a runtime
 quando `n_rows < 7`, ricordando di aumentare n_ext per simulazioni accurate.

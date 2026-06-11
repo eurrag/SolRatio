@@ -23,6 +23,38 @@ SolRatio è uno strumento integrato che combina la simulazione della radiazione 
 
 ---
 
+## English summary
+
+SolRatio is an open-source tool that estimates the spatial and temporal
+distribution of solar radiation reaching the ground beneath single-axis
+tracker agrivoltaic systems (3D ray tracing with Radiance +
+bifacial_radiance, hourly over a typical meteorological year built from
+PVGIS-SARAH3 data) and converts it into expected crop-yield coefficients
+(K_agv) for nine crop categories via the dose-response curves of Laub et
+al. (2022). The full technical documentation is in English:
+[Technical Note](documentazione/SolRatio_technical_note.md).
+
+**⚠ Major correction (v4.3.0):** from v4.1.0 through v4.2.2 the Radiance
+tracking scene was counter-rotated with respect to the sun; tracking-mode
+ground-light results of all previous releases are overestimated and must
+not be reused (bundled Sample gate: 84.1% → 57.5%). Semi-transparent
+panel results of v4.2.x are also affected by a separate material-mapping
+defect corrected in v4.3.0.
+
+Validation is two-tiered: a code-to-code comparison against the official
+bifacial_radiance workflow (|MBE| < 1%, R² ≥ 0.997 on equinox and
+solstice days) plus an independent reference built with the native
+bifacial_radiance 1-axis workflow (`set1axis` → `analysis1axisground`),
+agreeing within 0.5 percentage points on the daily ground-to-GHI ratio.
+A cross-platform regression gate on the two bundled sample projects
+(N-S 57.5% / E-W 55.3%, ±0.2 pp) is part of the release workflow.
+
+To cite this software, use the concept DOI
+[10.5281/zenodo.19959581](https://doi.org/10.5281/zenodo.19959581)
+(see `CITATION.cff`). Licence: Apache 2.0.
+
+---
+
 ## Caratteristiche
 
 - Simulazione oraria 3D ray-tracing (8760 ore/anno) con motore Radiance

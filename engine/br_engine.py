@@ -79,14 +79,19 @@ def _apply_tau_material(rad, tau, module_name='sr_module', tau_diff=0.0):
     - `tau_diff` = trasmittanza diffusa addizionale (luce sparsa Lambert)
     - Trasmittanza totale = tau + tau_diff (deve essere <= 1)
 
-    Mappatura sul materiale Radiance `trans`:
-        trans  = tau + tau_diff             totale trasmessa
-        tspec  = tau / (tau + tau_diff)     frazione speculare (1=tutto vetro)
-        spec   = 0.05                       riflessione speculare frontale
-        R G B  = 1 - (tau+tau_diff) - spec  diffusione+assorbimento backsheet
+    Mappatura sul materiale Radiance `trans` (INVERSIONE CANONICA, fix
+    2026-06-12 — la mappatura storica metteva il residuo 1−τ_tot−spec nel
+    COLORE, che in Radiance moltiplica la trasmissione: un pannello
+    τ_tot=0.9 trasmetteva ~4%; vedi commento al punto 4):
+        C (R G B) = (tau+tau_diff+Rd) / (1−spec)   colore
+        A7 trans  = (tau+tau_diff) / (tau+tau_diff+Rd)
+        A8 tspec  = tau / (tau+tau_diff)           frazione speculare
+        spec      = 0.05;  Rd = 0 (non-trasmesso → assorbito dalle celle)
+    → trasmissione effettiva C·(1−spec)·A7 = tau+tau_diff ESATTA.
 
-    Comportamento retrocompatibile: con `tau_diff=0` (default), la mappatura
-    è identica alla v4.1.x (tspec=1.0, trans=tau).
+    ⚠ I risultati con tau>0 calcolati PRIMA del fix (incluse le sentinelle
+    tau/tau_diff 60.2 misurate fino al collaudo del 2026-06-12) sono col
+    materiale ~opaco e vanno ricalcolati.
 
     Parametri
     ---------
@@ -170,11 +175,31 @@ def _apply_tau_material(rad, tau, module_name='sr_module', tau_diff=0.0):
         with open(mod_file, 'w') as f:
             f.write(mod_content_new)
 
-    # 4. Calcola parametri materiale trans (BRTDfunc scope α)
+    # 4. Calcola parametri materiale trans — INVERSIONE CANONICA Radiance
+    # (fix 2026-06-12, trovato dalla matrice varianti post-correzione R1).
+    # Semantica del tipo `trans` (refman/m_normal.c):
+    #   rifl. speculare    = spec                       (acromatica)
+    #   rifl. diffusa      = C·(1−spec)·(1−A7)
+    #   trasm. totale      = C·(1−spec)·A7
+    #   trasm. speculare   = trasm.tot·A8
+    # dove C = colore RGB e A7/A8 = parametri 6/7. La mappatura storica
+    # scriveva C = 1−τ_tot−spec ("diffusione+assorbimento") e A7 = τ_tot:
+    # ma C MOLTIPLICA la trasmissione → con τ_tot=0.9 il pannello
+    # trasmetteva C·(1−spec)·A7 ≈ 4% invece di 90% (misurato: K_day BRTD
+    # identico all'opaco; il riferimento BR-trans della validazione
+    # condivideva la stessa mappatura → la consistenza SR≈BR non poteva
+    # rilevarlo). Inversione corretta, con Rd = riflettanza diffusa del
+    # pannello (scelta: 0 — il non-trasmesso non-speculare è ASSORBITO
+    # dalle celle; assorbimento = 1−spec−τ_tot):
+    #   C  = (Ts + Td + Rd) / (1 − spec)
+    #   A7 = (Ts + Td) / (Ts + Td + Rd)
+    #   A8 = Ts / (Ts + Td)
     spec = 0.05                                 # riflessione speculare vetro
-    rgb_diff = max(0.0, 1.0 - tau_total - spec) # diffusione+assorbimento
-    trans_param = tau_total                     # frazione totale trasmessa
-    # tspec = frazione speculare della trasmissione totale
+    Rd = 0.0                                    # rifl. diffusa pannello
+    rgb_diff = min(1.0, (tau_total + Rd) / (1.0 - spec))   # C (colore)
+    trans_param = (tau_total / (tau_total + Rd)) if (tau_total + Rd) > 1e-9 \
+        else 0.0                                # A7: frazione trasmessa
+    # tspec (A8) = frazione speculare della trasmissione totale
     tspec = (tau / tau_total) if tau_total > 1e-9 else 1.0
     rough = 0.0                                 # superficie liscia
 
@@ -191,9 +216,10 @@ def _apply_tau_material(rad, tau, module_name='sr_module', tau_diff=0.0):
             f'# Trasmittanza speculare tau = {tau:.3f}\n'
             f'# Trasmittanza diffusa  tau_diff = {tau_diff:.3f}\n'
             f'# Trasmittanza totale  tau_total = {tau_total:.3f}\n'
-            f'# Mappatura Radiance trans: trans={trans_param:.3f}, tspec={tspec:.3f}\n'
-            f'# Bilancio: rifl_spec + rifl_diff + trasm = '
-            f'{spec:.3f} + {rgb_diff:.3f} + {trans_param:.3f}\n'
+            f'# Mappatura trans (inversione canonica): C={rgb_diff:.3f}, '
+            f'A7={trans_param:.3f}, A8={tspec:.3f}\n'
+            f'# Bilancio: rifl_spec {spec:.3f} + trasm {tau_total:.3f} '
+            f'+ assorbito {max(0.0, 1.0 - spec - tau_total):.3f} = 1\n'
             f'\n'
             f'void trans {NEW_MATERIAL}\n'
             f'0\n'
@@ -568,9 +594,10 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
             print(f'  ⚠ AVVISO scena ridotta: n_rows={n_rows} (n_ext={n_ext}). '
                   f'Le file insufficienti sotto-stimano l\'effetto inter-row → '
                   f'la radiazione al pitch centrale può essere sovra-stimata di '
-                  f'+1-5% rispetto al limite "campo grande". Raccomandato: '
-                  f'n_ext >= 3 (n_rows >= 7) per uso routine, n_ext >= 4 '
-                  f'(n_rows >= 9) per benchmark/pubblicazione.')
+                  f'+2-10% rispetto al limite "campo grande" (misure v4.3.0 in '
+                  f'PARAMETRI_RADIANCE.md). Raccomandato: n_ext >= 3 '
+                  f'(n_rows >= 7) per uso routine, n_ext >= 5 (n_rows >= 11) '
+                  f'per benchmark/pubblicazione.')
         _center_row = n_rows // 2
         mod = rad.makeModule(name='sr_module', x=module_length,
                              y=p['W'], glass=False)
@@ -1059,7 +1086,10 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
                     _radfiles_t, _matfiles_t = scene_cache[_ut]
                     _ch_t = clearance_cache[_ut]
                     _scene_params = {
-                        'sr_compat': '4.3',  # R1: invalida scene pre-canoniche
+                        # 4.3 = R1 scena canonica; 4.3.1 = fix mappatura
+                        # materiale trans (inversione canonica): invalida
+                        # gli .oct costruiti col materiale ~opaco.
+                        'sr_compat': '4.3.1',
                         'tilt': float(-_ut) + 0.0,  # firmato (+0.0: no -0.0)
                         'azimuth': (p.get('axis_azimuth', 180.0) - 90.0) % 360.0,
                         'clearance_height': _ch_t,

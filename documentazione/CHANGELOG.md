@@ -66,10 +66,20 @@ frame mattina/pomeriggio).
   nativo (indipendente dalla convenzione di scena del motore) — scarto sul
   K giornaliero suolo/GHI entro 0.5 pp (misure collaudo 2026-06-12:
   −0.3 pp su entrambi i giorni).
+- **Corretta anche la mappatura del materiale `trans`** (pannelli
+  semitrasparenti, difetto presente dal v4.2.0): il residuo
+  1−τ_tot−spec era scritto nel COLORE Radiance, che moltiplica la
+  trasmissione → un pannello τ_tot=0.9 trasmetteva ~4% (quasi opaco) e
+  rifletteva diffusamente il residuo. Inversione canonica in
+  `_apply_tau_material`: trasmissione effettiva = τ+τ_diff esatta;
+  chiave cache scene `sr_compat 4.3.1`. I risultati con τ>0 delle
+  versioni precedenti non vanno riusati.
 - Nuovi riferimenti del gate (±0.2 pp): Sample **57.5**, Sample_EW **55.3**.
   Varianti di collaudo (misure 2026-06-11, riconfermate dal collaudo
   completo 2026-06-12): tilt fisso 68.7, astronomico
-  57.4, slope 56.9, tau 60.2, tau_diff 60.2, bifacciale 57.5, input/ 57.5.
+  57.4, slope 56.9, bifacciale 57.5, input/ 57.5; col materiale trans
+  corretto (2026-06-12): tau=0.2 **59.7**, tau=0.2+tau_diff=0.1 **61.0**
+  (col materiale storico erano entrambe 60.2).
   K_agv impianto Cereali C3: Sample 64.9% (l'effetto bordo pesa di più ora
   che il campo interno è più ombreggiato), Sample_EW 63.2%.
 - Multi-anno e batteria errori: invariati e verdi.
@@ -331,7 +341,9 @@ verso chi usava v4.2.0 (che resta taggata e depositata su Zenodo).
 ## v4.2.0 (2026-05-05) — Multi-anno, frame coord ruotato, bifacciale, BRTDfunc, cache scene .oct
 
 > ⚠ **Avvertenza retrospettiva**: i K_agv in modalità TRACKING di questa
-> versione sono SOVRASTIMATI (scena contro-ruotata, corretta in v4.3.0).
+> versione sono SOVRASTIMATI (scena contro-ruotata, corretta in v4.3.0);
+> inoltre il materiale `trans` qui introdotto era quasi opaco (mappatura
+> corretta in v4.3.0): i risultati con τ>0 non vanno riusati.
 
 Release minor che chiude lo scope v4.2 (9 item) come pianificato in
 `PIANO_v4.2.md` (file rimosso in v4.2.1). Decisioni utente del 2026-05-02 hanno spostato i pali

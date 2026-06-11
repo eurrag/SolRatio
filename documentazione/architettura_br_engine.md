@@ -155,14 +155,15 @@ v4.1.0–v4.2.2 (vedi CHANGELOG v4.3.0).
   all'asse tracker, rotazione φ = axis_azimuth − 180°; scene azimuth derivato
   coerentemente. Per axis_azimuth = 180° il comportamento coincide col v4.1.
 - **Materiali pannello semitrasparenti**: un unico materiale Radiance
-  `trans` parametrizzato da τ (speculare) e τ_diff (Lambertiana):
-  trans = τ + τ_diff, t_spec = τ/(τ+τ_diff) (`_apply_tau_material`).
-  ⚠ Known issue: nella mappatura attuale il residuo 1−τ_tot−spec è scritto
-  nel COLORE del materiale, che in Radiance MOLTIPLICA la trasmissione —
-  la trasmissione effettiva è quindi molto più bassa della τ_tot nominale
-  (un pannello τ_tot=0.9 trasmette ~4%). Le sentinelle τ/τ_diff del gate
-  sono misurate con questo materiale; correzione in valutazione per una
-  release successiva.
+  `trans` parametrizzato da τ (speculare) e τ_diff (Lambertiana), con
+  trasmissione totale effettiva = τ + τ_diff (`_apply_tau_material`).
+  ⚠ Corretto in v4.3.0 (inversione canonica, 2026-06-12): la mappatura
+  storica (v4.2.0–v4.2.2) scriveva il residuo 1−τ_tot−spec nel COLORE,
+  che in Radiance MOLTIPLICA la trasmissione → il pannello trasmetteva
+  molto meno del nominale (τ_tot=0.9 → ~4%) e rifletteva diffusamente il
+  residuo. Sentinelle varianti rimisurate col materiale corretto
+  (2026-06-12): τ=0.2 → 59.7, τ=0.2+τ_diff=0.1 → 61.0 (prima entrambe
+  60.2); gate τ=0 invariato.
 - **Terreno in pendenza**: componenti lungo/trasversale derivate da pendenza %
   e azimut di discesa; ground plane realmente inclinato (rotazione di Rodrigues
   attorno all'asse) e sensori riposizionati sul piano reale.

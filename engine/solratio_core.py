@@ -1396,19 +1396,31 @@ def compute_irradiance_matrix(f_dir, VF, dni_ground, dhi_circ, dhi_horiz, dhi_is
 
       IRR = (DNI_ground + DHI_circ) × f_dir
           + (DHI_iso + DHI_horiz) × VF
-          + GHI × albedo × (1 - VF) / 2
+
+    v4.3.0 (2026-06-12): RIMOSSO il termine riflesso storico
+    `GHI × albedo × (1 − VF) / 2`. Verifica empirica contro il motore
+    Radiance di produzione (Δ fra run con albedo 0.23 e 0.0 sul Sample,
+    21/3 e 21/6): il contributo albedo reale ai sensori rivolti verso
+    l'alto è lo 0.2-0.3% dell'irradianza totale (1.3 / 7.3 Wh/m²·giorno),
+    mentre il termine ne valeva 43 / 409 — una SOVRASTIMA di ~30-55×.
+    La chiusura 0.5 trattava le direzioni occluse come se il sottopannello
+    fosse un riflettore diffuso al 50%; il retro modulo reale riflette
+    molto meno. Il contributo reale è sotto il rumore dell'ambient
+    sampling, quindi si omette (percorso analitico, nessun chiamante
+    attivo in produzione: K_imp usa i profili BR).
 
     Parametri (tutti array):
       f_dir, VF      : (n_times x n_points)
       dni_ground, dhi_circ, dhi_horiz, dhi_iso, ghi : (n_times,)
-      albedo          : float
+      albedo          : accettato per compatibilità di firma, NON usato
+                        (vedi nota sopra).
 
     Restituisce IRR (n_times x n_points) in W/m².
     Nota: la conversione in PAR (µmol/m²/s) avviene a valle con par_frac × W_TO_UMOL.
     """
+    del albedo  # deprecato: vedi docstring (termine riflesso rimosso)
     IRR = ((dni_ground + dhi_circ)[:, None] * f_dir +
-           (dhi_iso + dhi_horiz)[:, None] * VF +
-           ghi[:, None] * albedo * (1.0 - VF) * 0.5)
+           (dhi_iso + dhi_horiz)[:, None] * VF)
     return np.maximum(IRR, 0.0)
 
 
