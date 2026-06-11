@@ -74,7 +74,6 @@ def read_parameters(wb):
         B18: beta_max
         B19: Modalità tracker (0=astronomico, 1=backtracking, 2=tilt fisso)
         B20: theta_fix [deg] (tilt fisso, usato solo se B19=2; |theta_fix| <= beta_max)
-        B22: Spaziatura pali
         B23: Trasmittanza pannello tau
         B24: Albedo terreno
       EFFETTI BORDO:
@@ -88,7 +87,6 @@ def read_parameters(wb):
         B42: Anno fine serie (default 2023)
         B43: Percorso CSV PVGIS
         B44: N tracker per lato (n_ext, default 2, range 1-6)
-        B45: Ottimizza pitch (1=esegui, 0=salta)
         (B46: rimossa, theta_fix ora in B20)
         B47: N sub-sampling orario (n_sub, default 4 = 15 min, range 1-60)
       GRANDEZZE DERIVATE: scritte dallo script da B50 in poi.
@@ -136,8 +134,9 @@ def read_parameters(wb):
         'beta_max':         beta_max,
         'backtracking':     int(get('B19', float, 1)),
         'theta_fix':        get('B20', float, 0.0),      # theta_fix [deg] - usato solo se B19=2 (tilt fisso)
-        # B21/B22 (pali) non letti: percorso pali fuori scope di questa
-        # edizione (vedi CHANGELOG); le celle restano nel foglio per layout.
+        # B21/B22 (pali) e B45 (ottimizza pitch): non modellati in questa
+        # edizione; righe svuotate nel template (non eliminate: la lettura
+        # e' per indirizzo di cella e le righe sotto slitterebbero).
         'tau':              get('B23', float, 0.0),  # trasmittanza pannello speculare (0=opaco, 0.1-0.3=semitrasparente)
         'albedo':           get('B24', float, 0.23),
         # v4.2 item 9: tau_diff (BRTDfunc α) - trasmittanza diffusa addizionale.
