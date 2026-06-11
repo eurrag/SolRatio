@@ -305,12 +305,16 @@ def get_pvgis_data(p, xlsx_dir):
         elif str(df.index.tz) != 'UTC':
             df.index = df.index.tz_convert('UTC')
         print(f"{len(df):,} ore caricate.")
-        # Verifica se il CSV ha GHI/DNI/DHI diretti o solo POA (vecchio formato)
-        if 'ghi' not in df.columns and 'dni' not in df.columns:
-            print(f"  ATTENZIONE: il CSV usa il vecchio formato (solo componenti POA).")
-            print(f"  Per ottenere dati GHI/DNI/DHI diretti, cancellare il file CSV")
-            print(f"  e rilanciare il calcolo (verra scaricato con il nuovo formato).")
-            print(f"  File: {csv_path}")
+        # v4.3.0: un CSV senza le colonne richieste NON va restituito
+        # (prima: solo ATTENZIONE e df inutilizzabile -> KeyError oscuro
+        # a valle). Servono ghi+dni+dhi; in mancanza, errore esplicito.
+        _missing = [c for c in ('ghi', 'dni', 'dhi') if c not in df.columns]
+        if _missing:
+            raise ValueError(
+                f"Il CSV PVGIS non contiene le colonne {_missing} "
+                f"(vecchio formato solo-POA?). Cancellare il file e "
+                f"rilanciare il calcolo per riscaricarlo nel formato "
+                f"corrente. File: {csv_path}")
         return df
 
     # Download da PVGIS
@@ -509,7 +513,10 @@ def compute_solar_and_tracker(df, p):
         tracker_result = tracking.singleaxis(
             apparent_zenith  = solpos['apparent_zenith'],
             solar_azimuth    = solpos['azimuth'],
-            axis_tilt        = 0,
+            # v4.3.0: parametrico come nel resto del file (PSZA e
+            # sub-campioni usano p['axis_tilt']): un eventuale axis_tilt
+            # impostato non deve far divergere theta principale e theta sub.
+            axis_tilt        = p.get('axis_tilt', 0.0),
             axis_azimuth     = ax_az,
             max_angle        = p['beta_max'],
             backtrack        = do_backtrack,
@@ -691,7 +698,15 @@ def _shadow_kinematics(solar_elev, solar_az, theta_deg, p, tan_s):
     theta_arr = np.radians(theta_deg)
     hs = W / 2 * np.sin(theta_arr)   # M5: con segno
     hc = W / 2 * np.abs(np.cos(theta_arr))
-    den = np.where(abs_tan_phi > 0.001, 1.0 + tan_s / abs_tan_phi, 1e6)
+    # v4.3.0: clamp simmetrico su ENTRAMBI i denominatori — con tan_s
+    # negativo ripido (terreno che scende verso +x) e sole radente,
+    # raw_den (lato est) puo' azzerarsi/cambiare segno come raw_den_w:
+    # il raggio non interseca il terreno in discesa -> ombra disattivata
+    # (den=1e6), non proiettata dal lato sbagliato.
+    _re = np.full_like(abs_tan_phi, 0.0)
+    np.divide(tan_s, abs_tan_phi, out=_re, where=abs_tan_phi > 0.001)
+    raw_den = np.where(abs_tan_phi > 0.001, 1.0 + _re, 1e6)
+    den = np.where(raw_den > 0.01, raw_den, 1e6)
     _rw = np.full_like(abs_tan_phi, 0.0)
     np.divide(tan_s, abs_tan_phi, out=_rw, where=abs_tan_phi > 0.001)
     raw_den_w = np.where(abs_tan_phi > 0.001, 1.0 - _rw, 1e6)
@@ -780,9 +795,10 @@ def compute_shadow_matrix(x_pts, df, p, axes_override=None):
 
     axes_override: se fornito, usa questi assi pannello invece di panel_axes(p).
 
-    Geometria dell'ombra:
-      phi_p > 0 (sole a est):  l'ombra cade a DESTRA (+x) dell'asse pannello
-      phi_p < 0 (sole a ovest): l'ombra cade a SINISTRA (-x) dell'asse pannello
+    Geometria dell'ombra (convenzione pvlib PSZA, v4.3.0 — phi_p non e'
+    piu' usato da questa funzione):
+      PSZA > 0 (sole a OVEST): l'ombra cade verso +x (est) dell'asse
+      PSZA < 0 (sole a EST):  l'ombra cade verso −x (ovest) dell'asse
 
     Su terreno inclinato:
       La quota del suolo è z_ground(x) = x · tan(slope_cross).
@@ -814,9 +830,10 @@ def compute_shadow_matrix(x_pts, df, p, axes_override=None):
     # del sole proiettato sul piano perpendicolare all'asse del tracker.
     # tan(PSZA) = sin(az_cross) / tan(elev) = offset_ombra / dz
     #
-    # Convenzione segno PSZA:
-    #   PSZA < 0 → sole a est dell'asse → ombra a destra (+x)
-    #   PSZA > 0 → sole a ovest dell'asse → ombra a sinistra (-x)
+    # Convenzione segno PSZA (verificata empiricamente con pvlib, v4.3.0:
+    # mattina az≈79° → PSZA=−67; pomeriggio az≈262° → PSZA=+48):
+    #   PSZA < 0 → sole a EST dell'asse  → ombra verso −x (ovest)
+    #   PSZA > 0 → sole a OVEST dell'asse → ombra verso +x (est)
     ax_az = p.get('axis_azimuth', 180.0)
     ax_tilt = p.get('axis_tilt', 0.0)
     solar_zenith  = 90.0 - df['apparent_elevation'].values
@@ -850,8 +867,12 @@ def compute_shadow_matrix(x_pts, df, p, axes_override=None):
     half_cos = W / 2 * np.abs(np.cos(theta_arr))            # (n_times,)
 
     # Denominatore terreno inclinato: (n_times,)
-    denom = np.where(abs_tan_phi > 0.001,
-                     1.0 + tan_s / abs_tan_phi, 1e6)
+    # v4.3.0: clamp come per den_w (vedi _shadow_kinematics) — con tan_s
+    # negativo ripido e sole radente il denominatore est puo' azzerarsi o
+    # cambiare segno: ombra disattivata (1e6), non dal lato sbagliato.
+    _raw_denom = np.where(abs_tan_phi > 0.001,
+                          1.0 + tan_s / abs_tan_phi, 1e6)
+    denom = np.where(_raw_denom > 0.01, _raw_denom, 1e6)
 
     # Punti a terra: (n_points,)
     xp = np.array(x_pts)
@@ -1005,9 +1026,13 @@ def compute_shadow_matrix(x_pts, df, p, axes_override=None):
                 x_sh_e2 = (x_right_k + z_sup_k / atp_k) / den_k
                 sh_min_ke = np.minimum(x_sh_e1, x_sh_e2)[:, None]
                 sh_max_ke = np.maximum(x_sh_e1, x_sh_e2)[:, None]
-                # Ovest
-                x_sh_w1 = (x_right_k - z_inf_k / atp_k) / den_w_k
-                x_sh_w2 = (x_left_k  - z_sup_k / atp_k) / den_w_k
+                # Ovest: stessi bordi fisici del percorso principale
+                # (x_left con z_inf, x_right con z_sup — accoppiamento CON
+                # SEGNO, M5). Il pairing scambiato pre-M5 era rimasto solo
+                # qui: proiettava gli spigoli del pannello contro-ruotato
+                # (larghezza ombra ridotta di |cos(2·PSZA)| nelle mattine).
+                x_sh_w1 = (x_left_k  - z_inf_k / atp_k) / den_w_k
+                x_sh_w2 = (x_right_k - z_sup_k / atp_k) / den_w_k
                 sh_min_kw = np.minimum(x_sh_w1, x_sh_w2)[:, None]
                 sh_max_kw = np.maximum(x_sh_w1, x_sh_w2)[:, None]
                 sh_min_k = np.where(east_k[:, None], sh_min_ke, sh_min_kw)
@@ -1407,20 +1432,39 @@ def self_test():
       c) VF nel range atteso (0.70–0.98 al centro)
 
     Caso 2 — Shadow con sole alto (azimut=179°, elevazione=70°):
-      φ_p ≈ 70°, tan(φ_p)≈2.75. Pannello asse=0, θ=0: bordi a x=±W/2, z=H.
-      Ombra proiettata: [−W/2 + H/tan(φ_p), W/2 + H/tan(φ_p)] ≈ [−0.27, 1.73]
-      → punto x=0 (nell'ombra proiettata): in ombra ✓
-      → punto x=1.2W (oltre ombra proiettata): illuminato ✓
+      Sole quasi allineato all'asse N-S → |PSZA| clampato a 0.5°:
+      l'ombra è quasi verticale, ≈ [−W/2, W/2] attorno all'asse 0
+      (numericamente ≈ [−1.02, 0.98] col clamp).
+      → punto x=0 (sotto il pannello): in ombra ✓
+      → punto x=1.2W (centro gap): illuminato ✓
       [v3.3.5] Rimosso Test 1 "under" (proiezione verticale): il Test 2
       (ombra proiettata) copre tutti i casi incluso sole verticale.
+      [v4.3.0] Razionale aggiornato: il commento storico citava la
+      proiezione φ_p (pre-R4) e un'ombra [−0.27, 1.73] mai prodotta
+      dal codice attuale (PSZA).
 
     Caso 3 — Shadow direzionale (sole da ovest vs sole da est):
-      Con sole da est, l'ombra del pannello asse=0 cade a +x.
-      Con sole da ovest, l'ombra cade a −x (quindi fuori dal pitch [0,P]).
-      → stesso punto, lati opposti: risultati diversi.
+      Profili diversi fra i due lati (test di non-identità).
 
     Caso 4 — Notte:
       Elevazione < 2° → tutti i punti in ombra (f_dir = 0).
+
+    Caso 5 (v4.3.0) — Direzione ASSOLUTA con θ≠0 (inchioda la convenzione
+      pvlib: sole a EST → PSZA<0 → ombra verso OVEST, tilt firmato):
+      sole est (az=90°, elev=35°), θ=−50° (faccia a est). Il pannello
+      con asse a x=P proietta l'ombra a ovest fino a ~x=2.88 m:
+      x=2.5 in ombra, x=3.1 illuminato. Con la convenzione contro-ruotata
+      storica (θ→−θ) l'ombra sarebbe [0.69, 1.59] e il test fallirebbe.
+
+    Caso 6 (v4.3.0) — Handedness pendenza trasversale: con tan_s>0
+      (terreno che SALE verso +x/est) e sole a est, l'ombra cade a ovest
+      in DISCESA e si allunga (den_w<1): più punti in ombra che su
+      terreno piano a parità di sole.
+
+    Caso 7 (v4.3.0) — Equivalenza strategia A (sub-campioni pvlib,
+      n_sub=1) vs strategia B (fallback): stessi input → stessi profili.
+      Avrebbe intercettato il pairing scambiato del ramo ovest del loop
+      sub-campioni (bug della revisione v4.3.0).
 
     Restituisce True se tutti i test passano, altrimenti stampa errori.
     """
@@ -1442,8 +1486,11 @@ def self_test():
     ok = True
     errors = []
 
+    n_checks = 0  # v4.3.0: conteggio reale dei check (era hardcoded errato)
+
     def _check(condition, name, detail=''):
-        nonlocal ok
+        nonlocal ok, n_checks
+        n_checks += 1
         if not condition:
             ok = False
             msg = f'  {name}'
@@ -1473,11 +1520,8 @@ def self_test():
            f'P/4={vf_left:.4f} vs 3P/4={vf_right:.4f}')
 
     # ── Test 2: Shadow con sole alto (elevazione 70°, azimut 179°) ─────────
-    # φ_p ≈ 70°, tan(φ_p) ≈ 2.75
-    # Pannello asse=0, θ=0: bordi a x=±W/2=±1, z=H=2
-    # Ombra max = W/2 + H/tan(φ_p) = 1 + 2/2.75 ≈ 1.73m
-    # Proiezione pannello asse=P: da P-W/2=3.0 a P+W/2=5.0m
-    # → zona illuminata da ~1.73 a ~3.0m
+    # Sole quasi allineato all'asse → |PSZA| clampato a 0.5°: ombra quasi
+    # verticale ≈ [−W/2, W/2] attorno all'asse 0 (≈ [−1.02, 0.98]).
     import pandas as pd
     idx = pd.DatetimeIndex(['2010-06-21 12:00:00'], tz='UTC')
     df_test = pd.DataFrame({
@@ -1486,16 +1530,10 @@ def self_test():
         'tracker_theta': [0.0],
         'cos_zenith': [np.cos(np.radians(20.0))],
     }, index=idx)
-    alt_r = np.radians(70.0)
-    az_ew_r = np.radians(179.0 - 180.0)
-    cos_azew = max(0.01, abs(np.cos(az_ew_r)))
-    phi_val = np.degrees(np.arctan(np.tan(alt_r) / cos_azew))
-    df_test['phi_p'] = phi_val  # positivo
 
     f_dir = compute_shadow_matrix(list(x_pts), df_test, p_test)
 
-    # x=0: nell'ombra proiettata del pannello centrale (sole quasi zenitale,
-    # φ_p≈70° → ombra copre [−0.27, 1.73] ⊃ x=0)
+    # x=0: sotto il pannello centrale (ombra quasi verticale ⊃ x=0)
     _check(f_dir[0, 0] == 0.0, 'Shadow sotto pannello',
            f'f_dir={f_dir[0, 0]}')
 
@@ -1512,25 +1550,16 @@ def self_test():
            f'ombra={n_shadow} illuminati={n_lit}')
 
     # ── Test 3: Direzionalità ombra (est vs ovest) ───────────────────────
-    # Sole da est (az=120°): ombra cade a +x
     df_east = pd.DataFrame({
         'apparent_elevation': [30.0], 'azimuth': [120.0],
         'tracker_theta': [0.0],
         'cos_zenith': [np.cos(np.radians(60.0))],
     }, index=idx)
-    alt_r_e = np.radians(30.0)
-    az_ew_e = np.radians(120.0 - 180.0)
-    phi_e = np.degrees(np.arctan(np.tan(alt_r_e) / max(0.01, abs(np.cos(az_ew_e)))))
-    df_east['phi_p'] = phi_e   # positivo
-
-    # Sole da ovest (az=240°): ombra cade a -x
     df_west = pd.DataFrame({
         'apparent_elevation': [30.0], 'azimuth': [240.0],
         'tracker_theta': [0.0],
         'cos_zenith': [np.cos(np.radians(60.0))],
     }, index=idx)
-    phi_w = np.degrees(np.arctan(np.tan(alt_r_e) / max(0.01, abs(np.cos(np.radians(240.0-180.0))))))
-    df_west['phi_p'] = -phi_w  # negativo (sole a ovest)
 
     f_east = compute_shadow_matrix(list(x_pts), df_east, p_test)
     f_west = compute_shadow_matrix(list(x_pts), df_west, p_test)
@@ -1545,19 +1574,90 @@ def self_test():
         'apparent_elevation': [1.0], 'azimuth': [180.0],
         'tracker_theta': [0.0], 'cos_zenith': [0.0],
     }, index=idx)
-    df_night['phi_p'] = 0.0
     f_night = compute_shadow_matrix(list(x_pts), df_night, p_test)
     _check(f_night[0, :].sum() == 0.0, 'Shadow notte',
            f'f_dir non zero di notte: sum={f_night[0,:].sum()}')
 
+    # ── Test 5 (v4.3.0): direzione ASSOLUTA con theta ≠ 0 ────────────────
+    # Sole a EST (az=90°, elev=35°) → PSZA≈−55° → ombra verso OVEST (−x).
+    # Tracker θ=−50° (faccia a est, pvlib). Bordi pannello (asse a x=a):
+    # x=a±(W/2)cos50, z=H∓(W/2)sin(−50) → il pannello con asse a x=P
+    # proietta a ovest l'intervallo ≈ [−0.59, 2.88] (atp=tan35°≈0.700).
+    # Con la convenzione CONTRO-RUOTATA storica (θ→+50) sarebbe
+    # ≈ [0.69, 1.59]: x=2.5 illuminato. Questo check la esclude.
+    df_t5 = pd.DataFrame({
+        'apparent_elevation': [35.0], 'azimuth': [90.0],
+        'tracker_theta': [-50.0],
+        'cos_zenith': [np.cos(np.radians(55.0))],
+    }, index=idx)
+    f_t5 = compute_shadow_matrix(list(x_pts), df_t5, p_test)
+    idx_25 = np.argmin(np.abs(x_pts - 2.5))
+    idx_31 = np.argmin(np.abs(x_pts - 3.1))
+    _check(f_t5[0, idx_25] == 0.0, 'Shadow direzione assoluta (in ombra)',
+           f'x=2.5m f_dir={f_t5[0, idx_25]} (atteso 0: ombra a ovest di P)')
+    _check(f_t5[0, idx_31] == 1.0, 'Shadow direzione assoluta (illuminato)',
+           f'x=3.1m f_dir={f_t5[0, idx_31]} (atteso 1)')
+
+    # ── Test 6 (v4.3.0): handedness pendenza trasversale ─────────────────
+    # tan_s>0 = terreno che SALE verso +x (est). Sole a est, θ=0: ombra a
+    # ovest, in DISCESA → allungata (den_w<1) → più punti in ombra che su
+    # terreno piano.
+    df_t6 = pd.DataFrame({
+        'apparent_elevation': [35.0], 'azimuth': [90.0],
+        'tracker_theta': [0.0],
+        'cos_zenith': [np.cos(np.radians(55.0))],
+    }, index=idx)
+    p_slope = dict(p_test)
+    p_slope['slope_cross_rad'] = np.arctan(0.10)
+    p_slope['slope_cross_deg'] = np.degrees(np.arctan(0.10))
+    f_flat = compute_shadow_matrix(list(x_pts), df_t6, p_test)
+    f_slope = compute_shadow_matrix(list(x_pts), df_t6, p_slope)
+    n_sh_flat = int((f_flat[0, :] == 0.0).sum())
+    n_sh_slope = int((f_slope[0, :] == 0.0).sum())
+    _check(n_sh_slope > n_sh_flat, 'Shadow handedness slope',
+           f'ombra in discesa NON allungata: slope={n_sh_slope} pts vs '
+           f'flat={n_sh_flat} pts')
+
+    # ── Test 7 (v4.3.0): strategia A (sub pvlib, n_sub=1) ~ strategia B ──
+    # Mattina estiva con theta fortemente negativo (sole a est): le due
+    # strategie sono stimatori anti-aliasing diversi (B smussa sui vicini)
+    # quindi NON si confrontano punto-per-punto, ma la COPERTURA d'ombra
+    # oraria deve coincidere entro pochi %. Col pairing dei bordi
+    # scambiato nel ramo ovest del loop sub (bug revisione v4.3.0)
+    # l'ombra mattutina di A si riduce di |cos(2·PSZA)| (≈ dimezzata a
+    # |PSZA|≈60°) e questo check fallisce.
+    idx7 = pd.DatetimeIndex(['2010-06-21 06:00:00', '2010-06-21 07:00:00',
+                             '2010-06-21 08:00:00'], tz='UTC')
+    p_A = dict(p_test)
+    p_A.update({'lat': 45.3, 'lon': 9.34, 'n_sub': 1, 'beta_max': 60.0,
+                'backtracking': 1, 'GCR': W / P})
+    df_t7 = pd.DataFrame(index=idx7)
+    try:
+        df_t7 = compute_solar_and_tracker(df_t7, p_A)
+        f_A = compute_shadow_matrix(list(x_pts), df_t7, p_A)
+        p_B = dict(p_A)
+        p_B.pop('lat')   # senza lat/lon -> _build_subsamples=None -> B
+        p_B.pop('lon')
+        f_B = compute_shadow_matrix(list(x_pts), df_t7, p_B)
+        cov_A = (1.0 - f_A).sum(axis=1)   # copertura ombra per ora
+        cov_B = (1.0 - f_B).sum(axis=1)
+        rel = float(np.max(np.abs(cov_A - cov_B) / np.maximum(cov_B, 1.0)))
+        _check(rel < 0.15, 'Strategia A ~ B (copertura ombra)',
+               f'scarto copertura max {rel:.1%} (atteso <15%): possibile '
+               f'incoerenza fra percorso principale e loop sub-campioni')
+    except Exception as _e:
+        _check(False, 'Strategia A ~ B (copertura ombra)',
+               f'eccezione durante il test: {type(_e).__name__}: {_e}')
+
     # ── Risultato ─────────────────────────────────────────────────────────
-    n_tests = 4 + 3  # 4 shadow + 3 VF
-    n_pass = n_tests - len(errors)
+    n_pass = n_checks - len(errors)
     if ok:
-        print(f'   Self-test: PASS ({n_pass}/{n_tests} - '
-              f'VF range/simmetria/monotonia, shadow sotto/proiettata/direzionalita/notte)')
+        print(f'   Self-test: PASS ({n_pass}/{n_checks} - '
+              f'VF range/simmetria/monotonia; shadow sotto/illuminata/mix/'
+              f'direzionalita/notte; direzione assoluta theta!=0; '
+              f'handedness slope; strategia A=B)')
     else:
-        print(f'   Self-test: FAIL ({n_pass}/{n_tests})')
+        print(f'   Self-test: FAIL ({n_pass}/{n_checks})')
         for e in errors:
             print(e)
 

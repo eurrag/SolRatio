@@ -25,18 +25,18 @@ Il modulo è ATTIVO solo se p['bifaciality_factor'] > 0. Con
 bifaciality_factor=0 (default per moduli monofacciali) il calcolo
 restituisce front-only ed è bit-per-bit identico al monofacciale.
 
-L'irradianza posteriore POA_back è calcolata da bifacial_radiance
-chiamando un'analisi separata con sensori sotto i moduli (a quota
-hub_height - W·sin(tilt) - 0.05, normale verso il basso). Questa
-chiamata è isolata in `_compute_poa_back()` e usa lo stesso
-`rtrace` dell'engine principale.
-
-Limitazioni v4.2.0
-------------------
-- POA_back è MEDIATO sulla larghezza modulo (semplificazione: il
-  calcolo per ogni cella PV richiederebbe sensori multipli sotto
-  ciascun modulo). Per studi di precisione sulla distribuzione
-  bifacciale del retro, usare bifacial_radiance direttamente.
+Limitazioni (v4.3.0 — modello dichiaratamente semplificato)
+------------------------------------------------------------
+- POA_front ≈ GHI (proxy): il POA reale di un tracker e' tipicamente
+  superiore al GHI del 20-35%. energy_front/energy_total sono quindi
+  stime per difetto.
+- POA_back ≈ 0.5 · albedo · GHI (view factor standard tracker), NON
+  una simulazione Radiance dedicata con sensori posteriori.
+- Conseguenza algebrica: il guadagno bifacciale percentuale e' la
+  COSTANTE 100 · bf · 0.5 · albedo (es. bf=0.7, albedo=0.23 → +8.05%),
+  indipendente da geometria e sito. Un calcolo POA reale (pvlib
+  get_total_irradiance sugli angoli tracker, o run Radiance dedicato)
+  e' nella linea prodotto hosted.
 - La produzione PV usa una formula semplificata
   Energia_PV_anno [kWh] = (POA_front_avg + bf × POA_back_avg)
                          × Area_modulo × η_modulo × ore_anno
@@ -171,10 +171,11 @@ def add_bifacial_to_excel(wb_out, bifacial_data: dict, p: Mapping) -> None:
         ("Bifacciale totale", bifacial_data.get("energy_total_kwh_m2", "")),
         ("Guadagno bifacciale %", bifacial_data.get("bifacial_gain_pct", "")),
         ("", ""),
-        ("Note v4.2.0", ""),
+        ("Note (modello semplificato)", ""),
+        ("- POA front stimato col GHI (proxy: sottostima il POA tracker)", ""),
         ("- POA back stimato come 0.5 · albedo · GHI (approssimazione)", ""),
-        ("- Calcolo Radiance dedicato per POA back: rinviato a v4.2.x", ""),
-        ("- LCOE / payback: rinviato a v4.4 (Economia)", ""),
+        ("- Guadagno % = 100·bf·0.5·albedo: costante per costruzione", ""),
+        ("- Calcolo POA reale (pvlib/Radiance): linea prodotto hosted", ""),
     ]
     for r, (label, val) in enumerate(rows, start=1):
         ws.cell(row=r, column=1, value=label)

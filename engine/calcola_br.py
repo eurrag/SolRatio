@@ -22,6 +22,7 @@ import os
 import warnings
 import shutil
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -124,8 +125,13 @@ def main():
     print(f'   Lat={p["lat"]} Lon={p["lon"]}  '
           f'Pitch={p["pitch"]}m  W={p["W"]}m')
     print(f'   H_min_terra={p["H_min_terra"]}m  -> H_mozzo={p["H"]:.3f}m')
+    # v4.3.0: etichetta corretta per le 3 modalita' (prima B19=2 stampava
+    # "backtracking=ON" perche' 2 e' truthy)
+    _bt_label = {0: 'astronomico', 1: 'backtracking',
+                 2: f'tilt fisso ({p.get("theta_fix", 0.0):+.1f}°)'}.get(
+                     int(p['backtracking']), str(p['backtracking']))
     print(f'   GCR={p["GCR"]:.3f}  beta_max={p["beta_max"]}°  '
-          f'backtracking={"ON" if p["backtracking"] else "OFF"}')
+          f'modalità tracker={_bt_label}')
     ax_az = p.get('axis_azimuth', 180.0)
     if abs(ax_az - 180.0) > 0.1:
         print(f'   Asse tracker: azimut={ax_az:.1f}° (N-S ruotato {ax_az-180:.1f}°)')
@@ -138,8 +144,12 @@ def main():
     else:
         print('   Terreno: pianeggiante')
     # Pali: trattamento disabilitato in v4.1.0 — vedi project_pali_fuori_v4.md / CHANGELOG
-    n_panels = 2 * (p['n_ext'] + 1)
-    print(f'   N_punti={p["n_points"]}  N_ext={p["n_ext"]} ({n_panels} pannelli)')
+    # v4.3.0: stampa le file della SCENA BR reale (br_n_rows override o
+    # 2*n_ext+1), non i 2*(n_ext+1) assi del vecchio modello analitico.
+    _br_rows = int(p.get('br_n_rows', 0) or 0)
+    _rows_scene = max(3, _br_rows if _br_rows > 0 else 2 * p['n_ext'] + 1)
+    print(f'   N_punti={p["n_points"]}  N_ext={p["n_ext"]} '
+          f'(scena {_rows_scene} file)')
     print(f'   Albedo terreno: {p["albedo"]:.2f}')
     tau = p.get('tau', 0.0)
     if tau > 0:
@@ -161,13 +171,28 @@ def main():
     # ("piatto", CSV in root) sia layout v4.2 (CSV in <progetto>/input/).
     print('2. Preparazione dati meteo (PVGIS → EPW)...')
     pvgis_csv_path = find_pvgis_csv(proj_dir, p['lat'], p['lon'])
+    if pvgis_csv_path is None and p.get('csv_path', '').strip():
+        # v4.3.0: onora il percorso esplicito B43 anche nel flusso EPW
+        # (prima era usato solo da get_pvgis_data: con B43 valorizzato e
+        # nessun CSV standard il run moriva con un messaggio fuorviante
+        # "download fallito" senza aver mai considerato B43).
+        _b43 = Path(p['csv_path'].strip())
+        if not _b43.is_absolute():
+            _b43 = Path(proj_dir) / _b43
+        if _b43.exists():
+            print(f"   CSV PVGIS da cella B43: {_b43}")
+            pvgis_csv_path = _b43
+        else:
+            print(f"   AVVISO: il CSV indicato in B43 non esiste: {_b43}")
     if pvgis_csv_path is None:
         # CSV non presente: scarica automaticamente da PVGIS
         print("   CSV PVGIS non trovato, download automatico...")
         _ = get_pvgis_data(p, proj_dir)  # scarica e salva il CSV in root
         pvgis_csv_path = find_pvgis_csv(proj_dir, p['lat'], p['lon'])
         if pvgis_csv_path is None:
-            print("ERRORE: download PVGIS fallito, nessun CSV generato")
+            print("ERRORE: nessun CSV PVGIS disponibile (ricerca in root e "
+                  "input/, cella B43, download): verificare connessione o "
+                  "fornire il CSV.")
             sys.exit(1)
     pvgis_csv = str(pvgis_csv_path)
     epw_path, tmy_info = pvgis_to_epw(pvgis_csv, p['lat'], p['lon'])
@@ -432,6 +457,13 @@ def main():
             dli_df_outer = pd.DataFrame(DLI_h_outer, index=df.index,
                                         columns=x_pts_outer)
             dli_daily_outer = dli_df_outer.groupby(df.index.normalize()).sum()
+            # Nota (revisione v4.3.0): la fascia esterna parte dall'ASSE
+            # della fila piu' esterna (sanu=0), quindi include anche la
+            # banda SANU esterna di quella fila nella media PAR e
+            # nell'area. Scelta CONSERVATIVA: la banda in ombra profonda
+            # abbassa la media della fascia e quindi il K_agv d'impianto
+            # (mai a favore). Separare la banda richiederebbe la semantica
+            # di B32 al netto delle tare: documentato, non modificato.
             p_outer = p.copy()
             p_outer['pitch'] = strip_width_br
             p_outer['sanu'] = 0.0
@@ -607,6 +639,16 @@ if __name__ == '__main__':
     try:
         main()
     except SystemExit:
+        # v4.3.0: anche le uscite controllate (sys.exit) non devono
+        # lasciare il temporaneo orfano nella cartella progetto.
+        if len(sys.argv) >= 2:
+            _tmp = os.path.join(os.path.dirname(os.path.abspath(sys.argv[1])),
+                                '_sr_temp_params.xlsx')
+            try:
+                if os.path.exists(_tmp):
+                    os.remove(_tmp)
+            except Exception:
+                pass
         raise
     except Exception:
         err_msg = _tb.format_exc()

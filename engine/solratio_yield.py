@@ -38,7 +38,12 @@ def compute_yield_curves(stats, x_pts, p, crop_keys=None):
     # L'applicazione delle curve Laub a configurazioni E-W resta
     # scientificamente delicata. Vedi documentazione/FORMULE.md.
     _axis_azimuth = float(p.get('axis_azimuth', 180.0))
-    _delta_NS = abs((_axis_azimuth - 180.0 + 180.0) % 360.0 - 180.0)
+    # v4.3.0: deviazione dalla RETTA N-S (mod 180): la formula precedente
+    # misurava la distanza da 180° mod 360 — axis=0° (asse N-S identico a
+    # 180°) dava deviazione 180° e l'avviso E-W scattava a vuoto; axis=10°
+    # dava 170° invece di 10°.
+    _d = _axis_azimuth % 180.0
+    _delta_NS = min(_d, 180.0 - _d)
     if _delta_NS > 30.0:
         print(
             f'  ⚠ AVVISO agronomico: axis_azimuth={_axis_azimuth:.1f}° '

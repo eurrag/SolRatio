@@ -48,6 +48,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -81,16 +82,25 @@ def parse_years_spec(spec: str, available_years: List[int]) -> List[int]:
         return sorted(set(years) & set(available_years))
     try:
         n = int(spec)
-        if n < 1 or n > len(available_years):
-            raise ValueError(
-                f"--years N deve essere tra 1 e {len(available_years)}"
-            )
-        # Anni equispaziati nel range
-        idxs = np.linspace(0, len(available_years) - 1, n).round().astype(int)
-        years = [sorted(available_years)[int(i)] for i in idxs]
-        return sorted(set(years))
     except ValueError:
-        raise SystemExit(f"--years '{spec}' non riconosciuto.")
+        raise SystemExit(f"--years '{spec}' non riconosciuto. Valori ammessi: "
+                         f"'tmy', 'all', N (anni equispaziati), "
+                         f"'2010,2015,2020' (lista).")
+    # v4.3.0: un anno a 4 cifre senza virgola (es. '--years 2015') era
+    # interpretato come "2015 anni equispaziati" -> errore fuorviante.
+    if n in available_years and n > len(available_years):
+        return [n]
+    if n < 1 or n > len(available_years):
+        # v4.3.0: il raise informativo era DENTRO il try e veniva
+        # catturato dal proprio except ValueError -> messaggio generico.
+        raise SystemExit(
+            f"--years {n}: deve essere tra 1 e {len(available_years)} "
+            f"(anni disponibili: {min(available_years)}-{max(available_years)}; "
+            f"per un anno specifico usare la lista, es. '{n},').")
+    # Anni equispaziati nel range
+    idxs = np.linspace(0, len(available_years) - 1, n).round().astype(int)
+    years = [sorted(available_years)[int(i)] for i in idxs]
+    return sorted(set(years))
 
 
 # Versione formato EPW generato da questo script. Bumpare quando si
@@ -118,7 +128,11 @@ def _epw_has_current_format(epw_path: Path) -> bool:
                 line = f.readline()
                 if not line:
                     return False
-                if line.startswith('COMMENTS 1,') and _epw_format_marker() in line:
+                # v4.3.0: match con delimitatore (\b): 'format=v2' senza
+                # boundary combacerebbe anche con un futuro 'format=v2.1'
+                # in uno scenario di downgrade.
+                if line.startswith('COMMENTS 1,') and re.search(
+                        re.escape(_epw_format_marker()) + r'\b', line):
                     return True
         return False
     except Exception:
@@ -163,9 +177,13 @@ def build_year_epw(
             epw_path.unlink()
             print(f"  EPW {year}: formato obsoleto, rigenero ({epw_path.name})")
         except Exception as exc:
-            print(f"  AVVISO EPW {year}: impossibile rimuovere file obsoleto "
-                  f"({exc}); salto rigenerazione e uso il file esistente.")
-            return epw_path
+            # v4.3.0: l'EPW e' appena stato dichiarato INVALIDO: usarlo
+            # comunque (comportamento storico) produceva numeri errati con
+            # una sola riga di log. Meglio fermarsi.
+            raise RuntimeError(
+                f"EPW {year}: formato obsoleto ma impossibile rimuovere "
+                f"{epw_path} ({exc}). Chiudere i programmi che lo bloccano "
+                f"(OneDrive/Excel) e rilanciare.") from exc
 
     df = pd.read_csv(pvgis_csv_path, parse_dates=['time'])
     df_year = df[df['time'].dt.year == year].copy()
@@ -173,13 +191,20 @@ def build_year_epw(
         raise ValueError(
             f"Nessun dato PVGIS per anno {year} in {pvgis_csv_path.name}"
         )
-    if len(df_year) < 8000:
-        print(f"  AVVISO: anno {year} ha solo {len(df_year)} ore (atteso ≥8760)")
 
     df_year = df_year.sort_values('time').reset_index(drop=True)
-    # Tronca/padding a 8760 (ignora 29 feb di anni bisestili)
+    # Rimuove il 29 feb degli anni bisestili (l'EPW e' sempre 8760 ore)
     df_year = df_year[~((df_year['time'].dt.month == 2) &
                         (df_year['time'].dt.day == 29))].head(8760)
+    if len(df_year) < 8760:
+        # v4.3.0: un anno PARZIALE proseguiva con solo AVVISO ("padding"
+        # promesso dal commento ma mai implementato): GHI annuo monco e
+        # K_agv su mesi parziali entravano nei quantili P10/P50/P90 in
+        # silenzio. Errore esplicito: escludere l'anno dalla spec.
+        raise ValueError(
+            f"Anno {year} INCOMPLETO nella serie PVGIS: "
+            f"{len(df_year)} ore dopo il filtro 29/02 (attese 8760). "
+            f"Escluderlo da --years.")
 
     # TZ dell'header LOCATION = 0 (fix F1, backport dalla revisione 2026-06-10):
     # i CSV PVGIS sono in UTC (timestamp HH:10) e questo writer (duplicato di pvgis_to_epw) NON ri-localizza i
@@ -330,9 +355,21 @@ def run_multiyear(project_xlsm: Path, years_spec: str = "tmy",
         )
     print(f"  PVGIS CSV:  {pvgis_csv.name}")
 
-    # Anni disponibili
+    # Anni disponibili — v4.3.0: SOLO anni completi. Gli anni parziali
+    # (serie troncate a inizio/fine periodo) entravano nei quantili con
+    # GHI annuo monco e K_agv su mesi parziali, in silenzio; e la
+    # linspace di --years N include per costruzione primo e ultimo anno,
+    # cioe' proprio i candidati parziali.
     df_csv = pd.read_csv(pvgis_csv, parse_dates=['time'])
-    available_years = sorted(df_csv['time'].dt.year.unique().tolist())
+    _hours_per_year = df_csv['time'].dt.year.value_counts()
+    _all_years = sorted(_hours_per_year.index.tolist())
+    available_years = sorted(
+        int(y) for y, n in _hours_per_year.items() if n >= 8760)
+    _partial = sorted(set(_all_years) - set(available_years))
+    if _partial:
+        print(f"  AVVISO: anni INCOMPLETI esclusi dalla selezione: {_partial}")
+    if not available_years:
+        raise SystemExit("Nessun anno completo (>=8760 ore) nella serie PVGIS.")
     print(f"  Anni dispo: {available_years[0]}-{available_years[-1]} "
           f"(n={len(available_years)})")
     target_years = parse_years_spec(years_spec, available_years)
@@ -382,15 +419,20 @@ def run_multiyear(project_xlsm: Path, years_spec: str = "tmy",
             if idx < n_all:
                 PAR_W[idx, :] = IRR_hourly[i, :]
 
-        # PAR fraction: usa il calcolo standard se possibile, altrimenti
-        # cade su una stima conservativa (~0.46 = PAR_FRAC clear-sky)
+        # PAR fraction: v4.3.0 — VARIABILE (Jacovides) come in calcola_br,
+        # usando il solpos gia' calcolato da run_annual. Prima era fisso
+        # 0.454: la costante si cancella nel rapporto DLI/DLI_ref
+        # giornaliero ma resta un residuo di pesatura oraria, e la riga
+        # TMY non coincideva col K_agv di risultati_*.xlsx dello stesso
+        # progetto. Fallback alla costante solo se solpos indisponibile.
         try:
-            doy = df.index.dayofyear.values
-            dni_extra = _pvlib_irr.get_extra_radiation(doy)
-            cos_zen = np.cos(np.radians(np.maximum(0, 90 - 30)))  # placeholder
-            # cos_zenith preciso non disponibile senza solpos completo:
-            # uso PAR_FRAC fisso per semplicità (errore <2% su DLI cumulato)
-            par_frac = np.full(n_all, 0.454, dtype=float)
+            solpos = metdata.solpos
+            cos_zen = np.maximum(0.0, np.cos(np.radians(np.asarray(
+                solpos['apparent_zenith'].values[:n_all], dtype=float))))
+            dni_extra = np.asarray(
+                _pvlib_irr.get_extra_radiation(df.index), dtype=float)[:n_all]
+            par_frac = np.asarray(
+                compute_par_frac(ghi_arr, dni_extra, cos_zen), dtype=float)
         except Exception:
             par_frac = np.full(n_all, 0.454, dtype=float)
 
@@ -431,20 +473,31 @@ def run_multiyear(project_xlsm: Path, years_spec: str = "tmy",
 
     # Esegui TMY se richiesto (modalità default v4.1)
     if years_spec.strip().lower() == "tmy" or len(target_years) == 0:
-        print(f"\n--- Run TMY composito ---")
-        epw_path, tmy_info = pvgis_to_epw(str(pvgis_csv), lat, lon)
-        result = run_annual(p, epw_path, n_points=p.get('n_points', 51),
-                            project_dir=str(project_dir))
-        kagv = _post_process_kagv(result, p)
-        append_result(csv_path, {
-            "year": "TMY",
-            "tmy_info": tmy_info,
-            "ghi_annual_kwhm2": round(result['ghi_annual'] / 1000, 1),
-            "kagv_sau_cereali_c3": round(kagv['kagv_sau_cereali_c3'], 2),
-            "kagv_sau_media_9_colture": round(kagv['kagv_sau_media_9_colture'], 2),
-        })
-        print(f"  TMY completato: K_agv SAU Cereali C3 = "
-              f"{kagv['kagv_sau_cereali_c3']:.2f}%")
+        # v4.3.0: idempotenza anche per il ramo TMY (come per i singoli
+        # anni): prima il check stava solo in append_result, DOPO il run
+        # piu' costoso — un resume post-crash lo rifaceva ogni volta.
+        _tmy_done = False
+        if csv_path.is_file():
+            _existing = pd.read_csv(csv_path)
+            _tmy_done = ('year' in _existing.columns and
+                         'TMY' in _existing['year'].astype(str).values)
+        if _tmy_done:
+            print(f"\n--- Run TMY composito: già completato, salto ---")
+        else:
+            print(f"\n--- Run TMY composito ---")
+            epw_path, tmy_info = pvgis_to_epw(str(pvgis_csv), lat, lon)
+            result = run_annual(p, epw_path, n_points=p.get('n_points', 51),
+                                project_dir=str(project_dir))
+            kagv = _post_process_kagv(result, p)
+            append_result(csv_path, {
+                "year": "TMY",
+                "tmy_info": tmy_info,
+                "ghi_annual_kwhm2": round(result['ghi_annual'] / 1000, 1),
+                "kagv_sau_cereali_c3": round(kagv['kagv_sau_cereali_c3'], 2),
+                "kagv_sau_media_9_colture": round(kagv['kagv_sau_media_9_colture'], 2),
+            })
+            print(f"  TMY completato: K_agv SAU Cereali C3 = "
+                  f"{kagv['kagv_sau_cereali_c3']:.2f}%")
 
     # Loop anni singoli
     for year in target_years:

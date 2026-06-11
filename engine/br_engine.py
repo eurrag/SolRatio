@@ -233,8 +233,9 @@ def find_pvgis_csv(project_dir, lat=None, lon=None):
       1. <project_dir>/PVGIS_*.csv     (layout legacy)
       2. <project_dir>/input/PVGIS_*.csv  (layout v4.2)
 
-    Se `lat` e `lon` sono forniti (in gradi decimali, formato `45.30`),
-    si filtrano i nomi che combaciano con `PVGIS_<lat>_<lon>_*.csv`.
+    Se `lat` e `lon` sono forniti (in gradi decimali; nel nome file sono
+    formattati a 4 decimali, es. `45.3000`), si filtrano i nomi che
+    combaciano con `PVGIS_<lat>_<lon>_*.csv`.
     Altrimenti si restituisce il primo CSV PVGIS trovato.
 
     Returns
@@ -282,7 +283,20 @@ def pvgis_to_epw(pvgis_csv_path, lat, lon, elevation=0):
 
     # ── Selezione TMY mese per mese ──────────────────────────────────
     import calendar
-    ghi_monthly = df.groupby(['year', 'month'])['ghi'].sum().unstack(fill_value=0)
+    ghi_monthly = df.groupby(['year', 'month'])['ghi'].sum().unstack()
+    # B2 (v4.3.0): i (anno, mese) con copertura oraria INCOMPLETA (serie
+    # troncate/anomale) diventano NaN ed escono da mediana e selezione.
+    # Con lo storico fill_value=0 un mese mancante pesava 0 sulla mediana
+    # (spostandola in basso) e l'anno parziale poteva essere eletto "anno
+    # tipo" in silenzio; il guard 8760 a valle intercettava solo il caso
+    # del mese fisicamente corto, non la mediana corrotta.
+    hours_monthly = df.groupby(['year', 'month'])['ghi'].count().unstack()
+    for _y in ghi_monthly.index:
+        for _m in ghi_monthly.columns:
+            _exp = calendar.monthrange(int(_y), int(_m))[1] * 24
+            _cnt = hours_monthly.loc[_y, _m]
+            if pd.isna(_cnt) or _cnt < _exp:
+                ghi_monthly.loc[_y, _m] = np.nan
     years = sorted(df['year'].unique())
 
     tmy_months = []  # lista di (month, selected_year, DataFrame)
@@ -293,7 +307,11 @@ def pvgis_to_epw(pvgis_csv_path, lat, lon, elevation=0):
     for m in range(1, 13):
         if m not in ghi_monthly.columns:
             continue
-        col = ghi_monthly[m]
+        col = ghi_monthly[m].dropna()
+        if col.empty:
+            raise RuntimeError(
+                f'TMY: nessun anno con il mese {calendar.month_abbr[m]} '
+                f'completo nella serie PVGIS — verificare il CSV.')
         median_ghi = col.median()
         best_year = int(col.iloc[(col - median_ghi).abs().argsort()[:1]].index[0])
         tmy_years[m] = best_year
@@ -357,6 +375,13 @@ def pvgis_to_epw(pvgis_csv_path, lat, lon, elevation=0):
         'DATA PERIODS,1,1,Data,Sunday, 1/ 1,12/31',
     ]
 
+    # v4.3.0: NaN gestiti esplicitamente — `nan or default` restituisce
+    # nan (truthy) e finiva come testo 'nan' nell'EPW; max(0, nan) -> 0
+    # silenzioso per le irradianze.
+    def _num(value, default):
+        v = float(value if value is not None else default)
+        return default if pd.isna(v) else v
+
     data_lines = []
     for i in range(len(df_tmy)):
         row = df_tmy.iloc[i]
@@ -364,11 +389,11 @@ def pvgis_to_epw(pvgis_csv_path, lat, lon, elevation=0):
         hour = ts.hour + 1
         if hour == 0:
             hour = 24
-        ghi_val = max(0, float(row.get('ghi', 0) or 0))
-        dni_val = max(0, float(row.get('dni', 0) or 0))
-        dhi_val = max(0, float(row.get('dhi', 0) or 0))
-        temp = float(row.get('temp_air', 15) or 15)
-        ws = max(0, float(row.get('wind_speed', 2) or 2))
+        ghi_val = max(0, _num(row.get('ghi', 0), 0))
+        dni_val = max(0, _num(row.get('dni', 0), 0))
+        dhi_val = max(0, _num(row.get('dhi', 0), 0))
+        temp = _num(row.get('temp_air', 15), 15)
+        ws = max(0, _num(row.get('wind_speed', 2), 2))
         dew_point = temp - 5
 
         line = (f'{ref_year},{ts.month},{ts.day},{hour},60,'
@@ -527,6 +552,9 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
             n_rows = 2 * n_ext + 1
         if n_rows < 3:
             n_rows = 3
+            # v4.3.0: ricalcola n_ext dopo il forcing (con br_n_rows=1/2
+            # restava 0 e la fascia "outer" partiva da v=0, DENTRO il campo)
+            n_ext = (n_rows - 1) // 2
         # ── Warning v4.1.1: n_rows insufficiente sotto-stima inter-row ─
         # Empiricamente (vedi CHANGELOG v4.1.1 e PARAMETRI_RADIANCE.md):
         # con n_rows < 7 la radiazione al pitch centrale è sovra-stimata
@@ -714,11 +742,15 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
         # Per slope_cross == 0 manteniamo il ring orizzontale a z=-0.01
         # (bit-per-bit identico a v4.1).
         if abs(_tan_slope_cross) > 1e-8:
-            # Normale piano inclinato (Rodrigues, asse rotazione = asse tracker)
+            # Normale piano inclinato (Rodrigues, asse rotazione = asse tracker).
+            # I sensori giacciono su z = tan(sl)·(x·cosφ − y·sinφ): la normale
+            # del piano è ∝ (−sin_sl·cosφ, +sin_sl·sinφ, cos_sl). Il segno Y
+            # era invertito (−sinφ): nullo per asse N-S (sinφ=0), ring
+            # speculare a sensori/file per axis_azimuth ruotati (es. E-W).
             _sin_sl = np.sin(_slope_cross_rad)
             _cos_sl = np.cos(_slope_cross_rad)
             _gn_x = -_cos_phi * _sin_sl
-            _gn_y = -_sin_phi * _sin_sl
+            _gn_y = _sin_phi * _sin_sl
             _gn_z = _cos_sl
             _gc_x, _gc_y, _gc_z = 0.0, 0.0, 0.0  # ring passante per origine
             # Range quota sensori (info diagnostica)
@@ -778,7 +810,14 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
             _tilt = -_ut
             _azimuth = (_axis_azimuth - 90.0) % 360.0
             _ch = hub_height - 0.5 * p['W'] * np.sin(np.radians(abs(_ut)))
-            _ch = max(0.01, _ch)
+            if _ch < 0.01:
+                # v4.3.0: il clamp era silenzioso — geometria alterata senza
+                # avviso quando H < W/2·sin|theta| (config fisicamente
+                # impossibile col beta_max dichiarato).
+                print(f'  ⚠ AVVISO: clearance {_ch:.3f}m < 1cm per theta='
+                      f'{_ut:+.1f}° (H troppo bassa per W/beta_max): '
+                      f'clampata a 0.01m — geometria alterata.')
+                _ch = 0.01
             clearance_cache[_ut] = _ch
             # radname unico per evitare collisione nomi file
             # (BR usa tilt:0.0f nel filename → theta diversi sovrascrivono)
@@ -799,6 +838,14 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
                 _radfiles = rad._getradfiles()
                 _scene_rad = [f for f in _radfiles
                               if f.endswith('.rad') and _radname in os.path.basename(f)]
+                if not _scene_rad:
+                    # v4.3.0: senza match il fallback silenzioso era la scena
+                    # MONO-fila (zero ombreggiamento inter-row -> K_agv
+                    # enormemente sovrastimato). Meglio fallire rumorosamente.
+                    raise RuntimeError(
+                        f'Slope L2: radfile della scena base "{_radname}" non '
+                        f'trovato fra {len(_radfiles)} radfiles (cambio naming '
+                        f'di bifacial_radiance?).')
                 if _scene_rad:
                     _base_rad = _scene_rad[0]
                     # ── Leggi la scena base (nRows=1) per estrarre i
@@ -822,8 +869,6 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
                     #    xform applica le trasformazioni L→R, quindi
                     #    -t DX 0 DZ in coda = offset applicato per ultimo.
                     _slope_rad = _base_rad.replace('.rad', '_slope.rad')
-                    _dz_clamp = _ch - 0.02
-                    _n_clamped = 0
                     _out = list(_other_lines)
                     for _ri in range(n_rows):
                         _ro = _ri - _center_row
@@ -834,14 +879,15 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
                             # tramite _local_to_world(_dx). Per axis=180 e'
                             # identita' (dx_world=_dx, dy_world=0); per altri
                             # axis_azimuth la replica e' nel frame ruotato.
+                            # v4.3.0: nessun clamp su dz — il vecchio clamp
+                            # (|dz| <= clearance-0.02) era un retaggio del
+                            # terreno orizzontale pre-L3: col ring realmente
+                            # inclinato dz = dx*tan(slope) mantiene per
+                            # costruzione la clearance sul terreno locale, e
+                            # il clamp la rompeva (file sepolte in salita /
+                            # sospese in discesa per pendenze ripide).
                             _dx = _ro * p['pitch']
                             _dz = _dx * _tan_slope_cross
-                            if _dz < -_dz_clamp:
-                                _dz = -_dz_clamp
-                                _n_clamped += 1
-                            elif _dz > _dz_clamp:
-                                _dz = _dz_clamp
-                                _n_clamped += 1
                             _dx_w, _dy_w = _local_to_world(_dx)
                             for _xc in _xform_cmds:
                                 # Inserisci -t prima del filename (ultimo token)
@@ -852,9 +898,6 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
                                     '!xform ' + ' '.join(_opts)
                                     + f' -t {_dx_w:.6f} {_dy_w:.6f} {_dz:.6f} '
                                     + _fname)
-                    if _n_clamped > 0:
-                        print(f'    NOTA: {_n_clamped} file con dz clampato '
-                              f'(max |dz|={_dz_clamp:.2f}m)')
                     with open(_slope_rad, 'w') as _f:
                         _f.write('\n'.join(_out) + '\n')
                     if _i_ut == 0:
@@ -1438,7 +1481,10 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
                 return task['task_idx'], task['hour_idx'], None
 
             # Parse output (-oovs: tab-separated, cols 3-5 = value RGB)
-            lines = result.stdout.decode().strip().split('\n')
+            # M3-bis (v4.3.0): errors='replace' — un byte non-UTF8 nello
+            # stdout (nomi superficie con -oovs) deve contare come errore
+            # dell'ora (token malformato), non abortire il run intero.
+            lines = result.stdout.decode(errors='replace').strip().split('\n')
             vals = []
             for line in lines:
                 parts = line.split('\t')
@@ -1555,25 +1601,32 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
             """rtrace con solo sky+ground (no scene geometry)."""
             sky_path = task['sky_path']
             oct_path = sky_path.replace('.rad', '_os.oct')
+            # v4.3.0: oconv con timeout (il _popen storico non lo aveva: un
+            # oconv bloccato appendeva il thread e il run non terminava mai)
             try:
                 with open(oct_path, 'w') as f_oct:
-                    _popen(['oconv', sky_path], None, f_oct)
+                    _subprocess.run(['oconv', sky_path], stdout=f_oct,
+                                    stderr=_subprocess.DEVNULL, timeout=60)
             except Exception:
                 return task['hour_idx'], None
             if not os.path.exists(oct_path):
                 return task['hour_idx'], None
-            rtrace_cmd = f'rtrace {rtrace_opts} "{oct_path}"'
-            res = _subprocess.run(rtrace_cmd, shell=True,
-                                   input=opensky_linepts,
-                                   capture_output=True, timeout=30)
-            try:
-                os.remove(oct_path)
+            try:  # v4.3.0: anche TimeoutExpired = errore dell'ora, non abort
+                rtrace_cmd = f'rtrace {rtrace_opts} "{oct_path}"'
+                res = _subprocess.run(rtrace_cmd, shell=True,
+                                      input=opensky_linepts,
+                                      capture_output=True, timeout=30)
             except Exception:
-                pass
+                return task['hour_idx'], None
+            finally:
+                try:
+                    os.remove(oct_path)
+                except Exception:
+                    pass
             if res.returncode != 0:
                 return task['hour_idx'], None
             try:  # M3 (v4.2.2): parsing difensivo anche nell'open-sky
-                parts = res.stdout.decode().strip().split('\t')
+                parts = res.stdout.decode(errors='replace').strip().split('\t')
                 if len(parts) >= 6:
                     r, g, b = (float(parts[3]), float(parts[4]),
                                float(parts[5]))
@@ -1596,6 +1649,12 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
 
         t_os = _time.time() - t_os_start
         print(f'  Cielo aperto: {n_os_ok}/{len(task_list)} ore in {t_os:.0f}s')
+        if n_os_ok < len(task_list):
+            # v4.3.0: le ore fallite restano 0 in IRR_opensky e abbassano il
+            # riferimento (PAR_rel sovrastimata in quelle ore): va dichiarato.
+            print(f'  ⚠ AVVISO: {len(task_list) - n_os_ok} ore open-sky '
+                  f'FALLITE (restano a 0 nel riferimento: PAR relativa '
+                  f'sovrastimata in quelle ore).')
         os_mean = IRR_opensky[IRR_opensky > 0].mean() if n_os_ok > 0 else 0
         ghi_mean = ghi_arr[ghi_arr > 20].mean()
         print(f'  IRR open-sky medio: {os_mean:.1f} W/m²  '

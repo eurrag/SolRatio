@@ -400,7 +400,10 @@ def compute_fc_ns(dns_monthly, L_tracker, zs):
         dli_sau = zs[m].get('SAU', {}).get('p50', 0)
         par_rel = dli_sau / dli_ref if (dli_ref > 0 and dli_sau > 0) else 1.0
 
-        bonus = (1.0 - par_rel) * 0.5 * frac_trans
+        # v4.3.0: par_rel > 1 (SAU sopra il riferimento, possibile per
+        # rumore numerico) renderebbe il bonus NEGATIVO — una penalita'
+        # ai bordi N-S fisicamente senza senso. Clamp a >= 0.
+        bonus = max(0.0, (1.0 - par_rel)) * 0.5 * frac_trans
         result[m] = 1.0 + bonus
 
     return result

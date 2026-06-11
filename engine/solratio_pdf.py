@@ -1,11 +1,11 @@
 """
 solratio_pdf.py  |  SolRatio v4.3.0
 ===================================================
-Generazione report PDF di sintesi (5 pagine).
+Generazione report PDF di sintesi (~5 pagine).
 
 Pagina 1: Introduzione + Parametri + DLI + PAR + Riduzione PAR per zona
 Pagina 2: Grafici Profilo_PAR_Spaziale (PAR relativa mensile + DLI mensile)
-Pagina 3: K_agv SAU + ottimizzazione pitch + K_agv impianto (effetto bordo)
+Pagina 3: K_agv SAU + K_agv impianto (effetto bordo)
 Pagina 4-5: Descrizione modello + validazione + glossario + assunzioni +
             software + riferimenti (impaginazione libera; nessuna interruzione
             forzata prima di "Assunzioni e limitazioni").
@@ -226,19 +226,15 @@ def _generate_par_charts(zs):
 def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
                         kagv_imp=None, stats=None, x_pts=None):
     """
-    Genera un report PDF di sintesi (3 pagine).
-
-    Contenuto:
-      Pagina 1: Introduzione + Parametri impianto + DLI + PAR + Riduzione PAR
-      Pagina 2: K_agv + effetto bordo + pitch ottimale + inizio descrizione modello
-      Pagina 3: Descrizione modello (cont.) + validazione + glossario + assunzioni + riferimenti
+    Genera un report PDF di sintesi (vedi docstring di modulo per il layout).
 
     Parametri:
       pdf_path    : percorso di output del file PDF
       p           : dict parametri impianto
       zs          : dict zone_stats (da compute_monthly_stats + zone_stats)
       yield_data  : dict resa colturale (da compute_yield_curves)
-      opt_results : dict ottimizzazione pitch (opzionale)
+      opt_results : non usato (l'ottimizzazione pitch e' stata rimossa in
+                    v4.2.1); parametro mantenuto per stabilita' di firma
       stats       : dict monthly_stats per profilo spaziale (opzionale)
       x_pts       : array punti x lungo il pitch (opzionale)
     """
@@ -428,10 +424,15 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
         for m in CROP_MONTHS:
             dli_z = zs[m][zona]['p50']
             dli_ref = zs[m]['dli_ref_p50']
-            red = (1 - dli_z / dli_ref) * 100 if dli_ref > 0 else 0
-            reds.append(red)
-            row.append(f'{red:.0f}%')
-        row.append(f'{np.mean(reds):.0f}%')
+            # v4.3.0: con riferimento nullo la riduzione non e' definita:
+            # 'n/d' anziche' uno 0% fittizio.
+            if dli_ref and dli_ref > 0:
+                red = (1 - dli_z / dli_ref) * 100
+                reds.append(red)
+                row.append(f'{red:.0f}%')
+            else:
+                row.append('n/d')
+        row.append(f'{np.mean(reds):.0f}%' if reds else 'n/d')
         rows_red.append(row)
 
     cw = [page_w*0.18] + [page_w*(0.82/8)]*8
@@ -477,7 +478,7 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
     story.append(PageBreak())
 
     # ══════════════════════════════════════════════════════════════════════
-    # PAGINA 3: K_agv per coltura (SAU) + ottimizzazione pitch + effetto bordo
+    # PAGINA 3: K_agv per coltura (SAU) + effetto bordo
     # ══════════════════════════════════════════════════════════════════════
     if yield_data:
         story.append(Paragraph('K_agv SAU -- media stagione vegetativa (Mar-Set)', S['section']))
@@ -608,8 +609,10 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
         ('Posizione solare e tracker',
          'Posizione solare calcolata con l\'algoritmo di Reda &amp; Andreas (2004), '
          'accuratezza +/-0.0003 deg, implementato in pvlib-python. L\'angolo di '
-         'rotazione del tracker (theta) segue l\'algoritmo di backtracking di '
-         'Lorenzo (2011). Da theta si determinano inclinazione e azimut della scena 3D.'),
+         'rotazione del tracker (theta) segue la modalita configurata: '
+         'inseguimento astronomico, backtracking (Lorenzo 2011) o tilt fisso. '
+         'Da theta si determinano inclinazione (firmata, theta&gt;0 = faccia a '
+         'ovest, convenzione pvlib) e azimut della scena 3D.'),
 
         ('Scena 3D Radiance',
          'La geometria comprende: moduli fotovoltaici (rettangoli opachi o semitrasparenti), '
@@ -637,9 +640,10 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
 
         ('PAR e DLI',
          'L\'irradianza al suolo e convertita in PAR (Radiazione Fotosinteticamente Attiva, '
-         '400-700 nm) con i fattori PAR_frac = 0.45 e 4.57 umol/J (McCree 1972). '
-         'Il DLI (Daily Light Integral, mol PAR/m2/giorno) e l\'integrale giornaliero, '
-         'parametro chiave per la valutazione agronomica.'),
+         '400-700 nm) con frazione PAR oraria variabile con l\'indice di sereno kt '
+         '(Jacovides et al. 2004, intervallo 0.42-0.48) e il fattore 4.57 umol/J '
+         '(McCree 1972). Il DLI (Daily Light Integral, mol PAR/m2/giorno) e l\'integrale '
+         'giornaliero, parametro chiave per la valutazione agronomica.'),
 
         ('Zone spaziali',
          'Il pitch e suddiviso in: Sotto-tracker (coperto dalla proiezione verticale), '
@@ -696,7 +700,7 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
         ['GCR', '---', 'Ground Coverage Ratio = W / pitch'],
         ['theta', 'deg', 'Angolo di rotazione del tracker (da pvlib)'],
         ['RSR', '0-1', 'Relative Shade Ratio = 1 - PAR_rel'],
-        ['K_agv', '%', 'Coefficiente resa agrivoltaica = Y_rel (espresso in %)'],
+        ['K_agv', '---', 'Coefficiente resa agrivoltaica = Y_rel/100 (frazione; nelle tabelle espresso in %)'],
         ['PAR_rel', '0-1', 'PAR relativa = DLI_zona / DLI_riferimento'],
         ['SAU', 'm', 'Superficie Agricola Utile = pitch - 2 x SANU'],
         ['SANU', 'm', 'Bordo non coltivato per lato del pitch'],
@@ -722,15 +726,16 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
     # Assunzioni e limitazioni
     story.append(Paragraph('Assunzioni e limitazioni', S['section']))
     limitations = [
-        'PAR_FRAC = 0.45: frazione PAR costante (range reale 0.42-0.48). '
-        'Errore medio annuo &lt; 3% (McCree 1972, Papaioannou et al. 1993).',
+        'Frazione PAR: variabile con il clearness index kt (Jacovides et al. 2004, '
+        'PAR_FRAC = 0.500 - 0.082 x kt, limitata a 0.42-0.48). Non considera variazioni '
+        'spettrali sotto i pannelli.',
 
         'W_TO_UMOL = 4.57 umol/J: fattore di conversione per spettro solare medio '
         '(McCree 1972, Thimijan &amp; Heins 1983). Non considera variazioni spettrali sotto pannelli.',
 
-        'Modulo opaco: la geometria Radiance tratta i pannelli come rettangoli opachi. '
-        'La trasmittanza tau, se specificata, viene applicata come correzione post-simulazione '
-        'sulla componente diretta intercettata dal modulo.',
+        'Materiale modulo: rettangoli opachi per default; con trasmittanza tau &gt; 0 il '
+        'pannello e modellato in scena come materiale Radiance trans (speculare) ed '
+        'eventualmente BRTDfunc per la componente diffusa tau_diff.',
 
         'TMY composito: la simulazione opera su un singolo anno tipo assemblato dai mesi '
         'mediani del dataset PVGIS. La variabilita interannuale non e inclusa nei risultati '

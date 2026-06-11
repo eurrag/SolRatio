@@ -71,6 +71,56 @@ frame mattina/pomeriggio).
   che il campo interno è più ombreggiato), Sample_EW 63.2%.
 - Multi-anno e batteria errori: invariati e verdi.
 
+### Revisione completa pre-rilascio (5 passate per sottosistema + verifica puntuale)
+
+Prima della pubblicazione della v4.3.0 l'intero codice (~9.500 righe) è
+stato ri-revisionato; tutti i finding sono stati corretti nella release
+stessa. I principali (nessuno sposta i riferimenti del gate, ri-misurati
+invariati a valle dei fix):
+
+- **Percorso analitico, ombra ovest dei sub-campioni**: il blocco
+  anti-aliasing (strategia A) proiettava ancora gli spigoli del pannello
+  contro-ruotato (pairing bordi pre-M5 rimasto solo lì: larghezza
+  dell'ombra mattutina ridotta di |cos(2·PSZA)|). Il percorso analitico
+  non è usato dalla pipeline Radiance di produzione; ora il self-test
+  contiene un check A≈B che fallisce con quel pairing (verificato).
+- **Normale del terreno inclinato**: segno Y invertito — nullo per assi
+  N-S (tutti i casi di collaudo), ring speculare a sensori e file per
+  axis_azimuth ruotati (es. E-W) con pendenza trasversale.
+- **SAU esterna senza lunghezza file**: B32 compilata con B31 vuota
+  mescolava aree per-metro e m² assoluti nel K_agv d'impianto (collassava
+  verso il pieno campo): ora errore esplicito alla lettura parametri.
+- **TMY e anni parziali (item B2)**: i (anno, mese) con copertura oraria
+  incompleta sono esclusi da mediana e selezione (prima pesavano 0 e
+  potevano eleggere l'anno sbagliato in silenzio); il multi-anno esclude
+  gli anni incompleti dai quantili e rifiuta gli EPW parziali.
+- **Tilt fisso senza θ_fix (B20)**: ora errore esplicito (prima pannelli
+  orizzontali silenziosi); modalità tracker etichettata correttamente in
+  console anche per B19=0/2.
+- **Robustezza**: riscrittura atomica del workbook nel patch dei grafici
+  (un crash non corrompe più `risultati_*.xlsx`); cella B43 (CSV PVGIS
+  esplicito) onorata nel flusso EPW; timeout su oconv dell'open-sky e
+  avviso esplicito sulle ore di riferimento fallite; rimosso il clamp
+  legacy sul dz delle repliche in pendenza (file sepolte/sospese per
+  pendenze ripide); clamp simmetrico del denominatore d'ombra est;
+  validazione B48-B50; CSV vecchio formato → errore chiaro.
+- **Coerenza di presentazione (item B13)**: K_agv in formato percentuale
+  anche in Riepilogo ed Effetto_Bordo (prima frazione 0.575 e percento
+  57.5 convivevano nello stesso workbook); banner metodologico del foglio
+  Profilo_PAR_Spaziale aggiornato al ray-tracing (citava la formula
+  view-factor del motore v3); testi PDF allineati al modello reale
+  (PAR_FRAC variabile Jacovides, materiale trans in scena, modalità
+  tracker); decomposizione aree del foglio Effetto_Bordo a n_file−1
+  strisce come il calcolo (M6); avviso E-W calcolato sulla retta N-S
+  (mod 180); nota esplicita sul guadagno bifacciale costante per
+  costruzione (modello proxy dichiarato).
+- **Item B12 chiuso**: la handedness della pendenza trasversale è stata
+  ricontrollata su scena, sensori, repliche e percorso analitico — tutte
+  coerenti (l'unica eccezione era la normale del ring, sopra). Il
+  self-test ora la inchioda (nuovo check handedness slope), insieme alla
+  direzione assoluta dell'ombra con θ≠0 (esclude la convenzione
+  contro-ruotata) e all'equivalenza fra strategia oraria e sub-campioni.
+
 ### Record Zenodo delle versioni precedenti
 
 I depositi v4.2.0 (10.5281/zenodo.20277335) e v4.2.1

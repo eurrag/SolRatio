@@ -133,7 +133,12 @@ def read_parameters(wb):
         'H':                H_mozzo,
         'beta_max':         beta_max,
         'backtracking':     int(get('B19', float, 1)),
-        'theta_fix':        get('B20', float, 0.0),      # theta_fix [deg] - usato solo se B19=2 (tilt fisso)
+        # theta_fix [deg] - usato solo se B19=2 (tilt fisso). v4.3.0:
+        # default None (non 0.0) cosi' il check di obbligatorieta' in
+        # modalita' 2 e' RAGGIUNGIBILE: prima B19=2 con B20 vuota dava
+        # pannelli orizzontali silenziosi. Normalizzato a 0.0 dopo la
+        # validazione (i display non devono vedere None).
+        'theta_fix':        get('B20', float, None),
         # B21/B22 (pali) e B45 (ottimizza pitch): non modellati in questa
         # edizione; righe svuotate nel template (non eliminate: la lettura
         # e' per indirizzo di cella e le righe sotto slitterebbero).
@@ -200,6 +205,18 @@ def read_parameters(wb):
     if p['n_sub'] < 1 or p['n_sub'] > 60:
         print(f"  ATTENZIONE: n_sub = {p['n_sub']} (cella B47) fuori range 1-60. Uso default 4.")
         p['n_sub'] = 4
+
+    # v4.3.0: validazione parametri rtrace B48-B50 (i range erano dichiarati
+    # nei commenti ma mai applicati: valori assurdi passavano a rtrace e
+    # fallivano in modo criptico a run inoltrato, o degradavano i risultati
+    # in silenzio). Fuori range -> warning + default, come per n_sub.
+    for _key, _cell, _lo, _hi, _dft in (('br_ab', 'B48', 0, 5, 2),
+                                        ('br_ad', 'B49', 128, 4096, 2048),
+                                        ('br_as', 'B50', 32, 512, 256)):
+        if p[_key] < _lo or p[_key] > _hi:
+            print(f"  ATTENZIONE: {_key} = {p[_key]} (cella {_cell}) fuori "
+                  f"range {_lo}-{_hi}. Uso default {_dft}.")
+            p[_key] = _dft
 
     # Calcolo componenti pendenza (v3.3.1: usa axis_azimuth, non hardcoded 180)
     (p['slope_angle'], p['slope_cross_deg'],
@@ -274,13 +291,17 @@ def read_parameters(wb):
     if p['backtracking'] == 2:
         if p['theta_fix'] is None:
             raise ValueError(
-                "Modalità tilt fisso (B19=2) richiede θ_fix nella cella B20.")
+                "Modalità tilt fisso (B19=2) richiede θ_fix nella cella B20 "
+                "(convenzione pvlib: positivo = faccia a ovest).")
         if abs(p['theta_fix']) > p['beta_max'] + 1e-6:
             raise ValueError(
                 f"θ_fix = {p['theta_fix']:.1f}° eccede β_max = {p['beta_max']:.1f}° "
                 f"(cella B20 vs B18).")
         print(f"  MODALITA: TILT FISSO theta={p['theta_fix']:+.1f} deg "
               f"(backtracking disattivato).")
+    if p['theta_fix'] is None:
+        # modalita' 0/1: B20 inutilizzata — normalizza per i display
+        p['theta_fix'] = 0.0
 
     # Derivazione parametri effetto bordo da larghezza blocco e L_totale (v3.3.3)
     largh = p.get('larghezza_blocco', 0.0)
@@ -305,6 +326,17 @@ def read_parameters(wb):
         raise ValueError(f"Lunghezza totale = {L_tot}m: deve essere >= 0 (cella B31).")
     if p['sau_esterna'] < 0:
         raise ValueError(f"SAU_esterna = {p['sau_esterna']}m: deve essere >= 0 (cella B32).")
+    # v4.3.0: con SAU esterna (m² assoluti) ma senza L_tracker il calcolo
+    # d'impianto mescolerebbe aree per-metro (L_eff=1) e aree assolute:
+    # le aree esterne dominerebbero la media pesata e il K_agv impianto
+    # collasserebbe verso il pieno campo, in silenzio.
+    if p['sau_esterna'] > 0 and p['L_tracker'] <= 0:
+        raise ValueError(
+            f"SAU_esterna = {p['sau_esterna']:.0f} m² (cella B32) richiede "
+            f"la lunghezza totale delle file (cella B31) e la larghezza "
+            f"blocco (cella B30): senza, le aree esterne (assolute) non "
+            f"sono confrontabili con quelle per fila. Compila B30/B31 "
+            f"oppure azzera B32.")
     if p['n_file'] > 0 and p['n_file'] < 4:
         print(f"  NOTA: N_file={p['n_file']} (derivato da larghezza {largh:.0f}m).")
         print(f"  Con meno di 4 file, tutte le file sono di bordo.")
@@ -358,6 +390,9 @@ def write_riepilogo(wb, p, zs, yield_data, proj_dir, dli_daily_ref,
     """
     Scrive foglio Riepilogo con dashboard sintetica dei risultati principali.
     Pensato per essere leggibile da un committente senza aprire gli altri fogli.
+
+    Nota: `dli_daily_ref` non e' usato nel corpo (i DLI mostrati arrivano
+    gia' aggregati in `zs`); il parametro resta per stabilita' di firma.
     """
     if 'Riepilogo' not in wb.sheetnames:
         wb.create_sheet('Riepilogo', 0)
@@ -517,8 +552,10 @@ def write_riepilogo(wb, p, zs, yield_data, proj_dir, dli_daily_ref,
             cult_80  = np.nanmean([data['cultivability'].get(m, {}).get('>80%', np.nan)
                                    for m in range(3, 10)])
 
-            num_cell(ws.cell(row, 2), kagv_sau, '0.00', bold=True)
-            num_cell(ws.cell(row, 3), kagv_cen, '0.00')
+            # B13 (v4.3.0): formato % — la stessa grandezza era scritta come
+            # frazione qui (0.575) e come percento in Resa_Colturale/PDF.
+            num_cell(ws.cell(row, 2), kagv_sau, '0.0%', bold=True)
+            num_cell(ws.cell(row, 3), kagv_cen, '0.0%')
             if cult_80 is not None and not np.isnan(cult_80):
                 ws.cell(row, 4).value = f'{cult_80:.0f}%'
                 ws.cell(row, 4).font = val_font
@@ -554,12 +591,13 @@ def write_riepilogo(wb, p, zs, yield_data, proj_dir, dli_daily_ref,
 
             ws.cell(row, 1).value = data.get('label_it', crop_key)
             ws.cell(row, 1).font = val_font
-            num_cell(ws.cell(row, 2), k_inf_avg, '0.000')
-            num_cell(ws.cell(row, 3), k_imp_avg, '0.000', bold=True)
+            # B13 (v4.3.0): K in formato % (FC resta adimensionale)
+            num_cell(ws.cell(row, 2), k_inf_avg, '0.0%')
+            num_cell(ws.cell(row, 3), k_imp_avg, '0.0%', bold=True)
             ws.cell(row, 3).fill = PatternFill('solid', fgColor='FFE2EFDA')
             num_cell(ws.cell(row, 4), fc_avg, '0.000')
             if dk is not None and not np.isnan(dk):
-                ws.cell(row, 5).value = f'{dk:+.3f}'
+                num_cell(ws.cell(row, 5), dk, '+0.0%;-0.0%')
                 ws.cell(row, 5).font = Font(name='Arial', size=10,
                                              color='FF70AD47' if dk >= 0 else 'FFFF0000')
                 ws.cell(row, 5).alignment = Alignment(horizontal='center')
@@ -582,7 +620,8 @@ def write_profilo_par_spaziale(wb, zs, p):
     """
     Popola foglio Profilo_PAR_Spaziale con PAR relativa e DLI per zona.
     TABELLA 1 (PAR rel): righe 5-9, colonne C-N (Gen-Dic)
-    TABELLA 2 (DLI):     righe 12-17, colonne C-N
+    TABELLA 2 (DLI):     righe 13-18, colonne C-N (titolo a riga 11,
+                         intestazioni a riga 12)
     Include zona SAU (v2.3).
     """
     ws = wb['Profilo_PAR_Spaziale']
@@ -753,16 +792,19 @@ def write_par_dli_profilo(wb, stats, x_pts, p):
     DLI_START = PAR_END + 5
     DLI_END   = DLI_START + N - 1
 
-    n_panels = 2 * (p['n_ext'] + 1)
+    # file della scena BR reale (stessa logica di br_engine.run_annual)
+    _br_n_rows = int(p.get('br_n_rows', 0) or 0)
+    n_rows_scene = _br_n_rows if _br_n_rows > 0 else 2 * p['n_ext'] + 1
+    n_rows_scene = max(3, n_rows_scene)
     ws['A1'].value = (
         f'PROFILO SPAZIALE PAR e DLI LUNGO IL PITCH -- {N} punti (ogni '
-        f'{100//(N-1)}% pitch), anni {p["yr_start"]}-{p["yr_end"]} -- valori P50'
+        f'{100 / (N - 1):.3g}% pitch), anni {p["yr_start"]}-{p["yr_end"]} -- valori P50'
     )
     ws['A2'].value = (
-        f'PAR = (DNI·cos θz + DHI_circ)·f_dir + (DHI_iso + DHI_horiz)·VF + '
-        f'GHI·albedo·(1−VF)/2 | Perez 1990 | '
-        f'VF = view factor {n_panels} pannelli ({p["n_ext"]} ext/lato) | '
-        f'valori P50 interannuali | '
+        f'Irradianza al suolo da ray-tracing Radiance (gendaylit + rtrace, '
+        f'cielo Perez all-weather), scena {n_rows_scene} file; '
+        f'riferimento cielo aperto dalla stessa '
+        f'simulazione senza pannelli | valori P50 interannuali | '
         f'Calcolato il {datetime.now().strftime("%d/%m/%Y %H:%M")}'
     )
 
@@ -1181,20 +1223,25 @@ def write_effetto_bordo(wb, edge_data, dns_monthly, fc_ns, kagv_imp, zs_inf, p):
     pitch = p['pitch']
     SAU_pitch = p['SAU']  # SAU per pitch (= pitch - 2*sanu)
 
-    n_interne = max(0, n_file - 2 * n_ext)
-    n_bordo_per_lato = min(n_ext, (n_file + 1) // 2)  # gestisce n_file < 2*n_ext
-    n_bordo_tot = min(n_file, 2 * n_ext)
     strip_width = edge_data.get('strip_width', 0.0)
     strip_width_p95 = edge_data.get('strip_width_p95', strip_width)
     area_fascia_m2 = edge_data.get('area_fascia', 0.0)
     area_pieno_m2 = edge_data.get('area_pieno_campo', 0.0)
 
-    # Aree [m2] - larghezza trasversale x lunghezza longitudinale
+    # Aree [m2] - larghezza trasversale x lunghezza longitudinale.
+    # v4.3.0: conteggio a STRISCE di pitch (n_file-1) come nel calcolo
+    # di compute_kagv_impianto (fix M6): la decomposizione mostrata era
+    # rimasta a n_file e sovrastimava il blocco di 1 pitch.
+    _n_str = max(0, n_file - 1)
+    _n_bordo_sx = min(n_ext, (_n_str + 1) // 2)
+    _n_bordo_dx = min(n_ext, _n_str // 2)
+    n_bordo_tot = _n_bordo_sx + _n_bordo_dx
+    n_interne = max(0, _n_str - n_bordo_tot)
     L_eff = L_tracker if L_tracker > 0 else 1.0
     area_interne = n_interne * SAU_pitch * L_eff
     area_bordo = n_bordo_tot * SAU_pitch * L_eff
     area_fascia_ext = area_fascia_m2  # da edge_data (0 se sau_esterna=0)
-    area_blocco = n_file * SAU_pitch * L_eff + area_fascia_ext
+    area_blocco = _n_str * SAU_pitch * L_eff + area_fascia_ext
     area_pieno = area_pieno_m2
     area_totale = area_blocco + area_pieno
 
@@ -1245,7 +1292,7 @@ def write_effetto_bordo(wb, edge_data, dns_monthly, fc_ns, kagv_imp, zs_inf, p):
     ws.cell(row, 1).fill = sub_fill
     row += 1
 
-    for c_i, h in enumerate(['Zona', 'N file', 'Larghezza E-O', '% area tot.']):
+    for c_i, h in enumerate(['Zona', 'N strisce', 'Larghezza E-O', '% area tot.']):
         cell = ws.cell(row, c_i + 1)
         cell.value = h
         cell.font = Font(name='Arial', bold=True, size=10, color='FFFFFFFF')
@@ -1254,9 +1301,9 @@ def write_effetto_bordo(wb, edge_data, dns_monthly, fc_ns, kagv_imp, zs_inf, p):
     row += 1
 
     area_table = [
-        ('File interne (campo infinito)',      n_interne,  f'{area_interne:.0f} m²',
+        ('Strisce interne (campo infinito)',      n_interne,  f'{area_interne:.0f} m²',
          100 * area_interne / area_totale if area_totale > 0 else 0),
-        ('File bordo E-O (profilo modificato)', n_bordo_tot, f'{area_bordo:.0f} m²',
+        ('Strisce di bordo E-O (profilo modificato)', n_bordo_tot, f'{area_bordo:.0f} m²',
          100 * area_bordo / area_totale if area_totale > 0 else 0),
         ('Fascia esterna ombreggiata (E-O)',      '—',        f'{area_fascia_m2:.0f} m²',
          100 * area_fascia_ext / area_totale if area_totale > 0 else 0),
@@ -1428,12 +1475,13 @@ def write_effetto_bordo(wb, edge_data, dns_monthly, fc_ns, kagv_imp, zs_inf, p):
 
         ws.cell(row, 1).value = data.get('label_it', crop_key)
         ws.cell(row, 1).font = val_font
-        num_cell(ws.cell(row, 2), k_inf_mean, '0.000')
-        num_cell(ws.cell(row, 3), k_imp_mean, '0.000', bold=True)
+        # B13 (v4.3.0): K in formato % (FC adimensionale; ΔK in punti %)
+        num_cell(ws.cell(row, 2), k_inf_mean, '0.0%')
+        num_cell(ws.cell(row, 3), k_imp_mean, '0.0%', bold=True)
         ws.cell(row, 3).fill = green_fill
         num_cell(ws.cell(row, 4), fc_mean, '0.000')
         if delta is not None and not np.isnan(delta):
-            ws.cell(row, 5).value = f'+{delta:.3f}' if delta >= 0 else f'{delta:.3f}'
+            num_cell(ws.cell(row, 5), delta, '+0.0%;-0.0%')
             ws.cell(row, 5).font = Font(name='Arial', size=10,
                                          color='FF70AD47' if delta >= 0 else 'FFFF0000')
             ws.cell(row, 5).alignment = Alignment(horizontal='center')
@@ -1466,13 +1514,14 @@ def write_effetto_bordo(wb, edge_data, dns_monthly, fc_ns, kagv_imp, zs_inf, p):
         ws.cell(row, 1).value = 'K_agv campo infinito'
         ws.cell(row, 1).font = val_font
         for i in range(12):
-            num_cell(ws.cell(row, i + 2), data['kagv_inf'].get(i + 1, np.nan), '0.000')
+            # B13 (v4.3.0): formato %
+            num_cell(ws.cell(row, i + 2), data['kagv_inf'].get(i + 1, np.nan), '0.0%')
         row += 1
 
         ws.cell(row, 1).value = 'K_agv impianto'
         ws.cell(row, 1).font = val_bold
         for i in range(12):
-            num_cell(ws.cell(row, i + 2), data['kagv_impianto'].get(i + 1, np.nan), '0.000')
+            num_cell(ws.cell(row, i + 2), data['kagv_impianto'].get(i + 1, np.nan), '0.0%')
             ws.cell(row, i + 2).fill = green_fill
         row += 1
 
@@ -1849,55 +1898,57 @@ def patch_chart_axes(xlsx_path, profilo_rows=None):
             if v_elem is not None and v_elem.text != correct_name:
                 v_elem.text = correct_name
 
+    # v4.3.0: scrittura ATOMICA — si legge l'originale e si scrive sul tmp,
+    # che sostituisce l'originale solo a patch completato (os.replace).
+    # Prima si apriva l'ORIGINALE con ZipFile('w') (troncato subito): un
+    # crash a meta' loop lasciava risultati_*.xlsx corrotto.
     patched = 0
     import tempfile as _tmpmod
-    tmp_fd, tmp = _tmpmod.mkstemp(suffix='.xlsx')
+    tmp_fd, tmp = _tmpmod.mkstemp(
+        suffix='.xlsx', dir=os.path.dirname(os.path.abspath(xlsx_path)))
     os.close(tmp_fd)
-    shutil.copy(xlsx_path, tmp)
-    with zipfile.ZipFile(tmp, 'r') as zin:
-        with zipfile.ZipFile(xlsx_path, 'w', zipfile.ZIP_DEFLATED) as zout:
-            for name in zin.namelist():
-                data = zin.read(name)
-                if name.startswith('xl/charts/chart') and name.endswith('.xml'):
-                    root = etree.fromstring(data)
-                    # Fix range dati e nomi serie
-                    _remap_profilo_refs(root)
-                    _fix_spaziale_series_names(root)
-                    kind, source = _classify_chart(root)
-                    if kind is not None:
-                        plot_area = root.find(f'.//{{{C}}}plotArea')
-                        if plot_area is not None:
-                            axes = plot_area.findall(f'{{{C}}}valAx')
-                            if len(axes) >= 2:
-                                # Asse X: titolo e scaling diversi per foglio
-                                if source == 'spaziale':
-                                    _set_axis_title(axes[0], TITLE_X_MESE)
-                                    _set_scaling(axes[0], 1, 12)
-                                else:
-                                    _set_axis_title(axes[0], TITLE_X)
-                                    _set_scaling(axes[0], 0, 1)
-                                # Asse Y
-                                y_title = TITLE_PAR if kind == 'par' else TITLE_DLI
-                                _set_axis_title(axes[1], y_title)
-                                if kind == 'par' and par_ymin is not None:
-                                    _set_scaling(axes[1], par_ymin, par_ymax)
-                                else:
-                                    _remove_scaling(axes[1])
-                                patched += 1
-                        data = etree.tostring(root, xml_declaration=True,
-                                              encoding='UTF-8', standalone=True)
-                zout.writestr(name, data)
     try:
-        os.remove(tmp)
-    except OSError:
-        pass  # OneDrive/mount: file già rimosso o bloccato
+        with zipfile.ZipFile(xlsx_path, 'r') as zin:
+            with zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED) as zout:
+                for name in zin.namelist():
+                    data = zin.read(name)
+                    if name.startswith('xl/charts/chart') and name.endswith('.xml'):
+                        root = etree.fromstring(data)
+                        # Fix range dati e nomi serie
+                        _remap_profilo_refs(root)
+                        _fix_spaziale_series_names(root)
+                        kind, source = _classify_chart(root)
+                        if kind is not None:
+                            plot_area = root.find(f'.//{{{C}}}plotArea')
+                            if plot_area is not None:
+                                axes = plot_area.findall(f'{{{C}}}valAx')
+                                if len(axes) >= 2:
+                                    # Asse X: titolo e scaling diversi per foglio
+                                    if source == 'spaziale':
+                                        _set_axis_title(axes[0], TITLE_X_MESE)
+                                        _set_scaling(axes[0], 1, 12)
+                                    else:
+                                        _set_axis_title(axes[0], TITLE_X)
+                                        _set_scaling(axes[0], 0, 1)
+                                    # Asse Y
+                                    y_title = TITLE_PAR if kind == 'par' else TITLE_DLI
+                                    _set_axis_title(axes[1], y_title)
+                                    if kind == 'par' and par_ymin is not None:
+                                        _set_scaling(axes[1], par_ymin, par_ymax)
+                                    else:
+                                        _remove_scaling(axes[1])
+                                    patched += 1
+                            data = etree.tostring(root, xml_declaration=True,
+                                                  encoding='UTF-8', standalone=True)
+                    zout.writestr(name, data)
+        os.replace(tmp, xlsx_path)
+    finally:
+        try:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        except OSError:
+            pass  # OneDrive/mount: file già rimosso o bloccato
     if patched > 0:
         par_info = (f'PAR Y=[{par_ymin:.2f}, {par_ymax:.2f}]'
                     if par_ymin is not None else 'PAR auto')
         print(f'   Assi aggiornati in {patched} grafici ({par_info}, DLI auto-scala).')
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCRITTURA OTTIMIZZAZIONE PITCH
-# ══════════════════════════════════════════════════════════════════════════════
-

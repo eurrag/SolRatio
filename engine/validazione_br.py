@@ -118,6 +118,19 @@ def main():
     print(f'  Pitch={p["pitch"]}m  W={p["W"]}m  H={p["H"]:.3f}m')
     print(f'  GCR={p["GCR"]:.3f}  beta_max={p["beta_max"]}°')
     print(f'  Albedo={p["albedo"]:.2f}  n_ext={p["n_ext"]}')
+    # v4.3.0: le pipeline di riferimento (B ufficiale per-ora e D canonica
+    # set1axis) NON modellano tau/tau_diff (modulo opaco) ne' le pendenze:
+    # su progetti non-base confronterebbero impianti fisicamente diversi.
+    _nonbase = []
+    if p.get('tau', 0) or p.get('tau_diff', 0):
+        _nonbase.append('tau/tau_diff > 0')
+    if p.get('slope_cross_deg', 0) or p.get('slope_along_deg', 0):
+        _nonbase.append('pendenza != 0')
+    if _nonbase:
+        print(f'  ⚠ AVVISO: {", ".join(_nonbase)} — le pipeline di '
+              f'riferimento (B e D) assumono modulo opaco e terreno piano: '
+              f'gli scarti includono questa differenza di modello, non solo '
+              f'la coerenza del motore.')
     print()
 
     # ── Generazione EPW ──────────────────────────────────────────────
@@ -165,13 +178,28 @@ def main():
         # B) BIFACIAL_RADIANCE UFFICIALE (AnalysisObj)
         # ══════════════════════════════════════════════════════════════
         print('\n--- B) bifacial_radiance ufficiale (AnalysisObj) ---')
-        profile_br = _run_br_official(p, epw_path, target_month, target_day,
-                                       n_points)
-        if profile_br is not None:
-            print(f'  IRR medio: {profile_br.mean():.1f} W/m²')
+        _br_out = _run_br_official(p, epw_path, target_month, target_day,
+                                   n_points)
+        if _br_out is not None:
+            profile_br, b_hours = _br_out
+            # v4.3.0: etichetta corretta — profile_br e' il CUMULATO
+            # giornaliero (prima era stampato come "IRR medio" e a video
+            # sembrava 10x il valore di A).
+            print(f'  Cumulato giornaliero medio: {profile_br.mean():.1f} Wh/m²')
         else:
             print('  ERRORE: simulazione BR ufficiale fallita')
             continue
+
+        # v4.3.0: confronto a PARITA' di ore — se B perde un'ora che A
+        # include (sky fallito, rtrace corto), prima l'intera irradianza
+        # di quell'ora finiva nelle differenze MBE/RMSE.
+        _sr_ts = sr_result['daylight_timestamps']
+        _keep = [i for i, t in enumerate(_sr_ts)
+                 if (t.month, t.day, t.hour) in b_hours]
+        if len(_keep) != len(_sr_ts):
+            print(f'  AVVISO: confronto ristretto alle {len(_keep)}/'
+                  f'{len(_sr_ts)} ore riuscite in entrambe le pipeline.')
+            profile_sr_sum = IRR_sr[_keep].sum(axis=0)
 
         # ══════════════════════════════════════════════════════════════
         # C) CONFRONTO
@@ -233,10 +261,11 @@ def main():
         # (set1axis → pvlib surface_tilt/surface_azimuth) e i sensori a
         # terra li posiziona groundAnalysis nel frame della scena: nessun
         # codice SolRatio nella geometria. Confronto sul K giornaliero
-        # (media spaziale suolo / GHI): i parametri rtrace del workflow
-        # nativo ('low': -ab 2) differiscono dal motore (-ab 1), quindi i
-        # profili puntuali non sono confrontabili 1:1, ma il K giornaliero
-        # sì entro ~1 pp (misurato −0.1/−0.3 pp sul Sample).
+        # (media spaziale suolo / GHI): il workflow nativo fissa i propri
+        # parametri rtrace (accuracy='low' = -ab 2), mentre il motore usa
+        # quelli configurati dal progetto (default -ab 2; il Sample imposta
+        # -ab 1 dalla cella B48): i profili puntuali non sono confrontabili
+        # 1:1, il K giornaliero sì entro ~1 pp (misurato −0.1/−0.4 pp).
         print(f'\n--- D) Riferimento canonico set1axis ({target_day}/{target_month}) ---')
         canon = _run_br_canonical(p, epw_path, target_month, target_day,
                                   n_points)
@@ -376,8 +405,9 @@ def _run_br_official(p, epw_path, target_month, target_day, n_points):
     Esegue simulazione con workflow ufficiale bifacial_radiance:
     RadianceObj → readWeatherFile → makeScene → gendaylit → AnalysisObj
 
-    Restituisce profilo irradianza cumulata giornaliera [Wh/m²] (n_points,)
-    o None se fallisce.
+    Restituisce (profilo irradianza cumulata giornaliera [Wh/m²]
+    (n_points,), set delle ore riuscite come (month, day, hour)) o None
+    se fallisce — il chiamante restringe il confronto alle ore comuni.
     """
     import bifacial_radiance as br
     from pvlib import tracking as pvlib_tracking
@@ -497,6 +527,7 @@ def _run_br_official(p, epw_path, target_month, target_day, n_points):
 
         cumulative_irr = np.zeros(n_points)
         n_ok = 0
+        ok_hours = set()  # (month, day, hour) riuscite — per il confronto
 
         import subprocess as _subprocess
 
@@ -565,7 +596,7 @@ def _run_br_official(p, epw_path, target_month, target_day, n_points):
                                        input=linepts_bytes,
                                        capture_output=True, timeout=60)
                 if res.returncode == 0:
-                    lines = res.stdout.decode().strip().split('\n')
+                    lines = res.stdout.decode(errors='replace').strip().split('\n')
                     vals = []
                     for line in lines:
                         parts = line.split('\t')
@@ -577,11 +608,13 @@ def _run_br_official(p, epw_path, target_month, target_day, n_points):
                     if len(vals) == n_points:
                         cumulative_irr += np.array(vals)
                         n_ok += 1
+                        _dt = metdata.datetime[idx]
+                        ok_hours.add((_dt.month, _dt.day, _dt.hour))
             except Exception as e:
                 print(f'  Errore rtrace idx={idx}: {e}')
 
         print(f'  Ore simulate: {n_ok}/{len(day_indices)}')
-        return cumulative_irr
+        return cumulative_irr, ok_hours
 
     finally:
         # RadianceObj fa chdir in temp_work: ripristina la CWD PRIMA di

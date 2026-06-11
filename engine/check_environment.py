@@ -56,8 +56,11 @@ def check_package(name: str) -> tuple[bool, str]:
             # reportlab usa l'attributo Version (con maiuscola)
             version = getattr(mod, 'Version', 'n/a')
         return True, version
-    except ImportError as e:
-        return False, str(e)
+    except Exception as e:
+        # v4.3.0: non solo ImportError — un pacchetto con binari rotti puo'
+        # sollevare altro (OSError, RuntimeError) e va segnalato come FAIL,
+        # non far crashare lo script di diagnostica.
+        return False, f'{type(e).__name__}: {e}'
 
 
 def check_radiance() -> tuple[bool, list[str]]:
@@ -71,7 +74,7 @@ def check_radiance() -> tuple[bool, list[str]]:
 
 def main() -> int:
     print('=' * 60)
-    print('  SolRatio v4.2.x - Verifica ambiente Python')
+    print(f'  SolRatio v{_read_engine_version()} - Verifica ambiente Python')
     print('=' * 60)
     print(f'Python: {check_python()}  ({sys.executable})')
     print()
@@ -124,10 +127,23 @@ def main() -> int:
         print('  RISULTATO: WARNING — Radiance mancante')
         return 2
     else:
-        print(f'  RISULTATO: FAIL — {n_errori} pacchetto/i mancante/i')
+        # v4.3.0: nel caso combinato (pacchetti E Radiance mancanti) il
+        # messaggio cita entrambi (exit 1: i pacchetti sono il problema
+        # piu' a monte).
+        print(f'  RISULTATO: FAIL — {n_errori} pacchetto/i mancante/i'
+              + ('' if rad_ok else ' + Radiance non trovato nel PATH'))
         print()
         print('  Esegui:  pip install -r requirements.txt')
         return 1
+
+
+def _read_engine_version() -> str:
+    """Versione da engine/VERSION (fallback se il file manca)."""
+    try:
+        from pathlib import Path
+        return (Path(__file__).parent / 'VERSION').read_text().strip()
+    except Exception:
+        return '?'
 
 
 if __name__ == '__main__':
