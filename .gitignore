@@ -105,3 +105,4 @@ test_write_perm.txt
 # directory esclusa ricorsivamente.
 progetti/*
 !progetti/Sample/
+!progetti/Sample_EW/
