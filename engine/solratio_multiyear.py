@@ -1,5 +1,5 @@
 """
-solratio_multiyear.py  |  SolRatio v4.2.0
+solratio_multiyear.py  |  SolRatio v4.2.1
 ========================================================================
 Esegue la pipeline SolRatio (motore BR + ottica + agronomia) su più
 anni meteorologici PVGIS e aggrega le statistiche di K_agv come

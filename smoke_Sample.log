@@ -38,8 +38,8 @@
 3. Simulazione bifacial_radiance (anno intero)...
   === SolRatio v4.2.1 — Motore bifacial_radiance ===
   Cache scene: 0 hit-set in /home/utente/SolRatio_public/progetti/Sample/.cache/scenes (0.0MB)
-  Work dir: /tmp/sr_v4_hl83j8ph
-path = /tmp/sr_v4_hl83j8ph
+  Work dir: /tmp/sr_v4_rghzkqdz
+path = /tmp/sr_v4_rghzkqdz
 Making path: images
 Making path: objects
 Making path: results
@@ -78,7 +78,7 @@ Module sr_module updated in module.json
     [1600/3919 41%] 1600 ok, 0 err | 0.1min, ETA 0.2min
     [1800/3919 46%] 1800 ok, 0 err | 0.1min, ETA 0.1min
     [2000/3919 51%] 2000 ok, 0 err | 0.1min, ETA 0.1min
-    [2200/3919 56%] 2200 ok, 0 err | 0.2min, ETA 0.1min
+    [2200/3919 56%] 2200 ok, 0 err | 0.1min, ETA 0.1min
     [2400/3919 61%] 2400 ok, 0 err | 0.2min, ETA 0.1min
     [2600/3919 66%] 2600 ok, 0 err | 0.2min, ETA 0.1min
     [2800/3919 71%] 2800 ok, 0 err | 0.2min, ETA 0.1min
@@ -86,7 +86,7 @@ Module sr_module updated in module.json
     [3200/3919 82%] 3200 ok, 0 err | 0.2min, ETA 0.0min
     [3400/3919 87%] 3400 ok, 0 err | 0.2min, ETA 0.0min
     [3600/3919 92%] 3600 ok, 0 err | 0.2min, ETA 0.0min
-    [3800/3919 97%] 3800 ok, 0 err | 0.3min, ETA 0.0min
+    [3800/3919 97%] 3800 ok, 0 err | 0.2min, ETA 0.0min
     [3919/3919 100%] 3919 ok, 0 err | 0.3min, ETA 0.0min
 
   Completato in 0.3 minuti
@@ -94,9 +94,9 @@ Module sr_module updated in module.json
   Profili estratti: ['outer']
 
   Simulazione cielo aperto (riferimento, no pannelli)...
-  Cielo aperto: 3919/3919 ore in 6s
+  Cielo aperto: 3919/3919 ore in 5s
   IRR open-sky medio: 376.0 W/m²  (GHI medio diurno: 366.4 W/m²)
-  Irradianza media al suolo: 1013640 Wh/m²
+  Irradianza media al suolo: 1013694 Wh/m²
   Trasmissione media: 68.0%
 
 4. Post-processing (DLI, percentili, resa colturale)...
@@ -111,7 +111,7 @@ Module sr_module updated in module.json
    Mese    DLI_rif P50  Sotto P50  Bordo P50  Centr P50    SAU P50  Media P50
    --------------------------------------------------------------------------
    Gen            10.2        6.1        6.4        7.5        7.1        6.9
-   Feb            16.2       10.8       10.2       11.5       11.1       11.0
+   Feb            16.2       10.9       10.2       11.5       11.1       11.0
    Mar            27.7       17.5       16.7       20.7       19.4       19.0
    Apr            38.1       23.5       24.3       28.1       26.8       26.1
    Mag            44.9       27.8       28.8       32.6       31.3       30.6
@@ -145,7 +145,7 @@ Module sr_module updated in module.json
    Tuberi/radici                  89.9%         92.9%         97%
    Cereali C3                     84.1%         87.6%         71%
    Leguminose granella            66.5%         72.1%         10%
-   Mais (C4)                      60.6%         66.1%          1%
+   Mais (C4)                      60.5%         66.0%          1%
 
 8. Calcolo effetto bordo (BR ray-tracing)...
    Profilo bordo k=0: DLI_SAU medio=29.4
@@ -166,7 +166,7 @@ Module sr_module updated in module.json
    Tuberi/radici                  89.9%       92.2% 1.025    +2.3%
    Cereali C3                     84.1%       87.2% 1.037    +3.1%
    Leguminose granella            66.5%       72.3% 1.087    +5.8%
-   Mais (C4)                      60.6%       67.1% 1.108    +6.5%
+   Mais (C4)                      60.5%       67.1% 1.108    +6.5%
 
   Foglio Riepilogo scritto.
    File salvato: /home/utente/SolRatio_public/progetti/Sample/risultati_Sample.xlsx
@@ -183,7 +183,7 @@ Riepilogo annuo (DLI medio giornaliero):
     Jul=2008, Aug=2018, Sep=2020, Oct=2008, Nov=2008, Dec=2012
   Ore simulate BR: 3919
   GHI annuo: 1490925 Wh/m²
-  Irradianza media sotto pannelli: 1013640 Wh/m²
+  Irradianza media sotto pannelli: 1013694 Wh/m²
 
 Completato.
    Sentinella creata: /home/utente/SolRatio_public/progetti/Sample/.br_done

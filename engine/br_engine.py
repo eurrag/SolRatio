@@ -1,5 +1,5 @@
 """
-br_engine.py  |  SolRatio v4.2.0
+br_engine.py  |  SolRatio v4.2.1
 =================================
 Motore di calcolo basato su bifacial_radiance (Radiance ray-tracing).
 

@@ -20,7 +20,7 @@ verificare l'installazione di SolRatio e per servire da template per i tuoi prog
 3. Attendi 5-10 minuti (il motore Radiance simula 8760 ore con ray-tracing 3D)
 4. Apri i file di output che vengono creati nella stessa cartella:
    - `risultati_Sample.xlsx` — fogli Excel con tutti i KPI per zona/mese/coltura
-   - `report_SolRatio_Sample.pdf` — report PDF di sintesi (5 pagine)
+   - `report_SolRatio_Sample.pdf` — report PDF di sintesi
 
 ### Da riga di comando
 

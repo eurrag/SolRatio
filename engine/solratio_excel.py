@@ -1,5 +1,5 @@
 """
-solratio_excel.py  |  SolRatio v4.2.0 (2026-05-01)
+solratio_excel.py  |  SolRatio v4.2.1 (2026-05-01)
 =====================================================
 Lettura parametri e scrittura fogli risultati Excel.
 
@@ -866,7 +866,7 @@ def write_par_dli_profilo(wb, stats, x_pts, p):
         for c in range(1, 16):
             ws.cell(r, c).value = None
 
-    print('  Foglio PAR_DLI_Profilo scritto (tab 1-4, grafici da template).')
+    print('  Foglio PAR_DLI_Profilo scritto (tab 1-4).')
 
     return (PAR_START, PAR_END, DLI_START, DLI_END,
             T3_DATA, T3_DATA + N - 1, T4_DATA, T4_END)

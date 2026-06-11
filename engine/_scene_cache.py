@@ -1,5 +1,5 @@
 """
-_scene_cache.py  |  SolRatio v4.2.0
+_scene_cache.py  |  SolRatio v4.2.1
 ========================================================================
 Cache persistente per scene Radiance pre-compilate.
 

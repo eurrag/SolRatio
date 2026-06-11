@@ -1,5 +1,5 @@
 """
-calcola_br.py  |  SolRatio v4.2.0 (2026-05-01)
+calcola_br.py  |  SolRatio v4.2.1 (2026-05-01)
 =================================================
 Entry point: orchestrazione lettura parametri -> bifacial_radiance -> output Excel + PDF.
 

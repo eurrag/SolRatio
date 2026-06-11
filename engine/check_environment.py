@@ -1,5 +1,5 @@
 """
-check_environment.py  |  SolRatio v4.2.0 (2026-05-01)
+check_environment.py  |  SolRatio v4.2.1 (2026-05-01)
 =======================================================
 Verifica che l'ambiente Python contenga tutte le dipendenze necessarie
 per eseguire SolRatio. Stampa a video le versioni di ciascuna libreria

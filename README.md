@@ -7,6 +7,13 @@
 
 SolRatio è uno strumento integrato che combina la simulazione della radiazione solare disponibile per le colture sottostanti ai pannelli fotovoltaici (tramite ray-tracing 3D fisicamente accurato Radiance + bifacial_radiance) con le curve dose-risposta di Laub et al. (2022) per la stima delle rese colturali in regime di ombreggiamento agrivoltaico. Fornisce profili spaziali e temporali di PAR e DLI, e il coefficiente agrivoltaico K_agv per nove categorie colturali, necessari alla verifica dei requisiti agronomici previsti dalle Linee Guida MASE (D.M. 436/2023) e alla valutazione della compatibilità tra produzione energetica e produzione agricola.
 
+> **Edizione di riferimento (open-core).** SolRatio v4.2.x è la *Community /
+> Reference Edition*: una base citabile e riproducibile, mantenuta con fix di
+> correttezza e pensata per la verifica scientifica del metodo. Lo sviluppo di
+> nuove funzionalità prosegue nel prodotto hosted **SolRatio Pro**. Le
+> rimozioni rispetto alla v4.2.0 sono elencate in modo esplicito nel
+> [CHANGELOG](documentazione/CHANGELOG.md).
+
 ---
 
 ## Caratteristiche
@@ -99,7 +106,7 @@ Per creare un nuovo progetto: duplica una delle cartelle, rinominala, modifica i
 ```
 SolRatio/
 ├── engine/                          # Codice sorgente
-│   ├── VERSION                      # Versione corrente: "4.2.0"
+│   ├── VERSION                      # Versione corrente: "4.2.1"
 │   ├── calcola_br.py                # Entry point principale
 │   ├── br_engine.py                 # Motore bifacial_radiance (con tau_diff, slope L2/L3, cache .oct)
 │   ├── _scene_cache.py              # Cache persistente delle scene Radiance octree
@@ -117,7 +124,8 @@ SolRatio/
 ├── documentazione/                  # Docs tecnica (architettura, formule, roadmap, technical note)
 ├── progetti/
 │   ├── Sample/                      # Progetto demo N-S (benchmark validazione)
-│   └── Sample_EW/                   # Progetto demo E-W (sweep axis_azimuth)
+│   └── Sample_EW/                   # Progetto demo E-W (confronto axis_azimuth)
+├── _smoke_check_kagv.py             # Verifica K_agv del gate (usato dagli smoke)
 ├── _smoke_regression.bat            # Smoke test di regressione (Windows)
 ├── _smoke_regression.sh             # Smoke test di regressione (Linux/macOS)
 ├── requirements.txt
@@ -137,7 +145,7 @@ Documentazione tecnica nella cartella `documentazione/`:
 - `FORMULE.md` — formule fisiche implementate
 - `PARAMETRI_RADIANCE.md` — parametri rtrace e loro effetto (incluse linee guida `n_rows`)
 - `CHANGELOG.md` — storico delle versioni
-- `ROADMAP.md` — sviluppi futuri (v4.3, v4.4, v4.5+)
+- `ROADMAP.md` — posizionamento open-core e manutenzione dell'edizione
 - `introduzione_solratio_relazione.md` — descrizione del modello in linguaggio non-tecnico
 - `SolRatio_technical_note.md` — technical note in inglese (con abstract in italiano), descrive modello, architettura, validazione e esempio applicativo
 
@@ -154,32 +162,38 @@ Il modello è validato confrontando i risultati con il workflow ufficiale di bif
 
 Lo scostamento residuo è rumore numerico intrinseco di Radiance (stocasticità ambient sampling). Script: `engine/validazione_br.py`.
 
+Riverificato sulla v4.2.1 (Radiance 6.0, 2026-06-11): R² ≥ 0.9985 e RMSE ≤ 0.2% su entrambe le giornate.
+
 Test di regressione nel workflow di rilascio: i progetti inclusi *Sample* (N-S) e *Sample_EW* (E-W) devono riprodurre un K_agv SAU per Cereali C3 di **84.1%** e **79.2%** rispettivamente (riferimenti misurati con v4.2.1), con tolleranza **±0.2 punti percentuali**: l'ambient sampling di Radiance è stocastico e il risultato non è bit-identico tra run. Lancio: `_smoke_regression.bat` (Windows) o `./_smoke_regression.sh` (Linux/macOS). Ogni release candidate deve passare questo gate.
 
 ---
 
-## Limitazioni note di v4.2.0
+## Limitazioni note
 
-- **Pali di sostegno**: non ancora modellati nella scena Radiance. Spostati alla v4.3 (3D rendering dei pali e calibrazione contro misure in campo). Codice dormiente conservato in `solratio_yield.py` e `solratio_core.py`.
-- **Bifacciale POA posteriore**: in v4.2.0 stimato con un view-factor semplificato (`0.5 · albedo · GHI`); simulazione Radiance dedicata con sensori posteriori prevista per v4.2.x.
-- **Resa PV bifacciale**: calcolo moltiplicativo, non propaga temperatura del modulo, perdite di sistema, sporcamento. Modello PVWatts-like + LCOE previsto per v4.4 (prima release "economica").
-- **Cache scene .oct**: per il flusso annuale standard (~3900 angoli unici di tracker) la cache è automaticamente disattivata e si applica il flusso legacy v4.1 bit-per-bit. Effettiva nei workflow di validazione single-day con tilt fisso. Mitigazioni (round tracker a 0.1°, cache lazy, location fuori da OneDrive) previste per v4.2.x.
-- **Trasmissione semitrasparente avanzata**: `prism2` e BSDF (`.xml`) non supportati; previsti per v4.5+.
-- **Validazione sperimentale**: la validazione attuale è code-to-code vs bifacial_radiance ufficiale, non code-to-measurement. Confronto con misure PAR/DLI in campo è obiettivo cross-cutting (vedi ROADMAP).
+- **Pali di sostegno**: non modellati nella scena Radiance in questa edizione.
+- **Bifacciale POA posteriore**: stimato con un view-factor semplificato (`0.5 · albedo · GHI`); nessuna simulazione Radiance dedicata dei sensori posteriori.
+- **Resa PV bifacciale**: calcolo moltiplicativo di prima approssimazione; non propaga temperatura del modulo, perdite di sistema, sporcamento.
+- **Cache scene .oct**: attiva solo quando gli angoli unici di tracker sono ≤ 200 (workflow di validazione single-day e tilt fisso); nel flusso annuale standard (~3900 angoli) è disattivata by design. Da v4.2.1 gli octree in cache sono *frozen* (self-contained): il riuso tra run è affidabile.
+- **Workbook risultati senza template di formattazione**: i fogli sono generati interamente da codice, con formattazione essenziale.
+- **Trasmissione semitrasparente avanzata**: `prism2` e BSDF (`.xml`) non supportati.
+- **Terreni in pendenza**: il modello (componenti lungo/trasversale all'asse, piano terreno realmente inclinato in scena) è implementato e collaudato funzionalmente; una validazione dedicata su pendenze significative non è inclusa in questa edizione.
+- **Validazione sperimentale**: la validazione attuale è code-to-code vs bifacial_radiance ufficiale, non code-to-measurement (vedi ROADMAP).
 - **Curve di resa Laub (2022)**: calibrate su regimi di ombreggiamento N-S. Warning runtime se `|axis_azimuth − 180°| > 30°` — applicazione a configurazioni E-W scientificamente delicata.
 - **Numero minimo di file in scena Radiance** (`n_rows`): per simulazioni accurate del pitch centrale di un impianto medio-grande, usare `n_ext ≥ 3` (`n_rows ≥ 7`); per benchmark e pubblicazioni scientifiche `n_ext ≥ 4` (`n_rows ≥ 9`). Con `n_rows < 7` la radiazione è sovrastimata di 1–5% al sole basso. Vedi `documentazione/PARAMETRI_RADIANCE.md`.
 
 ---
 
-## Roadmap
+## Posizionamento e sviluppi
 
-Sviluppi pianificati (dettaglio in `documentazione/ROADMAP.md`):
+SolRatio v4.2.x è mantenuta come **edizione di riferimento**: riceve fix di
+correttezza e riproducibilità, non nuove funzionalità (dettagli in
+`documentazione/ROADMAP.md`). Lo sviluppo — modellazione 3D dei pali, bilancio
+idrico/ET, resa energetica, geometrie di campo reali, interfaccia web —
+prosegue nel prodotto hosted **SolRatio Pro**.
 
-- **v4.2.x** — patch release: root-cause del bug Windows nested-popen della cache .oct, test su slope significativi, riduzione opzionale degli angoli tracker unici, cache lazy in-worker, simulazione Radiance per POA posteriore bifacciale.
-- **v4.3** — rendering 3D dei pali di sostegno nella scena Radiance + calibrazione contro misure in campo.
-- **v4.4** — release "economica": LCOE e trade-off costo H_min vs K_agv, ottimizzazione cost-optimal dell'altezza.
-- **v4.5+** — estensione dei materiali a trasmissione parziale con `prism2` e BSDF (`.xml`).
-- **Obiettivo cross-cutting** — validazione sperimentale: confronto con misure PAR/DLI da impianti agrivoltaici strumentati. Collaborazioni con gruppi sperimentali sono benvenute.
+**Obiettivo aperto — validazione sperimentale**: confronto con misure PAR/DLI
+da impianti agrivoltaici strumentati. Collaborazioni con gruppi sperimentali
+sono benvenute (aprire una issue sul repository).
 
 ---
 
@@ -187,15 +201,15 @@ Sviluppi pianificati (dettaglio in `documentazione/ROADMAP.md`):
 
 Se usi SolRatio in lavori pubblici (relazioni tecniche, articoli, presentazioni), puoi citarlo come:
 
-> Pesavento, S. (2026). *SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale* (v4.2.0). Zenodo. https://doi.org/10.5281/zenodo.20277335
+> Pesavento, S. (2026). *SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale* (v4.2.1). Zenodo. https://doi.org/10.5281/zenodo.19959581
 
 **DOI:**
 
-- **Concept DOI** (sempre-ultima-versione): [`10.5281/zenodo.19959581`](https://doi.org/10.5281/zenodo.19959581) — usalo per citare "SolRatio" in generale
-- **Versione v4.2.0** (immutabile, raccomandata): [`10.5281/zenodo.20277335`](https://doi.org/10.5281/zenodo.20277335) — usalo per citare la versione esatta che hai scaricato
+- **Concept DOI** (sempre-ultima-versione): [`10.5281/zenodo.19959581`](https://doi.org/10.5281/zenodo.19959581) — usalo per citare "SolRatio" in generale. Il **DOI specifico della v4.2.1** sarà assegnato al deposito della release e riportato qui e in `CITATION.cff`.
 
 DOI versioni precedenti:
 
+- v4.2.0: [`10.5281/zenodo.20277335`](https://doi.org/10.5281/zenodo.20277335)
 - v4.1.2: [`10.5281/zenodo.19982399`](https://doi.org/10.5281/zenodo.19982399)
 - v4.1.1: [`10.5281/zenodo.19960929`](https://doi.org/10.5281/zenodo.19960929)
 - v4.1.0: [`10.5281/zenodo.19959582`](https://doi.org/10.5281/zenodo.19959582) — contiene il bug STEP 5 risolto in v4.1.1, **non raccomandato per nuove citazioni**
