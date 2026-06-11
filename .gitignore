@@ -94,3 +94,6 @@ test_write_perm.txt
 progetti/*
 !progetti/Sample/
 !progetti/Sample_EW/
+
+# Log degli smoke di regressione (artefatti di run)
+smoke_*.log

@@ -88,7 +88,7 @@ The simulated scene is a periodic array of identical rows of single-axis trackin
 | edge block width               | Edge-effect block width (0 = off)        | m       | —             | B30        |
 | $L_{\mathrm{tot}}$             | Total tracker row length                 | m       | —             | B31        |
 | external SAU                   | External utilised agricultural area      | m²      | —             | B32        |
-| SANU                           | Uncultivated strip per side              | m       | 0–1           | B33        |
+| SANU                           | Uncultivated strip flanking each tracker row, per side (SAU = P − 2·SANU) | m | 0–1 | B33 |
 | years                          | PVGIS series interval                    | —       | ≥ 3 years     | B41–B42    |
 | $n_{\mathrm{ext}}$             | Number of external rows per side         | —       | 2–4           | B44        |
 | Radiance params                | `-ab`, `-ad`, `-as`, scene rows override | —       | see docs      | B48–B51    |

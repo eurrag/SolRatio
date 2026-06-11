@@ -81,7 +81,7 @@ def read_parameters(wb):
         B30: Larghezza blocco bordo-bordo
         B31: Lunghezza totale file tracker
         B32: SAU_esterna (area totale 4 lati)
-        B33: SANU (bordo non coltivato)
+        B33: SANU (fascia non coltivata per lato, lungo ogni fila)
       PARAMETRI DI CALCOLO (opzionali):
         B40: N punti profilo (default 51)
         B41: Anno inizio serie (default 2005)
