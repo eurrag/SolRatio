@@ -318,7 +318,15 @@ def pvgis_to_epw(pvgis_csv_path, lat, lon, elevation=0):
                          for m, y in sorted(tmy_years.items()))
     print(f'  GHI TMY composito: {ghi_tmy:.0f} Wh/m²')
 
-    tz_offset = round(lon / 15.0)
+    # TZ dell'header LOCATION = 0 (fix F1, backport dalla revisione 2026-06-10):
+    # i CSV PVGIS sono in UTC (timestamp HH:10) e il writer NON ri-localizza i
+    # timestamp, quindi l'header deve dichiarare UTC. Il vecchio `round(lon/15)`
+    # (=+1 per l'Italia) faceva interpretare a bifacial_radiance i timestamp
+    # come ora locale -> posizione solare ~40 min in anticipo rispetto alle
+    # irradianze (asimmetria mattina/sera). Con TZ=0 e label='right' (default
+    # EPW) il solpos e' calcolato a timestamp-30min, coerente col dato orario
+    # UTC right-labeled. Sposta i numeri pubblicati: prima/dopo nel CHANGELOG.
+    tz_offset = 0
     city = f'PVGIS_{lat:.4f}_{lon:.4f}'
 
     headers = [

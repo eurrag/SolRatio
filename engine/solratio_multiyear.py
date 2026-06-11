@@ -181,7 +181,15 @@ def build_year_epw(
     df_year = df_year[~((df_year['time'].dt.month == 2) &
                         (df_year['time'].dt.day == 29))].head(8760)
 
-    tz_offset = round(lon / 15.0)
+    # TZ dell'header LOCATION = 0 (fix F1, backport dalla revisione 2026-06-10):
+    # i CSV PVGIS sono in UTC (timestamp HH:10) e questo writer (duplicato di pvgis_to_epw) NON ri-localizza i
+    # timestamp, quindi l'header deve dichiarare UTC. Il vecchio `round(lon/15)`
+    # (=+1 per l'Italia) faceva interpretare a bifacial_radiance i timestamp
+    # come ora locale -> posizione solare ~40 min in anticipo rispetto alle
+    # irradianze (asimmetria mattina/sera). Con TZ=0 e label='right' (default
+    # EPW) il solpos e' calcolato a timestamp-30min, coerente col dato orario
+    # UTC right-labeled. Sposta i numeri pubblicati: prima/dopo nel CHANGELOG.
+    tz_offset = 0
     city = f'PVGIS_{lat:.4f}_{lon:.4f}_{year}'
 
     headers = [
