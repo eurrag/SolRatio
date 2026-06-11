@@ -24,8 +24,6 @@ desktop.ini
 **/report_SolRatio_*.pdf
 **/report_AGV_*.pdf
 **/*.xlsx.tmp
-**/optimization_*.xlsx
-**/optimization_*.png
 
 # Cache generata dai motori (multiyear EPW, scene .oct, ecc.)
 **/.cache/
@@ -54,7 +52,6 @@ engine/check_env_*.txt
 # e log di debug — non pubblicati (potrebbero contenere riferimenti
 # a progetti privati usati come baseline durante lo sviluppo).
 analisi/release_report_*.md
-analisi/optimize_hmin_fail_*.log
 
 # Helper di rilascio personale: spostato in cartella esterna
 # (toolbox condiviso tra progetti, non versionato).

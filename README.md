@@ -108,7 +108,6 @@ SolRatio/
 │   ├── solratio_edge.py             # Effetto bordo perimetrale
 │   ├── solratio_yield.py            # Curve di resa colturale (Laub et al. 2022)
 │   ├── solratio_pdf.py              # Generazione report PDF
-│   ├── solratio_optimization.py     # Ottimizzazione H_min (curva K_agv vs H_min)
 │   ├── solratio_multiyear.py        # Modalità multi-anno + quantili P10/P50/P90
 │   ├── solratio_bifacial.py         # Calcolo energia PV bifacciale (beta tier)
 │   ├── validazione_br.py            # Confronto SR vs BR ufficiale

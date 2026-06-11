@@ -23,8 +23,12 @@ verso chi usava v4.2.0 (che resta taggata e depositata su Zenodo).
   sono più lette.
 - **Ottimizzazione pitch (inerte)**: `optimize_pitch` e
   `write_pitch_optimization` non avevano alcun chiamante; il parametro
-  B45 (`ottimizza_pitch`) non è più letto. L'ottimizzazione H_min
-  (`solratio_optimization.py`) RESTA.
+  B45 (`ottimizza_pitch`) non è più letto.
+- **Ottimizzazione H_min** (`solratio_optimization.py`, CLI standalone):
+  rimossa dall'edizione di riferimento per decisione di perimetro — è
+  una funzionalità di supporto alla progettazione, fuori dallo scope
+  "minimo riproducibile citabile". La curva K_agv(H_min) resta
+  riproducibile manualmente variando B17 tra run successivi.
 - **Fogli diagnostici** non descritti dalla technical note né necessari
   alla sentinella: `Calcolo_Solare`, `PAR_RayTracing`, `Profilo_fdir_VF`,
   `Variabilita_DLI`, `DLI_Annuale`, `Riduzione_PAR`, `Validazione_pvlib`.

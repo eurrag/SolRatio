@@ -15,7 +15,6 @@ SolRatio_v4_1_0/
 │   ├── solratio_edge.py             # Effetto bordo (funzioni ausiliarie)
 │   ├── solratio_yield.py            # Curve resa colturale (Laub et al. 2022)
 │   ├── solratio_pdf.py              # Report PDF (reportlab)
-│   ├── solratio_optimization.py     # Ottimizzazione H_min (NEW v4.1.0)
 │   ├── solratio_sensitivity.py      # Analisi sensitività (non usato nel flusso BR)
 │   ├── check_environment.py         # Verifica dipendenze (NEW v4.1.0)
 │   ├── validazione_br.py            # Confronto SR vs BR ufficiale
@@ -116,29 +115,6 @@ sezione PDF Pali, display Pali nei parametri) sono state commentate. Codice
 delle funzioni stesse conservato dormiente in `solratio_yield.py` e
 `solratio_core.py` per riattivazione futura in v4.2 con scena Radiance 3D.
 
-### solratio_optimization.py (NEW v4.1.0)
-
-Modulo dedicato all'**ottimizzazione H_min** via curva di Pareto K_agv(H_min).
-
-Dipendenze: `subprocess`, `tempfile`, `openpyxl`, `numpy`, `pandas`,
-`matplotlib` (opzionale, per grafico).
-
-Approccio architetturale: per ogni valore H_min testato (default 6 valori in
-[1.5, 4.0] m) viene lanciato `calcola_br.py` come subprocess su una copia
-temporanea del file `.xlsm` con la cella H_min variata. Il K_agv viene letto
-dal foglio `Resa_Colturale` del file `risultati_*.xlsx` generato. Questo
-garantisce coerenza esatta con il flusso normale (zero duplicazione di logica).
-
-Funzioni pubbliche:
-
-| Funzione | Input | Output | Descrizione |
-|----------|-------|--------|-------------|
-| `optimize_hmin()` | xlsm path, h_min_values, target_crop | DataFrame | Curva K_agv(H_min) |
-| `find_min_hmin_above_threshold()` | DataFrame, target_kagv | float o None | Min H_min ≥ soglia (con interpolazione lineare) |
-| `write_optimization_excel()` | path, df, progetto, crop, target | — | Foglio risultati Excel |
-| `plot_optimization_curve()` | df, crop, target, path | bool | Grafico PNG |
-
-Lanciabile come CLI standalone: `python solratio_optimization.py <progetto.xlsm> [--crop X --target Y]`.
 
 ### check_environment.py (NEW v4.1.0)
 
