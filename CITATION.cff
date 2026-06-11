@@ -32,16 +32,15 @@ license: "Apache-2.0"
 repository-code: "https://github.com/eurrag/SolRatio"
 url: "https://github.com/eurrag/SolRatio"
 
-# DOI: fino al deposito Zenodo della v4.2.1 il campo punta al Concept DOI
-# (risolve sempre all'ultima versione). Dopo il deposito sostituire col DOI
-# specifico v4.2.1 assegnato dal webhook.
+# DOI della versione v4.2.1 (immutabile). Concept DOI (sempre-ultima-versione):
+# 10.5281/zenodo.19959581 — vedi README.
 # DOI versioni precedenti:
 #   v4.2.0: 10.5281/zenodo.20277335
 #   v4.1.2: 10.5281/zenodo.19982399
 #   v4.1.1: 10.5281/zenodo.19960929
 #   v4.1.0: 10.5281/zenodo.19959582 (rilascio iniziale, contiene bug STEP 5
 #           risolto in v4.1.1 - vedi CHANGELOG)
-doi: "10.5281/zenodo.19959581"
+doi: "10.5281/zenodo.20642574"
 
 keywords:
   - "agrivoltaics"

@@ -7,7 +7,7 @@ date: 2026-06-11
 version: v4.2.1
 license: Apache-2.0
 software_doi_concept: 10.5281/zenodo.19959581
-software_doi_version: (assigned upon release deposit; v4.2.0: 10.5281/zenodo.20277335)
+software_doi_version: 10.5281/zenodo.20642574
 repository: https://github.com/eurrag/SolRatio
 keywords:
   - agrivoltaics
@@ -30,7 +30,7 @@ Stefano Pesavento (Independent researcher)
 ORCID: [0009-0008-0720-4539](https://orcid.org/0009-0008-0720-4539)
 
 Software (concept DOI): [10.5281/zenodo.19959581](https://doi.org/10.5281/zenodo.19959581)
-Software (this version, v4.2.1): DOI assigned upon release deposit (v4.2.0: [10.5281/zenodo.20277335](https://doi.org/10.5281/zenodo.20277335))
+Software (this version, v4.2.1): [10.5281/zenodo.20642574](https://doi.org/10.5281/zenodo.20642574)
 Repository: <https://github.com/eurrag/SolRatio>
 
 ---
@@ -345,7 +345,7 @@ The public repository is maintained as a citable reference edition (correctness 
 The source code is hosted on GitHub at <https://github.com/eurrag/SolRatio> under the Apache 2.0 licence. Every release is deposited on Zenodo via the automated GitHub-Zenodo connector.
 
 - **Concept DOI** (recommended for general citation, always resolves to the latest version): [10.5281/zenodo.19959581](https://doi.org/10.5281/zenodo.19959581)
-- **Version-specific DOI for v4.2.1**: assigned upon the release deposit (will be reported here and in `CITATION.cff`)
+- **Version-specific DOI for v4.2.1** (immutable, recommended): [10.5281/zenodo.20642574](https://doi.org/10.5281/zenodo.20642574)
 - Version-specific DOI for v4.2.0 (immutable): [10.5281/zenodo.20277335](https://doi.org/10.5281/zenodo.20277335)
 
 The reference *Sample* project used for the validation in Section 4 is included in the repository under `progetti/Sample/`. The east-west variant *Sample_EW* used for the comparison of Section 5 is included under `progetti/Sample_EW/` and exercised, together with *Sample*, by the release regression gate.

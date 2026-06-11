@@ -201,11 +201,12 @@ sono benvenute (aprire una issue sul repository).
 
 Se usi SolRatio in lavori pubblici (relazioni tecniche, articoli, presentazioni), puoi citarlo come:
 
-> Pesavento, S. (2026). *SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale* (v4.2.1). Zenodo. https://doi.org/10.5281/zenodo.19959581
+> Pesavento, S. (2026). *SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale* (v4.2.1). Zenodo. https://doi.org/10.5281/zenodo.20642574
 
 **DOI:**
 
-- **Concept DOI** (sempre-ultima-versione): [`10.5281/zenodo.19959581`](https://doi.org/10.5281/zenodo.19959581) — usalo per citare "SolRatio" in generale. Il **DOI specifico della v4.2.1** sarà assegnato al deposito della release e riportato qui e in `CITATION.cff`.
+- **Versione v4.2.1** (immutabile, raccomandata): [`10.5281/zenodo.20642574`](https://doi.org/10.5281/zenodo.20642574) — usalo per citare la versione esatta che hai scaricato
+- **Concept DOI** (sempre-ultima-versione): [`10.5281/zenodo.19959581`](https://doi.org/10.5281/zenodo.19959581) — usalo per citare "SolRatio" in generale
 
 DOI versioni precedenti:
 
