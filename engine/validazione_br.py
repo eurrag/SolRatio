@@ -358,8 +358,8 @@ def _run_br_official(p, epw_path, target_month, target_day, n_points):
         for idx in day_indices:
             theta = float(tracker_theta[idx])
             tilt = abs(theta)
-            # R1 (v4.2.2): convenzione pvlib (theta>0 = verso OVEST).
-            azimuth = (_axis_azimuth + (90.0 if theta >= 0 else -90.0)) % 360.0
+            # Convenzione storica SolRatio (vedi nota R1 in br_engine).
+            azimuth = (_axis_azimuth + (-90.0 if theta >= 0 else 90.0)) % 360.0
             ch = hub_height - 0.5 * p['W'] * np.sin(np.radians(tilt))
             ch = max(0.01, ch)
 

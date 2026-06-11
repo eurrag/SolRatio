@@ -1,5 +1,83 @@
 # SolRatio — Changelog
 
+## v4.2.2 (2026-06-11) — Revisione approfondita dell'engine: 14 correzioni + 1 known issue documentato
+
+Revisione sistematica post-pubblicazione (tre passate indipendenti su
+pipeline, fisica e I/O, con prova sperimentale di ogni finding prima del
+fix). **Il gate di regressione e tutti i K_agv SAU sono INVARIATI**
+(84.1 / 79.2 e tutte le varianti di collaudo identiche al decimale);
+cambia il K_agv di impianto (effetto bordo): sul progetto Sample
+87.2% → 86.9% per Cereali C3.
+
+### Correttezza fisica
+
+- **Aspetto del terreno in pendenza**: l'aspetto di un piano che scende
+  verso D è D stessa; il +180° storico calcolava un pendio esposto a sud
+  come esposto a nord (verificato con pvlib: beam 160 vs 271 W/m² a
+  mezzogiorno invernale). Interessava la decomposizione Perez su piano
+  inclinato e il beam della fascia esterna.
+- **Angolo di profilo trasversale (fascia esterna)**: la proiezione
+  usava |cos(γ−asse)| (= componente longitudinale) al posto di
+  |sin(γ−asse)|: con sole a est su file N-S l'ombra trasversale risultava
+  ~0 e massima a mezzogiorno — esattamente invertito (contraddiceva il
+  percorso ombre principale, già basato su pvlib PSZA).
+- **Aggregazione K_agv di impianto**: fra n_file file esistono n_file−1
+  strisce di pitch (una striscia era contata due volte); curve di Laub
+  applicate punto-per-punto anche a bordo e fascia esterna (la curva è
+  concava: applicarla alla PAR media sovrastimava di 0.5–2 pp); distanza
+  d_NS della correzione longitudinale ora pesata sul DNI (la media
+  aritmetica era dominata dalle code 1/tan(alfa) di alba/tramonto senza
+  beam).
+- **TMY e 29 febbraio**: la rinormalizzazione dell'anno avveniva prima
+  della rimozione del 29/02 → crash (riprodotto con i dati del Sample
+  ristretti al 2018-2020); ora il 29/02 è filtrato a monte e un TMY
+  diverso da 8760 ore è un errore esplicito.
+
+### Robustezza e cache
+
+- Un'ora rtrace anomala (timeout/output malformato) non abortisce più
+  l'intera simulazione (conta come errore di quell'ora).
+- Cache scene: tau_diff entra nella chiave (prima un octree con
+  materiale stantio veniva riusato in silenzio); bbox estesa con terreno
+  inclinato (il ring del terreno usciva dal boundary → 100% errori sulle
+  ore cache-hit); soglia del test semantico adattiva alla trasmittanza
+  (i pannelli semitrasparenti venivano bocciati come "scena senza
+  geometria").
+- find_pvgis_csv: con coordinate note si accetta solo il match esatto
+  (il fallback restituiva il CSV di un ALTRO sito dopo un cambio di
+  coordinate, silenziosamente).
+- Validazione code-to-code: modalità tilt fisso ora confrontata a parità
+  di geometria (la pipeline di riferimento inseguiva il sole); il cielo
+  di fallback viene registrato nell'octree (prima l'ora usava il cielo
+  dell'ora precedente, sommato in silenzio).
+
+### Display e documentazione
+
+- Formati percentuale Excel con i decimali giusti (23.4% e non 23.0%);
+  tau_diff e fattore di bifaccialità dichiarati nel Riepilogo e nel PDF
+  quando attivi; il PDF non dichiara più parametri rtrace fissi; rimosso
+  un ramo morto che citava un foglio non più esistente; etichette del
+  foglio Effetto_Bordo con i riferimenti di cella corretti (B30-B32);
+  messaggio errato "tau non supportato" eliminato; CLI multi-anno
+  case-insensitive; FORMULE.md riconciliato col codice (curve di Laub
+  log-quadratiche; coefficienti PAR_FRAC implementati: 0.500-0.082·kt
+  con clip [0.42, 0.48] — la nota dichiarava una variante non
+  implementata).
+
+### Known issue documentato (non corretto in questa release)
+
+- **Specchio est/ovest della scena**: la mappatura storica theta→azimuth
+  della scena è speculare rispetto alla convenzione pvlib (provato
+  sperimentalmente: con tilt fisso verso ovest l'ombra larga compare al
+  mattino anziché al pomeriggio). Scena, sensori al suolo e percorso
+  analitico sono però co-progettati su questa convenzione: gli aggregati
+  simmetrici (incluso il gate) NON ne risentono, mentre l'attribuzione
+  oraria est/ovest è scambiata. Un tentativo di correzione del solo
+  azimuth disallinea i sensori dalle file (gate 84.1 → 58.8, misurato):
+  il riallineamento richiede il redesign accoppiato scena+sensori ed è
+  pianificato come intervento dedicato. Cautela interpretativa con
+  pendenza trasversale e regimi meteo asimmetrici mattina/pomeriggio.
+
 ## v4.2.1 (2026-06-11) — Reference edition: potatura al minimo riproducibile + fix
 
 Edizione di riferimento citabile: il perimetro è ridotto al "minimo

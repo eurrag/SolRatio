@@ -765,11 +765,14 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
 
         for _i_ut, _ut in enumerate(unique_thetas):
             _tilt = abs(_ut)
-            # R1 (v4.2.2): convenzione pvlib — theta>0 = rotazione verso
-            # OVEST (surface_azimuth = axis+90), theta<0 = EST (axis-90).
-            # La formula storica (v4.1-v4.2.1) era specchiata E/O: provato
-            # sperimentalmente (ombra larga/stretta invertita, dossier R1).
-            _azimuth = (_axis_azimuth + (90.0 if _ut >= 0 else -90.0)) % 360.0
+            # NOTA R1 (v4.2.2, dossier): questa mappatura e' SPECCHIATA
+            # rispetto a pvlib (theta>0 dovrebbe essere faccia a ovest), ma
+            # scena, sensori e percorso analitico sono co-progettati su
+            # questa convenzione e il flip nudo dell'azimuth DISALLINEA i
+            # sensori dalle file (gate 84.1 -> 58.8 misurato). Il
+            # riallineamento a pvlib richiede il redesign accoppiato
+            # scena+sensori (pianificato; vedi CHANGELOG v4.2.2).
+            _azimuth = (_axis_azimuth + (-90.0 if _ut >= 0 else 90.0)) % 360.0
             _ch = hub_height - 0.5 * p['W'] * np.sin(np.radians(_tilt))
             _ch = max(0.01, _ch)
             clearance_cache[_ut] = _ch
@@ -1011,7 +1014,7 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
                     _scene_params = {
                         'sr_compat': '4.2',
                         'tilt': abs(_ut),
-                        'azimuth': 270.0 if _ut >= 0 else 90.0,  # R1: pvlib
+                        'azimuth': 90.0 if _ut >= 0 else 270.0,
                         'clearance_height': _ch_t,
                         'pitch': p['pitch'],
                         'n_rows': n_rows,

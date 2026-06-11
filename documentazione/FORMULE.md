@@ -41,12 +41,13 @@ kt = GHI / (I₀ × cos(θz))
 dove I₀ è l'irradianza extraterrestre e θz lo zenith angle.
 
 ```
-par_frac(kt) = 0.512 - 0.175·kt        per kt ≤ 0.50
-             = 0.512 - 0.175·0.50       per kt > 0.50 (saturazione)
+par_frac(kt) = clip(0.500 - 0.082·kt, 0.42, 0.48)
 ```
 
-Range tipico: 0.43 (cielo sereno, kt alto) — 0.48 (cielo coperto, kt basso).
-Media annua Italia centrale: ~0.45.
+(parametrizzazione lineare sul clearness index nello spirito di Jacovides
+et al. 2004; coefficienti del fit implementato in `compute_par_frac` —
+v4.2.2 allinea la documentazione al codice validato).
+Range operativo: 0.42-0.43 (cielo sereno, kt alto) — 0.48 (coperto).
 
 Implementazione: `solratio_core.compute_par_frac(ghi, dni_extra, cos_zenith)`
 

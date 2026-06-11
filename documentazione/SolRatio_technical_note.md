@@ -105,7 +105,7 @@ $$\mathrm{clearance}(\theta) = H_{\mathrm{hub}} - \frac{W}{2} \sin(|\theta|)$$
 
 Tracker rotation angles are computed using the `pvlib.tracking.singleaxis` routine, which implements the standard truncating-tracker model with optional backtracking. The user specifies whether backtracking is active; when active, the tracker angle is truncated to prevent inter-row self-shading, otherwise the tracker follows the ideal sun-tracking angle up to the limit $\beta_{\max}$.
 
-In v4.2.0 the sensor and scene-azimuth conventions have been generalised to support arbitrary `axis_azimuth` values. Sensor positions are computed in a local frame $(u, v, w)$ anchored to the tracker axis, then transformed to world coordinates via a rotation by angle $\varphi = \mathrm{axis\_azimuth} - 180°$. The Radiance scene azimuth is derived consistently as $(\mathrm{axis\_azimuth} + \mathrm{sign}(\theta) \cdot (-90°)) \bmod 360°$. For the historical default of `axis_azimuth = 180°` (north-south alignment) the transformation reduces to the identity and the behaviour is bit-for-bit identical to v4.1. For arbitrary orientations the scene and the sensors remain mutually consistent. A runtime warning is emitted when $|\mathrm{axis\_azimuth} - 180°| > 30°$, because the Laub et al. (2022) yield curves are calibrated on north-south shading regimes and their applicability to east-west alignments deserves caution.
+In v4.2.0 the sensor and scene-azimuth conventions have been generalised to support arbitrary `axis_azimuth` values. Sensor positions are computed in a local frame $(u, v, w)$ anchored to the tracker axis, then transformed to world coordinates via a rotation by angle $\varphi = \mathrm{axis\_azimuth} - 180°$. The Radiance scene azimuth is derived consistently as $(\mathrm{axis\_azimuth} + \mathrm{sign}(\theta) \cdot (-90°)) \bmod 360°$ — **known issue (documented in v4.2.2)**: this historical mapping is mirrored east-west with respect to the pvlib sign convention; scene, ground sensors and the analytical shadow path are co-designed on it, so symmetric aggregates (including the regression gate) are unaffected, while per-hour east/west attribution is swapped. A coupled realignment (scene + sensor frame) is planned; see the changelog.. For the historical default of `axis_azimuth = 180°` (north-south alignment) the transformation reduces to the identity and the behaviour is bit-for-bit identical to v4.1. For arbitrary orientations the scene and the sensors remain mutually consistent. A runtime warning is emitted when $|\mathrm{axis\_azimuth} - 180°| > 30°$, because the Laub et al. (2022) yield curves are calibrated on north-south shading regimes and their applicability to east-west alignments deserves caution.
 
 ### 2.2 Meteorology and sky model
 
@@ -133,7 +133,7 @@ A parallel open-sky simulation, with the same sky description but with the panel
 
 Hourly broadband irradiance is converted to PAR using a variable PAR fraction following Jacovides et al. (2004):
 
-$$f_{\mathrm{PAR}}(k_t) = 0.512 - 0.175 \cdot \min(k_t, 0.50)$$
+$$f_{\mathrm{PAR}}(k_t) = \mathrm{clip}\,(0.500 - 0.082 \cdot k_t,\ 0.42,\ 0.48)$$
 
 $$\mathrm{PAR}\,[\mu\mathrm{mol\,m^{-2}\,s^{-1}}] = E \cdot f_{\mathrm{PAR}} \cdot 4.57$$
 
