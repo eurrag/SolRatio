@@ -1113,9 +1113,14 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
                     # iniettato via `oconv -i` contiene `groundplane ring 100m`,
                     # che senza bbox forzata va fuori dall'octree dei pannelli
                     # (~30m) → "boundary does not encompass scene" fatal.
+                    # `-f` (freeze): octree self-contained. Senza, il
+                    # successivo `oconv -i scene.oct` rilegge i radfile
+                    # originali della temp dir del run creatore (cancellata
+                    # a fine run) -> al riuso cross-run della cache TUTTE le
+                    # ore fallivano in rtrace.
                     with open(_scene_oct_path, 'w') as _f_oct:
                         _proc_result = _subprocess.run(
-                            ['oconv', '-b', '-100', '-100', '-1', '200']
+                            ['oconv', '-f', '-b', '-100', '-100', '-1', '200']
                             + _oconv_inputs,
                             stdin=_subprocess.DEVNULL,
                             stdout=_f_oct,
@@ -1468,6 +1473,12 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
         # ── Ordina risultati per indice orario ───────────────────────
         results_list.sort(key=lambda x: x[0])
 
+        if not results_list:
+            raise RuntimeError(
+                'Nessuna ora simulata con successo (100% errori rtrace): '
+                'vedi i WARNING sopra. Se il run usa la cache scene, la '
+                'cache potrebbe essere corrotta: cancellare '
+                '<progetto>/.cache/scenes e rilanciare.')
         ok_indices = np.array([r[0] for r in results_list])
         results_full = np.array([r[1] for r in results_list])  # (n_ok, n_total_points)
 

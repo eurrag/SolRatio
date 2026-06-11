@@ -66,7 +66,9 @@ from typing import Any, Mapping
 # Versione formato cache. Bump se il formato cambia (es. nuovi parametri
 # da includere nella chiave). I file .oct con versione vecchia non
 # matcheranno più e verranno ignorati (cache miss → ricompilazione).
-CACHE_FORMAT_VERSION = "1"
+# "2": scene compilate con oconv -f (frozen, self-contained): le cache
+#      formato "1" referenziavano radfile di temp dir cancellate.
+CACHE_FORMAT_VERSION = "2"
 
 # Versione "compatibilità" cache lato SolRatio. Cambiare quando si
 # modifica il modo in cui le scene vengono generate (anche se i
