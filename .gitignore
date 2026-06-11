@@ -19,12 +19,10 @@ desktop.ini
 # Output di simulazione (nelle cartelle progetti/)
 **/.br_done
 **/.pvlib_done
-**/.sensitivity_done
 **/br_log.txt
 **/br_err.txt
 **/pvlib_log.txt
 **/pvlib_error.txt
-**/sensitivity_log.txt
 **/batteria_log.txt
 **/risultati_*.xlsx
 **/report_SolRatio_*.pdf
