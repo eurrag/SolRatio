@@ -47,7 +47,14 @@ verso chi usava v4.2.0 (che resta taggata e depositata su Zenodo).
   fa chdir nella work dir temporanea; alla sua cancellazione il processo
   restava senza directory corrente e la generazione del PDF falliva
   (`import reportlab` → `os.getcwd()`): su Linux il PDF non veniva MAI
-  prodotto.
+  prodotto. Stesso ripristino nella fase "BR ufficiale" di
+  `validazione_br.py` (processi multi-run) + cattura difensiva.
+- **Cache scene .oct self-contained (`oconv -f`)**: la scena cachata era
+  compilata senza freeze, quindi il riuso in un run successivo richiedeva
+  i radfile originali della temp dir (cancellata) → 100% errori rtrace.
+  Era il root-cause del bug cache annotato nella roadmap v4.2.x.
+  `CACHE_FORMAT_VERSION` 1→2 (le cache esistenti si rigenerano da sole);
+  errore chiaro se zero ore simulate (prima un IndexError criptico).
 - **Number format Excel `'0.1'` → `'0.0'`** (11 celle writer): in
   ECMA-376 l'`1` è un letterale, Excel mostrava l'intero arrotondato
   + ".1" (es. 29.62 → "30.1").
