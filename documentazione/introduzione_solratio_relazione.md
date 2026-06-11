@@ -1,7 +1,7 @@
 # SolRatio — Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici
 
 *Testo introduttivo riutilizzabile nelle relazioni tecniche. Allineato alla
-versione 4.2.1 (edizione di riferimento, depositata su Zenodo con DOI).*
+versione 4.3.0 (edizione di riferimento, depositata su Zenodo con DOI).*
 
 ## Descrizione del modello
 
@@ -104,17 +104,21 @@ risultati:
 
 | Indicatore      | 21 marzo   | 21 giugno  |
 |-----------------|------------|------------|
-| MBE (bias medio)| +0.54%    | +0.42%     |
-| RMSE            | 0.80%      | 0.49%      |
-| R²              | 0.9982     | 0.9989     |
+| MBE (bias medio)| +0.0%     | −0.0%      |
+| RMSE            | 0.0%       | 0.1%       |
+| R²              | 1.0000     | 0.9999     |
 
 Lo scostamento medio inferiore all'1% e il coefficiente di determinazione
-superiore a 0.998 confermano l'allineamento sostanziale tra SolRatio e
-l'implementazione NREL di riferimento. La validazione è stata rieseguita
-sulla versione 4.2.1 (Radiance 6.0): R² ≥ 0.9985 e RMSE ≤ 0.2% su entrambe
-le giornate. Ogni release deve inoltre superare un test di regressione sui
-due progetti campione inclusi nel repository (orientamento nord-sud ed
-est-ovest), con tolleranza dichiarata di ±0.2 punti percentuali sul K_agv.
+prossimo all'unità (ri-esecuzioni indipendenti: R² ≥ 0.9975) confermano
+l'allineamento tra SolRatio e l'implementazione NREL di riferimento
+(misure con la versione 4.3.0, Radiance 6.0). Dalla versione 4.3.0 la
+validazione comprende anche un riferimento indipendente costruito col
+workflow nativo 1-axis di bifacial_radiance (angoli del tracker calcolati
+da pvlib all'interno della libreria), con accordo entro 0.5 punti
+percentuali sul rapporto giornaliero suolo/GHI. Ogni release deve inoltre
+superare un test di regressione sui due progetti campione inclusi nel
+repository (orientamento nord-sud ed est-ovest), con tolleranza dichiarata
+di ±0.2 punti percentuali sul K_agv.
 
 ## Output
 

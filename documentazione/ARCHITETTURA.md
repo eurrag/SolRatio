@@ -1,4 +1,4 @@
-# SolRatio v4.2.1 — Architettura tecnica
+# SolRatio v4.3.0 — Architettura tecnica
 
 > Edizione di riferimento (Community/Reference Edition). Struttura e
 > responsabilità dei moduli del perimetro pubblico; il flusso di calcolo è

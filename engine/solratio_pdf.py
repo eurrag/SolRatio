@@ -1,5 +1,5 @@
 """
-solratio_pdf.py  |  SolRatio v4.2.1
+solratio_pdf.py  |  SolRatio v4.3.0
 ===================================================
 Generazione report PDF di sintesi (5 pagine).
 
@@ -674,9 +674,10 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
         'Il modello e stato validato confrontando i risultati con il workflow ufficiale '
         'di bifacial_radiance (NREL) applicato alla stessa scena e agli stessi parametri. '
         'La validazione, condotta su giornate rappresentative (equinozio e solstizio), '
-        'ha prodotto: bias medio (MBE) inferiore a +0.6%, RMSE inferiore a 0.8%, '
-        'coefficiente di determinazione R2 superiore a 0.998. Lo scostamento trascurabile '
-        'conferma l\'allineamento sostanziale con l\'implementazione NREL di riferimento.',
+        'ha prodotto: bias medio (MBE) inferiore all\'1%, RMSE inferiore allo 0.5%, '
+        'coefficiente di determinazione R2 di almeno 0.997 (misure v4.3.0). Un riferimento '
+        'indipendente col workflow nativo set1axis concorda entro 0.5 punti percentuali '
+        'sul rapporto giornaliero suolo/GHI.',
         S['body']))
 
     story.append(Spacer(1, 3*mm))

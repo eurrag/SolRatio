@@ -1,6 +1,90 @@
 # SolRatio — Changelog
 
+## v4.3.0 (2026-06-11) — CORREZIONE MAGGIORE: scena di tracking contro-ruotata (presente dal v4.1.0)
+
+**La scena Radiance ruotava il pannello dalla parte OPPOSTA al sole in ogni
+ora di tracking, dal v4.1.0 al v4.2.2.** Un pannello contro-ruotato presenta
+al sole un profilo più stretto e proietta un'ombra più piccola: **tutti i
+K_agv in modalità tracking delle versioni precedenti SOVRASTIMANO la luce al
+suolo**. Sui progetti campione il gate passa da 84.1% a **57.5%** (Sample,
+N-S) e da 79.2% a **55.3%** (Sample_EW). Il tilt fisso è molto meno
+affetto (collaudo: 76.3% → 68.7%, residuo da asimmetrie orarie del meteo).
+Chi ha usato risultati in tracking delle versioni v4.1.0–v4.2.2 deve
+rieseguire le simulazioni.
+
+### Perché nessuna validazione lo aveva intercettato
+
+La validazione code-to-code (parte B) costruiva la scena di riferimento con
+la STESSA mappatura theta→azimuth del motore: le due pipeline erano
+specchiate allo stesso modo e il confronto era cieco per costruzione. La
+prova decisiva è stata fisica e indipendente dalle convenzioni: misura della
+larghezza dell'ombra simulata vs formula analitica con angoli pvlib
+(faccia-al-sole vs contro-ruotato), confermata da un **riferimento canonico
+indipendente** col workflow nativo di bifacial_radiance (`set1axis` →
+`analysis1axisground`, angoli calcolati da pvlib dentro la libreria, sensori
+posizionati dalla libreria): sul giorno sereno (21/6) il motore storico
+sovrastimava il rapporto suolo/GHI giornaliero di **+24.3 punti
+percentuali**; sul giorno coperto (21/3, luce quasi tutta diffusa) lo
+scarto era +0.6 pp — ecco perché gli aggregati annui non insospettivano.
+
+### Correzione
+
+- **Scena allineata a pvlib in forma canonica** (la stessa normalizzazione
+  di `makeScene1axis`): azimuth di scena COSTANTE = axis−90° e tilt FIRMATO
+  −theta (theta>0 = faccia a ovest). Oltre a correggere la contro-rotazione,
+  la scena non si ribalta più fra mattina e pomeriggio: file e sensori
+  restano nello stesso frame in ogni ora (con nRows pari il ribaltamento
+  spostava il contesto di bordo del gap campionato alle ore radenti).
+- **Percorso analitico accoppiato** (ombre per VF/fallback e tilt fisso):
+  selezione del lato d'ombra dal segno del PSZA pvlib (l'ombra cade dal lato
+  opposto al sole) e mezzo-spessore verticale con sin CON SEGNO.
+- **Chiave della cache scene**: tilt firmato + azimuth canonico +
+  `sr_compat: 4.3` (tutte le scene pre-correzione sono invalidate).
+- **Guida theta_fix nei template**: semantica pvlib (positivo = faccia a
+  ovest, negativo = est) — la guida precedente rifletteva la convenzione
+  contro-ruotata.
+
+### Rettifica della voce v4.2.2
+
+Il "known issue" dichiarato in v4.2.2 (vedi sotto) conteneva DUE errori,
+qui rettificati: (1) l'affermazione "gli aggregati simmetrici (incluso il
+gate) NON ne risentono" è **vera solo per il tilt fisso e FALSA per il
+tracking** (la scena non era specchiata ma contro-ruotata: geometria
+diversa, non immagine speculare); (2) la diagnosi "il flip del solo azimuth
+disallinea i sensori dalle file" era **sbagliata**: il gate a 58.8 misurato
+dopo il fix era la fisica corretta, non un artefatto (il valore odierno
+57.5 differisce da quel 58.8 perché la correzione definitiva adotta la
+forma canonica a azimuth costante, che elimina anche il ribaltamento del
+frame mattina/pomeriggio).
+
+### Validazione e riferimenti aggiornati
+
+- Parte B (code-to-code, stessi parametri rtrace): R² = 1.0000 (21/3) e
+  0.9999 (21/6) sul Sample; ri-esecuzione indipendente R² ≥ 0.9975.
+- **Nuova parte D**: riferimento canonico `set1axis`/`analysis1axisground`
+  nativo (indipendente dalla convenzione di scena del motore) — scarto sul
+  K giornaliero suolo/GHI: −0.1 pp (21/3) e −0.4 pp (21/6).
+- Nuovi riferimenti del gate (±0.2 pp): Sample **57.5**, Sample_EW **55.3**.
+  Varianti di collaudo (misure 2026-06-11): tilt fisso 68.7, astronomico
+  57.4, slope 56.9, tau 60.2, tau_diff 60.2, bifacciale 57.5, input/ 57.5.
+  K_agv impianto Cereali C3: Sample 64.9% (l'effetto bordo pesa di più ora
+  che il campo interno è più ombreggiato), Sample_EW 63.2%.
+- Multi-anno e batteria errori: invariati e verdi.
+
+### Record Zenodo delle versioni precedenti
+
+I depositi v4.2.0 (10.5281/zenodo.20277335) e v4.2.1
+(10.5281/zenodo.20642574) restano immutabili come da policy Zenodo; una
+nota di correzione sul record rimanda a questa release. Il DOI di versione
+della v4.3.0 viene coniato al deposito.
+
 ## v4.2.2 (2026-06-11) — Revisione approfondita dell'engine: 14 correzioni + 1 known issue documentato
+
+> **⚠ RETTIFICA (v4.3.0)**: il "known issue" in fondo a questa voce è
+> formulato in modo ERRATO. La scena non era uno specchio est/ovest ma era
+> CONTRO-RUOTATA rispetto al sole; gate e aggregati in tracking ERANO
+> affetti (sovrastimati di ~20–27 pp sul collaudo) e il revert del fix fu
+> una diagnosi sbagliata. Vedi la voce v4.3.0.
 
 Revisione sistematica post-pubblicazione (tre passate indipendenti su
 pipeline, fisica e I/O, con prova sperimentale di ogni finding prima del

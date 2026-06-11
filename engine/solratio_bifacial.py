@@ -1,5 +1,5 @@
 """
-solratio_bifacial.py  |  SolRatio v4.2.1
+solratio_bifacial.py  |  SolRatio v4.3.0
 ========================================================================
 Modulo bifacciale: estende il calcolo SolRatio alla produzione PV
 "front + bifaciality_factor × rear" per pannelli bifacciali.

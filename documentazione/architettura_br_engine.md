@@ -1,8 +1,9 @@
-# SolRatio — Architettura br_engine (v4.2.1)
+# SolRatio — Architettura br_engine (v4.3.0)
 
 > Documento nato con la v4.1.0; la pipeline sotto descritta resta valida.
 > Le estensioni della linea v4.2 sono riassunte in fondo
 > ("Aggiornamenti v4.2.x") e dettagliate nella technical note.
+> La v4.3.0 corregge la convenzione di scena del tracking (punto 2).
 
 ## Panoramica
 
@@ -17,7 +18,7 @@ La funzione principale `run_annual()` esegue questa sequenza:
 
 1. **Setup ambiente Radiance** — Crea una directory temporanea, inizializza `RadianceObj`, legge il file EPW, imposta albedo e modulo fotovoltaico.
 
-2. **Calcolo angoli tracker** — Usa `pvlib.tracking.singleaxis()` con apparent_zenith per calcolare il theta (angolo di rotazione del tracker) per ciascuna delle 8760 ore. Il theta determina tilt e azimuth della scena: `tilt = |theta|`, `azimuth = 90° se theta >= 0, 270° altrimenti`.
+2. **Calcolo angoli tracker** — Usa `pvlib.tracking.singleaxis()` con apparent_zenith per calcolare il theta (angolo di rotazione del tracker) per ciascuna delle 8760 ore. Il theta determina la scena in forma canonica bifacial_radiance (v4.3.0): `tilt = −theta` (FIRMATO, theta>0 = faccia a ovest come in pvlib) e `azimuth = costante (axis_azimuth − 90°) % 360`. La mappatura storica v4.1.0–v4.2.2 (`tilt = |theta|`, `azimuth = axis −90°/+90° a seconda del segno`) era CONTRO-RUOTATA rispetto al sole: vedi CHANGELOG v4.3.0.
 
 3. **Filtro ore diurne** — Seleziona le ore con `apparent_elevation > 2°` e `GHI > 20 W/m²`. Opzionalmente filtra su giorni campione (`sample_days`).
 
@@ -44,7 +45,7 @@ La funzione principale `run_annual()` esegue questa sequenza:
 | Ordine file oconv | materialfiles + skyfiles + radfiles | Identico (allineato) |
 | rtrace | Interno ad AnalysisObj | Subprocess diretto |
 | Parallelismo | Nessuno (sequenziale) | ThreadPoolExecutor (80% CPU) |
-| Risultato | Equivalente (MBE < 1%, R² > 0.998) | Equivalente |
+| Risultato | Equivalente (MBE < 1%, R² ≥ 0.997) | Equivalente |
 
 
 ## Parametri rtrace
@@ -117,16 +118,34 @@ Script: `engine/validazione_br.py`. Esegue due simulazioni indipendenti sullo st
 - **Parte A**: workflow SR v4 (cache scene + parallelizzazione)
 - **Parte B**: workflow BR ufficiale (`gendaylit2manual` → `makeScene` → `makeOct` → rtrace, sequenziale)
 
-Risultati su località esempio (lat 45.30°N, lon 9.34°E) (2026-04-10):
+Risultati su località esempio (lat 45.30°N, lon 9.34°E), misurati con
+v4.3.0 (Radiance 6.0, 2026-06-11):
 
 | Giorno campione | MBE | RMSE | R² |
 |-----------------|-----|------|----|
-| 21 marzo (equinozio) | +0.54% | 0.80% | 0.9982 |
-| 21 giugno (solstizio) | +0.42% | 0.49% | 0.9989 |
+| 21 marzo (equinozio) | +0.0% | 0.0% | 1.0000 |
+| 21 giugno (solstizio) | −0.0% | 0.1% | 0.9999 |
 
-Il residuo ~0.5% è attribuibile alla stocasticità dell'ambient sampling di
-Radiance. Riverificato sulla v4.2.1 (Radiance 6.0, 2026-06-11): R² ≥ 0.9985,
-RMSE ≤ 0.2% su entrambe le giornate.
+Il residuo è attribuibile alla stocasticità dell'ambient sampling di
+Radiance (ri-esecuzioni indipendenti: R² ≥ 0.9975). Dalla v4.3.0 la
+validazione include anche un riferimento INDIPENDENTE col workflow nativo
+1-axis di bifacial_radiance (`set1axis` → `analysis1axisground`): scarto sul
+rapporto giornaliero suolo/GHI −0.1 pp (21/3) e −0.4 pp (21/6). Il controllo
+indipendente esiste perché il confronto code-to-code condivide la
+convenzione di scena col motore ed era cieco alla contro-rotazione
+v4.1.0–v4.2.2 (vedi CHANGELOG v4.3.0).
+
+
+## Aggiornamenti v4.3.0
+
+- **Scena tracking in forma canonica** (correzione maggiore): azimuth di
+  scena costante (axis−90°) e tilt firmato −theta; la mappatura storica era
+  contro-ruotata rispetto al sole e sovrastimava la luce al suolo in
+  tracking (gate Sample 84.1% → 57.5%). Percorso analitico (ombre VF/tilt
+  fisso) riallineato in blocco; chiave cache scene aggiornata
+  (`sr_compat: 4.3`).
+- **Validazione parte D**: riferimento canonico indipendente col workflow
+  nativo `set1axis`/`analysis1axisground`.
 
 
 ## Aggiornamenti v4.2.x

@@ -16,9 +16,14 @@ abstract: >-
   K_agv per nove categorie colturali. Supporta la verifica dei requisiti
   agronomici previsti dalle Linee Guida MASE (D.M. 436/2023) e la valutazione
   della compatibilità tra produzione energetica e produzione agricola.
-  Validato vs bifacial_radiance ufficiale (NREL): MBE < 1%, R² > 0.998.
-  La v4.2.1 è l'edizione di riferimento citabile (minimo riproducibile,
-  technical note inclusa, gate di regressione multipiattaforma).
+  Validato vs bifacial_radiance ufficiale (NREL): MBE < 1%, R² ≥ 0.997, più
+  un riferimento indipendente col workflow nativo set1axis (entro 0.5 punti
+  percentuali sul rapporto suolo/GHI giornaliero).
+  La v4.3.0 è l'edizione di riferimento citabile e CORREGGE un errore
+  maggiore presente dal v4.1.0 al v4.2.2: la scena di tracking era
+  contro-ruotata rispetto al sole e i K_agv in modalità tracking
+  sovrastimavano la luce al suolo (es. progetto Sample: 84.1% → 57.5%).
+  Non usare i K_agv in tracking delle versioni precedenti.
 
 authors:
   - family-names: "Pesavento"
@@ -26,21 +31,24 @@ authors:
     orcid: "https://orcid.org/0009-0008-0720-4539"
     affiliation: "Independent researcher"
 
-version: "4.2.1"
+version: "4.3.0"
 date-released: "2026-06-11"
 license: "Apache-2.0"
 repository-code: "https://github.com/eurrag/SolRatio"
 url: "https://github.com/eurrag/SolRatio"
 
-# DOI della versione v4.2.1 (immutabile). Concept DOI (sempre-ultima-versione):
-# 10.5281/zenodo.19959581 — vedi README.
-# DOI versioni precedenti:
+# Qui sotto: concept DOI (risolve sempre all'ultima versione). Il DOI di
+# versione della v4.3.0 viene coniato al deposito Zenodo: aggiornare questo
+# campo dopo il deposito.
+# DOI versioni precedenti (⚠ v4.1.0–v4.2.1: K_agv in tracking SOVRASTIMATI,
+# scena contro-ruotata — vedi CHANGELOG v4.3.0):
+#   v4.2.1: 10.5281/zenodo.20642574
 #   v4.2.0: 10.5281/zenodo.20277335
 #   v4.1.2: 10.5281/zenodo.19982399
 #   v4.1.1: 10.5281/zenodo.19960929
 #   v4.1.0: 10.5281/zenodo.19959582 (rilascio iniziale, contiene bug STEP 5
 #           risolto in v4.1.1 - vedi CHANGELOG)
-doi: "10.5281/zenodo.20642574"
+doi: "10.5281/zenodo.19959581"
 
 keywords:
   - "agrivoltaics"

@@ -90,12 +90,16 @@ prompt "Salvare?" alla chiusura, idempotente.
 
 Questa configurazione (con coordinate di pianura padana) è stata usata come
 caso di validazione di SolRatio v4.x vs il workflow ufficiale di
-`bifacial_radiance` (NREL) su due giornate rappresentative:
+`bifacial_radiance` (NREL) su due giornate rappresentative (misure v4.3.0,
+Radiance 6.0, 2026-06-11):
 
 | Indicatore | 21 marzo (equinozio) | 21 giugno (solstizio) |
 |------------|----------------------|------------------------|
-| MBE | +0.54% | +0.42% |
-| RMSE | 0.80% | 0.49% |
-| R² | 0.9982 | 0.9989 |
+| MBE | +0.0% | −0.0% |
+| RMSE | 0.0% | 0.1% |
+| R² | 1.0000 | 0.9999 |
 
-Per dettagli vedi `documentazione/CHANGELOG.md` e `engine/validazione_br.py`.
+Dalla v4.3.0 la validazione include anche un riferimento indipendente col
+workflow nativo `set1axis` (scarto −0.1/−0.4 pp sul rapporto suolo/GHI
+giornaliero). Per dettagli vedi `documentazione/CHANGELOG.md` e
+`engine/validazione_br.py`.

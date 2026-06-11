@@ -1,5 +1,5 @@
 """
-solratio_multiyear.py  |  SolRatio v4.2.1
+solratio_multiyear.py  |  SolRatio v4.3.0
 ========================================================================
 Esegue la pipeline SolRatio (motore BR + ottica + agronomia) su più
 anni meteorologici PVGIS e aggrega le statistiche di K_agv come
@@ -199,7 +199,7 @@ def build_year_epw(
         'GROUND TEMPERATURES,0',
         'HOLIDAYS/DAYLIGHT SAVING,No,0,0,0',
         f'COMMENTS 1,Annual EPW year={year} (multiyear strategy A) '
-        f'{_epw_format_marker()} for SolRatio v4.2.1',
+        f'{_epw_format_marker()} for SolRatio v4.3.0',
         'COMMENTS 2,',
         'DATA PERIODS,1,1,Data,Sunday, 1/ 1,12/31',
     ]

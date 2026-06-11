@@ -1,5 +1,5 @@
 """
-solratio_excel.py  |  SolRatio v4.2.1 (2026-05-01)
+solratio_excel.py  |  SolRatio v4.3.0 (2026-06-11)
 =====================================================
 Lettura parametri e scrittura fogli risultati Excel.
 

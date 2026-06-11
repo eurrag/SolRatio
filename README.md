@@ -1,4 +1,4 @@
-# SolRatio v4.2.1
+# SolRatio v4.3.0
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19959581.svg)](https://doi.org/10.5281/zenodo.19959581)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -7,7 +7,14 @@
 
 SolRatio è uno strumento integrato che combina la simulazione della radiazione solare disponibile per le colture sottostanti ai pannelli fotovoltaici (tramite ray-tracing 3D fisicamente accurato Radiance + bifacial_radiance) con le curve dose-risposta di Laub et al. (2022) per la stima delle rese colturali in regime di ombreggiamento agrivoltaico. Fornisce profili spaziali e temporali di PAR e DLI, e il coefficiente agrivoltaico K_agv per nove categorie colturali, necessari alla verifica dei requisiti agronomici previsti dalle Linee Guida MASE (D.M. 436/2023) e alla valutazione della compatibilità tra produzione energetica e produzione agricola.
 
-> **Edizione di riferimento (open-core).** SolRatio v4.2.x è la *Community /
+> **⚠ Correzione maggiore (v4.3.0).** Dal v4.1.0 al v4.2.2 la scena Radiance
+> ruotava il pannello dalla parte opposta al sole in ogni ora di tracking: i
+> K_agv in modalità tracking delle versioni precedenti **sovrastimano la luce
+> al suolo** (gate Sample: 84.1% → 57.5%). Chi ha usato risultati in tracking
+> di versioni precedenti deve rieseguire le simulazioni. Dettagli nel
+> [CHANGELOG](documentazione/CHANGELOG.md).
+
+> **Edizione di riferimento (open-core).** SolRatio v4.3.x è la *Community /
 > Reference Edition*: una base citabile e riproducibile, mantenuta con fix di
 > correttezza e pensata per la verifica scientifica del metodo. Lo sviluppo di
 > nuove funzionalità prosegue nel prodotto hosted **SolRatio Pro**. Le
@@ -30,7 +37,7 @@ SolRatio è uno strumento integrato che combina la simulazione della radiazione 
 - Curve di resa colturale Laub et al. (2022) — 9 colture — con calcolo K_agv di campo
 - Output: report Excel multi-foglio + report PDF di sintesi
 - Interfaccia Excel/VBA per gestione progetti senza scrivere codice; auto-update della label di versione via `Workbook_Open()`
-- Validazione vs bifacial_radiance ufficiale: MBE < 1%, R² > 0.998 (Sample N-S, due giornate rappresentative)
+- Validazione vs bifacial_radiance ufficiale: MBE < 1%, R² ≥ 0.997 (Sample N-S, due giornate rappresentative), più riferimento indipendente col workflow nativo `set1axis` (entro 0.5 pp sul rapporto suolo/GHI giornaliero)
 - Test di regressione (smoke) multipiattaforma sui progetti Sample N-S ed E-W inclusi
 
 ---
@@ -106,7 +113,7 @@ Per creare un nuovo progetto: duplica una delle cartelle, rinominala, modifica i
 ```
 SolRatio/
 ├── engine/                          # Codice sorgente
-│   ├── VERSION                      # Versione corrente: "4.2.1"
+│   ├── VERSION                      # Versione corrente: "4.3.0"
 │   ├── calcola_br.py                # Entry point principale
 │   ├── br_engine.py                 # Motore bifacial_radiance (con tau_diff, slope L2/L3, cache .oct)
 │   ├── _scene_cache.py              # Cache persistente delle scene Radiance octree
@@ -153,18 +160,20 @@ Documentazione tecnica nella cartella `documentazione/`:
 
 ## Validazione
 
-Il modello è validato confrontando i risultati con il workflow ufficiale di bifacial_radiance (NREL) sullo stesso progetto, stessi parametri, stessi dati meteorologici. Risultati su una località di pianura padana (lat 45.30°N, lon 9.34°E, dati PVGIS-SARAH3 2005-2023), `n_rows = 7`:
+Il modello è validato in due modi complementari (script: `engine/validazione_br.py`).
+
+**1) Code-to-code** vs il workflow ufficiale di bifacial_radiance (AnalysisObj) sullo stesso progetto, stessi parametri rtrace, stessi dati meteorologici. Risultati sul progetto *Sample* incluso (pianura padana, lat 45.30°N lon 9.34°E, dati PVGIS-SARAH3 2005-2023; scena demo con `br_n_rows = 4`), misurati con v4.3.0 (Radiance 6.0, 2026-06-11):
 
 | Giorno | MBE | RMSE | R² |
 |--------|-----|------|----|
-| 21 marzo (equinozio) | +0.54% | 0.80% | 0.9982 |
-| 21 giugno (solstizio) | +0.42% | 0.49% | 0.9989 |
+| 21 marzo (equinozio) | +0.0% | 0.0% | 1.0000 |
+| 21 giugno (solstizio) | −0.0% | 0.1% | 0.9999 |
 
-Lo scostamento residuo è rumore numerico intrinseco di Radiance (stocasticità ambient sampling). Script: `engine/validazione_br.py`.
+Lo scostamento residuo è rumore numerico intrinseco di Radiance (stocasticità ambient sampling); ri-esecuzioni indipendenti restituiscono R² ≥ 0.9975.
 
-Riverificato sulla v4.2.1 (Radiance 6.0, 2026-06-11): R² ≥ 0.9985 e RMSE ≤ 0.2% su entrambe le giornate.
+**2) Riferimento canonico indipendente** (parte D della validazione, introdotta in v4.3.0): la stessa scena è simulata col workflow nativo 1-axis di bifacial_radiance (`set1axis` → `gendaylit1axis` → `analysis1axisground`), in cui gli angoli del tracker li calcola pvlib *dentro la libreria* e i sensori a terra li posiziona la libreria stessa — nessuna convenzione SolRatio nella geometria. Scarto sul rapporto suolo/GHI giornaliero: −0.1 pp (21/3) e −0.4 pp (21/6). Questo controllo è stato aggiunto dopo la scoperta della scena contro-ruotata (v4.1.0–v4.2.2): la sola validazione code-to-code condivideva la convenzione di scena col motore ed era cieca per costruzione agli errori di convenzione.
 
-Test di regressione nel workflow di rilascio: i progetti inclusi *Sample* (N-S) e *Sample_EW* (E-W) devono riprodurre un K_agv SAU per Cereali C3 di **84.1%** e **79.2%** rispettivamente (riferimenti misurati con v4.2.1), con tolleranza **±0.2 punti percentuali**: l'ambient sampling di Radiance è stocastico e il risultato non è bit-identico tra run. Lancio: `_smoke_regression.bat` (Windows) o `./_smoke_regression.sh` (Linux/macOS). Ogni release candidate deve passare questo gate.
+Test di regressione nel workflow di rilascio: i progetti inclusi *Sample* (N-S) e *Sample_EW* (E-W) devono riprodurre un K_agv SAU per Cereali C3 di **57.5%** e **55.3%** rispettivamente (riferimenti misurati con v4.3.0), con tolleranza **±0.2 punti percentuali**: l'ambient sampling di Radiance è stocastico e il risultato non è bit-identico tra run. Lancio: `_smoke_regression.bat` (Windows) o `./_smoke_regression.sh` (Linux/macOS). Ogni release candidate deve passare questo gate.
 
 ---
 
@@ -185,7 +194,7 @@ Test di regressione nel workflow di rilascio: i progetti inclusi *Sample* (N-S) 
 
 ## Posizionamento e sviluppi
 
-SolRatio v4.2.x è mantenuta come **edizione di riferimento**: riceve fix di
+SolRatio v4.3.x è mantenuta come **edizione di riferimento**: riceve fix di
 correttezza e riproducibilità, non nuove funzionalità (dettagli in
 `documentazione/ROADMAP.md`). Lo sviluppo — modellazione 3D dei pali, bilancio
 idrico/ET, resa energetica, geometrie di campo reali, interfaccia web —
@@ -201,19 +210,19 @@ sono benvenute (aprire una issue sul repository).
 
 Se usi SolRatio in lavori pubblici (relazioni tecniche, articoli, presentazioni), puoi citarlo come:
 
-> Pesavento, S. (2026). *SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale* (v4.2.1). Zenodo. https://doi.org/10.5281/zenodo.20642574
+> Pesavento, S. (2026). *SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale* (v4.3.0). Zenodo. https://doi.org/10.5281/zenodo.19959581
 
 **DOI:**
 
-- **Versione v4.2.1** (immutabile, raccomandata): [`10.5281/zenodo.20642574`](https://doi.org/10.5281/zenodo.20642574) — usalo per citare la versione esatta che hai scaricato
-- **Concept DOI** (sempre-ultima-versione): [`10.5281/zenodo.19959581`](https://doi.org/10.5281/zenodo.19959581) — usalo per citare "SolRatio" in generale
+- **Concept DOI** (sempre-ultima-versione): [`10.5281/zenodo.19959581`](https://doi.org/10.5281/zenodo.19959581) — usalo per citare "SolRatio" in generale; il DOI di versione della v4.3.0 sarà assegnato al deposito Zenodo e riportato qui
 
-DOI versioni precedenti:
+DOI versioni precedenti — **⚠ v4.1.0–v4.2.1: i K_agv in modalità tracking sono sovrastimati** (scena contro-ruotata, vedi CHANGELOG v4.3.0); i record restano immutabili per la riproducibilità storica, **non raccomandati per nuove citazioni**:
 
+- v4.2.1: [`10.5281/zenodo.20642574`](https://doi.org/10.5281/zenodo.20642574)
 - v4.2.0: [`10.5281/zenodo.20277335`](https://doi.org/10.5281/zenodo.20277335)
 - v4.1.2: [`10.5281/zenodo.19982399`](https://doi.org/10.5281/zenodo.19982399)
 - v4.1.1: [`10.5281/zenodo.19960929`](https://doi.org/10.5281/zenodo.19960929)
-- v4.1.0: [`10.5281/zenodo.19959582`](https://doi.org/10.5281/zenodo.19959582) — contiene il bug STEP 5 risolto in v4.1.1, **non raccomandato per nuove citazioni**
+- v4.1.0: [`10.5281/zenodo.19959582`](https://doi.org/10.5281/zenodo.19959582) — contiene anche il bug STEP 5 risolto in v4.1.1
 
 Vedi `CITATION.cff` per i metadati completi e `documentazione/SolRatio_technical_note.md` per la descrizione completa del modello.
 

@@ -1,4 +1,4 @@
-# SolRatio — Riferimento formule (v4.2.1)
+# SolRatio — Riferimento formule (v4.3.0)
 
 ## Conversioni fondamentali
 
