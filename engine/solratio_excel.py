@@ -583,6 +583,37 @@ def write_profilo_par_spaziale(wb, zs, p):
     ZONE_T2 = [(13, 'DLI_ref'), (14, 'Sotto-tracker'), (15, 'Bordo'),
                (16, 'Centrale'), (17, 'SAU'), (18, 'Media pitch')]
 
+    # Senza template il foglio nasce vuoto: titolo, banner e intestazioni
+    # le scrive il codice (v4.2.1).
+    _MESI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu',
+             'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
+    ws.column_dimensions['A'].width = 4
+    ws.column_dimensions['B'].width = 22
+    for _c in 'CDEFGHIJKLMN':
+        ws.column_dimensions[_c].width = 7
+    ws.cell(1, 1).value = (
+        f'PAR RELATIVA E DLI PER ZONA -- medie mensili P50, '
+        f'anni {p["yr_start"]}-{p["yr_end"]}')
+    ws.cell(1, 1).font = Font(name='Arial', bold=True, size=11, color='FFFFFFFF')
+    ws.cell(1, 1).fill = PatternFill('solid', fgColor='FF1F4E79')
+    ws.cell(3, 1).value = '  TABELLA 1 -- PAR relativa P50 (1.00 = cielo aperto)'
+    ws.cell(3, 1).font = Font(name='Arial', bold=True, size=10, color='FF1F4E79')
+    ws.cell(3, 1).fill = PatternFill('solid', fgColor='FFBDD7EE')
+
+    def _mesi_header(row):
+        c = ws.cell(row, 2)
+        c.value = 'Zona'
+        c.font = Font(name='Arial', bold=True, size=10, color='FF1F4E79')
+        for _i, _m in enumerate(_MESI):
+            c = ws.cell(row, 3 + _i)
+            c.value = _m
+            c.font = Font(name='Arial', bold=True, size=10, color='FFFFFFFF')
+            c.fill = PatternFill('solid', fgColor='FF2E75B6')
+            c.alignment = Alignment(horizontal='center')
+
+    _mesi_header(4)    # header Tabella 1 (dati 5-9)
+    _mesi_header(12)   # header Tabella 2 (banner a r11, dati 13-18)
+
     # Intestazioni righe (sovrascrive template se necessario)
     for row, zona in ZONE_T1:
         ws.cell(row=row, column=2).value = zona
@@ -628,6 +659,23 @@ def write_profilo_par_spaziale(wb, zs, p):
                         (24, 'SAU'), (25, 'Media pitch')]
     CHART_DLI_ZONES = [(42, 'Sotto-tracker'), (43, 'Bordo'), (44, 'Centrale'),
                         (45, 'SAU'), (46, 'Media pitch')]
+
+    # Etichette delle righe di servizio (senza template restavano numeri nudi)
+    for _r_banner, _testo in ((19, '  DATI DI SERVIZIO PER GRAFICI -- '
+                                   'PAR relativa per zona (asse X = n. mese)'),
+                              (39, '  DATI DI SERVIZIO PER GRAFICI -- '
+                                   'DLI per zona (asse X = n. mese)')):
+        ws.cell(_r_banner, 1).value = _testo
+        ws.cell(_r_banner, 1).font = Font(name='Arial', bold=True, size=10,
+                                          color='FF1F4E79')
+        ws.cell(_r_banner, 1).fill = PatternFill('solid', fgColor='FFBDD7EE')
+    ws.cell(20, 2).value = 'Mese'
+    ws.cell(40, 2).value = 'Mese'
+    ws.cell(41, 2).value = 'DLI rif. (cielo aperto)'
+    for _row, _zona in CHART_PAR_ZONES + CHART_DLI_ZONES:
+        ws.cell(_row, 2).value = _zona
+    for _row in (20, 40, 41):
+        ws.cell(_row, 2).font = Font(name='Arial', size=10, italic=True)
 
     # Asse X mesi (r20 e r40)
     for col_idx, m in enumerate(range(1, 13), start=3):
@@ -710,6 +758,30 @@ def write_par_dli_profilo(wb, stats, x_pts, p):
         f'Calcolato il {datetime.now().strftime("%d/%m/%Y %H:%M")}'
     )
 
+    # Senza template: banner Tabella 1 + intestazioni colonne (v4.2.1)
+    _MESI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu',
+             'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
+    ws.column_dimensions['A'].width = 8
+    ws.column_dimensions['B'].width = 7
+    ws.column_dimensions['C'].width = 14
+    for _c in 'DEFGHIJKLMNO':
+        ws.column_dimensions[_c].width = 7
+
+    def _header_mesi(row):
+        for _ci, _h in enumerate(['x/pitch', 'x (m)', 'Zona'] + _MESI):
+            c = ws.cell(row, _ci + 1)
+            c.value = _h
+            c.font = Font(name='Arial', bold=True, size=10,
+                          color='FFFFFFFF' if _ci >= 3 else 'FF1F4E79')
+            if _ci >= 3:
+                c.fill = PatternFill('solid', fgColor='FF2E75B6')
+            c.alignment = Alignment(horizontal='center')
+
+    ws.cell(3, 1).value = '  TABELLA 1 -- PAR relativa P50 (1.00 = cielo aperto)'
+    ws.cell(3, 1).font = Font(name='Arial', bold=True, size=10, color='FF1F4E79')
+    ws.cell(3, 1).fill = PatternFill('solid', fgColor='FFBDD7EE')
+    _header_mesi(PAR_START - 1)
+
     # ── Helper per scrivere x/pitch, x(m), zona ──────────────────────────
     def write_point_cols(r, pt_idx):
         """Scrive colonne A (x/pitch), B (x m), C (zona) per il punto."""
@@ -748,6 +820,7 @@ def write_par_dli_profilo(wb, stats, x_pts, p):
     ws.cell(PAR_END+3, 1).value = '  TABELLA 2 -- DLI stimato P50 (mol PAR/m²/giorno)'
     ws.cell(PAR_END+3, 1).font  = Font(name='Arial', bold=True, size=10, color='FF1F4E79')
     ws.cell(PAR_END+3, 1).fill  = PatternFill('solid', fgColor='FFBDD7EE')
+    _header_mesi(DLI_START - 1)
 
     for pt_idx in range(N):
         r = DLI_START + pt_idx
