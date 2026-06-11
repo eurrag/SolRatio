@@ -144,7 +144,8 @@ def main():
     tau = p.get('tau', 0.0)
     if tau > 0:
         print(f'   Trasmittanza pannello tau: {tau:.2f}')
-        print(f'   NOTA: tau non è supportato in BR (ray-tracing opaco)')
+        print(f'   Trasmittanza pannello attiva: tau={p["tau"]:.2f} '
+          f'(materiale Radiance trans)')
     if p.get('n_file', 0) > 0:
         print(f'   Effetto bordo: N_file={p["n_file"]}  '
               f'L_tracker={p.get("L_tracker", 0):.1f}m  '

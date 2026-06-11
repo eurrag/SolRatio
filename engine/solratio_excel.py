@@ -189,7 +189,7 @@ def read_parameters(wb):
     if p['n_ext'] == 0:
         print("  NOTA: n_ext=0 -> VF calcolato con soli 2 tracker (pitch isolato). "
               "Risultati non rappresentativi di un impianto esteso.")
-        if p.get('n_file', 0) > 0:
+        if p.get('larghezza_blocco', 0.0) > 0:  # M10: n_file non esiste ancora
             raise ValueError(
                 "n_ext=0 (B44) incompatibile con effetto bordo attivo "
                 "(larghezza blocco B30 > 0). L'effetto bordo richiede n_ext>=1 "
@@ -337,6 +337,11 @@ def num_cell(cell, value, fmt='0.000', bold=False):
         decimals = len(fmt_clean.split('.')[-1])
     else:
         decimals = 0
+    # M12 (v4.2.2): i formati percentuale moltiplicano x100 in display:
+    # per N decimali visibili servono N+2 decimali della frazione
+    # (prima: '0.0%' arrotondava a 2 -> 23.4% mostrato come 23.0%).
+    if '%' in fmt:
+        decimals += 2
     # +1 decimale extra per evitare errori di visualizzazione Excel
     cell.value         = round(float(value), decimals + 1)
     cell.font          = Font(name='Arial', size=10, bold=bold)
@@ -406,6 +411,10 @@ def write_riepilogo(wb, p, zs, yield_data, proj_dir, dli_daily_ref,
             }.get(int(p['backtracking']), 'Backtracking')),
         ('Azimut asse tracker', f'{p.get("axis_azimuth", 180.0):.0f}° da Nord'),
         ('Albedo terreno',      f'{p.get("albedo", 0.23):.2f}'),
+        *([('Trasmittanza diffusa τ_diff', f'{p.get("tau_diff", 0):.2f}')]
+          if p.get('tau_diff', 0) > 0 else []),
+        *([('Fattore bifaccialità', f'{p.get("bifaciality_factor", 0):.2f}')]
+          if p.get('bifaciality_factor', 0) > 0 else []),
         ('Serie PVGIS',         f'{p["yr_start"]}–{p["yr_end"]} ({p["yr_end"]-p["yr_start"]+1} anni)'),
     ]
     if p['slope_pct'] > 0:
@@ -1210,14 +1219,14 @@ def write_effetto_bordo(wb, edge_data, dns_monthly, fc_ns, kagv_imp, zs_inf, p):
     row += 1
 
     geom_rows = [
-        ('Larghezza blocco (input B28)',      f'{p.get("larghezza_blocco", 0):.1f} m'),
-        ('Lunghezza totale tracker (input B29)', f'{p.get("L_totale", 0):.0f} m'),
+        ('Larghezza blocco (input B30)',      f'{p.get("larghezza_blocco", 0):.1f} m'),
+        ('Lunghezza totale tracker (input B31)', f'{p.get("L_totale", 0):.0f} m'),
         ('Numero file tracker (derivato)',    f'{n_file}'),
         ('Lunghezza media file (derivato)',   f'{L_tracker:.1f} m' if L_tracker > 0 else 'non specificata'),
         ('Pitch',                              f'{pitch:.2f} m'),
         ('SAU per pitch (pitch − 2×SANU)',     f'{SAU_pitch:.2f} m'),
         ('Larghezza fascia esterna (P95 ombra)', f'{strip_width:.1f} m'),
-        ('SAU esterna totale (input B30, 4 lati)',  f'{sau_ext:.0f} m²'),
+        ('SAU esterna totale (input B32, 4 lati)',  f'{sau_ext:.0f} m²'),
         ('  di cui fascia esterna',             f'{area_fascia_m2:.0f} m²'),
         ('  di cui pieno campo',                f'{area_pieno_m2:.0f} m²'),
     ]

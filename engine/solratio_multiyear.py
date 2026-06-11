@@ -248,7 +248,7 @@ def append_result(csv_path: Path, row: dict) -> None:
         existing = pd.read_csv(csv_path)
         # Se l'anno è già presente, salta (idempotenza)
         if 'year' in existing.columns and 'year' in row \
-           and row['year'] in existing['year'].values:
+           and str(row['year']) in existing['year'].astype(str).values:
             return
         new_df = pd.concat([existing, pd.DataFrame([row])], ignore_index=True)
         new_df.to_csv(csv_path, index=False)
@@ -336,7 +336,7 @@ def run_multiyear(project_xlsm: Path, years_spec: str = "tmy",
     print(f"  Anni dispo: {available_years[0]}-{available_years[-1]} "
           f"(n={len(available_years)})")
     target_years = parse_years_spec(years_spec, available_years)
-    if not target_years and years_spec != "tmy":
+    if not target_years and years_spec.strip().lower() != "tmy":
         raise SystemExit("Nessun anno selezionato dopo parsing della spec.")
     print(f"  Anni target: {target_years if target_years else 'TMY only'}")
 
@@ -430,7 +430,7 @@ def run_multiyear(project_xlsm: Path, years_spec: str = "tmy",
         }
 
     # Esegui TMY se richiesto (modalità default v4.1)
-    if years_spec == "tmy" or len(target_years) == 0:
+    if years_spec.strip().lower() == "tmy" or len(target_years) == 0:
         print(f"\n--- Run TMY composito ---")
         epw_path, tmy_info = pvgis_to_epw(str(pvgis_csv), lat, lon)
         result = run_annual(p, epw_path, n_points=p.get('n_points', 51),

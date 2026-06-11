@@ -71,7 +71,7 @@ def check_radiance() -> tuple[bool, list[str]]:
 
 def main() -> int:
     print('=' * 60)
-    print('  SolRatio v4.2.0 - Verifica ambiente Python')
+    print('  SolRatio v4.2.x - Verifica ambiente Python')
     print('=' * 60)
     print(f'Python: {check_python()}  ({sys.executable})')
     print()

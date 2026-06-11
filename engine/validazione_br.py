@@ -287,10 +287,16 @@ def _run_br_official(p, epw_path, target_month, target_day, n_points):
             axis_tilt=0,
             axis_azimuth=p.get('axis_azimuth', 180.0),
             max_angle=p['beta_max'],
-            backtrack=bool(p.get('backtracking', 1)),
+            backtrack=(int(p.get('backtracking', 1)) == 1),  # M9: tri-stato
             gcr=p['GCR'],
         )
         tracker_theta = tracker_res['tracker_theta'].fillna(0).values
+        if int(p.get('backtracking', 1)) == 2:
+            # M9 (v4.2.2): tilt fisso — come br_engine.run_annual; prima la
+            # pipeline ufficiale inseguiva il sole mentre SR era fissa:
+            # confronto fra impianti diversi.
+            tracker_theta = np.full(len(tracker_theta),
+                                    float(p.get('theta_fix', 0.0)))
 
         ghi_arr = np.array(metdata.ghi if hasattr(metdata, 'ghi') else
                            metdata.GHI, dtype=float)
@@ -352,9 +358,8 @@ def _run_br_official(p, epw_path, target_month, target_day, n_points):
         for idx in day_indices:
             theta = float(tracker_theta[idx])
             tilt = abs(theta)
-            # v4.2 item 7: azimuth scena calcolata da axis_azimuth ± 90.
-            # Per axis_azimuth=180° riproduce il vecchio (90/270).
-            azimuth = (_axis_azimuth + (-90.0 if theta >= 0 else 90.0)) % 360.0
+            # R1 (v4.2.2): convenzione pvlib (theta>0 = verso OVEST).
+            azimuth = (_axis_azimuth + (90.0 if theta >= 0 else -90.0)) % 360.0
             ch = hub_height - 0.5 * p['W'] * np.sin(np.radians(tilt))
             ch = max(0.01, ch)
 
@@ -382,6 +387,11 @@ def _run_br_official(p, epw_path, target_month, target_day, n_points):
                     os.makedirs(os.path.dirname(sky_path), exist_ok=True)
                     with open(sky_path, 'w') as f:
                         f.write(sky_str)
+                    # M11 (v4.2.2): registra il cielo nel RadianceObj; prima
+                    # il file scritto non veniva mai usato e l'octree
+                    # conteneva il cielo dell'ORA PRECEDENTE (sommato in
+                    # silenzio nel cumulato).
+                    rad.skyfiles = [sky_path]
                 except Exception as e2:
                     print(f'  Errore sky idx={idx}: {e2}')
                     continue

@@ -221,7 +221,8 @@ def compute_edge_profiles(df, p, dli_daily_ref=None):
     dhi_circ, dhi_horiz, dhi_iso = compute_perez_components(df, p)
 
     slope_tilt_rad = np.radians(p.get('slope_angle', 0.0))
-    slope_aspect_rad = np.radians((p.get('slope_azimuth', 0.0) + 180.0) % 360.0)
+    # R3 (v4.2.2): aspetto = direzione di discesa (niente +180, vedi core)
+    slope_aspect_rad = np.radians(p.get('slope_azimuth', 0.0) % 360.0)
     elev_rad = np.radians(np.clip(df['apparent_elevation'].values, 0, 90))
     az_rad = np.radians(df['azimuth'].values)
     cos_incidence = (np.sin(elev_rad) * np.cos(slope_tilt_rad) +
@@ -360,10 +361,20 @@ def compute_dns_monthly(df, p):
     dns_all = np.where(sun_mask & (tan_elev > 0.01),
                        H / tan_elev * cos_along, 0.0)
 
+    # M8 (v4.2.2): media PESATA sul DNI — l'ombra del beam esiste solo
+    # quando c'e' beam; la media aritmetica era dominata dalle code
+    # 1/tan(alfa) di alba/tramonto (fino a ~28*H con DNI~0) e gonfiava
+    # il bonus FC_NS, soprattutto nei mesi invernali.
+    dni_w = np.maximum(np.asarray(df['dni'].values, dtype=float), 0.0) \
+        if 'dni' in df.columns else np.ones(len(dns_all))
+
     result = {}
     for m in range(1, 13):
         m_mask = (df.index.month == m) & sun_mask
-        if m_mask.any():
+        w = dni_w[m_mask]
+        if m_mask.any() and w.sum() > 0:
+            result[m] = float(np.average(dns_all[m_mask], weights=w))
+        elif m_mask.any():
             result[m] = float(np.mean(dns_all[m_mask]))
         else:
             result[m] = 0.0
@@ -424,24 +435,43 @@ def compute_kagv_impianto(yield_data_inf, edge_data, fc_ns, p, crop_keys=None):
     inner_profiles = edge_data['inner']
     outer_profile = edge_data.get('outer')
 
-    # K_agv fascia esterna per mese (dalla PAR relativa media integrale)
+    # M7 (v4.2.2): Laub applicata PUNTO PER PUNTO e poi mediata (come
+    # compute_yield_curves per il campo infinito). La curva e' concava:
+    # Laub(RSR_media) sovrastimava sistematicamente bordo e soprattutto
+    # fascia esterna (gradiente PAR massimo) di 0.5-2 pp.
+    def _kagv_pointwise(profile_stats, crop_key, m, x_mask=None):
+        dli_ref = profile_stats[m]['dli_ref_p50']
+        p50 = np.asarray(profile_stats[m]['p50'], dtype=float)
+        if not (dli_ref and dli_ref > 0) or p50.size == 0:
+            return np.nan
+        par_pts = np.clip(p50 / dli_ref, 0.0, None)
+        rsr_pts = np.clip(1.0 - par_pts, 0.0, 1.0)
+        y_pts = laub_yield(rsr_pts, crop_key) / 100.0
+        x_arr = np.linspace(0.0, 1.0, len(y_pts))
+        mask = x_mask if x_mask is not None else np.ones(len(y_pts), bool)
+        if not mask.any():
+            return np.nan
+        return float(trapz_zone_mean(y_pts, x_arr, mask))
+
     def _kagv_outer(crop_key, m):
-        """K_agv dalla PAR relativa media della fascia esterna."""
+        """K_agv puntuale della fascia esterna (tutti i punti)."""
         if outer_profile is None:
             return float(laub_yield(0.0, crop_key)) / 100.0
-        par_rel = outer_profile.get('par_rel', {}).get(m, 1.0)
-        rsr = np.clip(1.0 - par_rel, 0.0, 1.0)
-        return float(laub_yield(rsr, crop_key)) / 100.0
-
-    # K_agv da profilo pitch interno di bordo
-    def _kagv_from_profile(profile_stats, profile_zs, crop_key, m):
-        dli_ref = profile_stats[m]['dli_ref_p50']
-        dli_sau = profile_zs[m].get('SAU', {}).get('p50', 0)
-        if dli_ref and dli_ref > 0 and dli_sau > 0:
-            par_rel = dli_sau / dli_ref
+        v = _kagv_pointwise(outer_profile['stats'], crop_key, m)
+        if np.isnan(v):
+            par_rel = outer_profile.get('par_rel', {}).get(m, 1.0)
             rsr = np.clip(1.0 - par_rel, 0.0, 1.0)
             return float(laub_yield(rsr, crop_key)) / 100.0
-        return np.nan
+        return v
+
+    def _kagv_from_profile(profile_stats, profile_zs, crop_key, m):
+        """K_agv puntuale del pitch di bordo, sulla zona SAU."""
+        n_pts = len(np.asarray(profile_stats[m]['p50']))
+        x_abs = np.linspace(0.0, pitch, n_pts)
+        sau_mask = (x_abs >= p.get('sanu', 0.5)) & \
+                   (x_abs <= pitch - p.get('sanu', 0.5))
+        v = _kagv_pointwise(profile_stats, crop_key, m, x_mask=sau_mask)
+        return v
 
     result = {}
 
@@ -484,9 +514,14 @@ def compute_kagv_impianto(yield_data_inf, edge_data, fc_ns, p, crop_keys=None):
             #   bordo_sx = min(n_ext, n_file // 2 + n_file % 2)
             #   bordo_dx = min(n_ext, n_file // 2)
             #   interne  = n_file - bordo_sx - bordo_dx
-            n_bordo_sx = min(n_ext, (n_file + 1) // 2)
-            n_bordo_dx = min(n_ext, n_file // 2)
-            n_interne = max(0, n_file - n_bordo_sx - n_bordo_dx)
+            # M6 (v4.2.2): fra n_file file esistono n_file-1 strisce di
+            # pitch (la fascia oltre l'asse delle file di bordo e' gia'
+            # contata in area_fascia): contarne n_file duplicava una
+            # striscia, con peso errato ~1/n_file.
+            _n_str = max(0, n_file - 1)
+            n_bordo_sx = min(n_ext, (_n_str + 1) // 2)
+            n_bordo_dx = min(n_ext, _n_str // 2)
+            n_interne = max(0, _n_str - n_bordo_sx - n_bordo_dx)
 
             # File dal bordo sinistro
             for k in range(n_bordo_sx):

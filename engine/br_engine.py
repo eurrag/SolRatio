@@ -245,18 +245,23 @@ def find_pvgis_csv(project_dir, lat=None, lon=None):
     project_dir = _Path(project_dir)
     candidates = [project_dir, project_dir / 'input']
 
+    # M4 (v4.2.2): con lat/lon noti si accetta SOLO il match esatto
+    # (su tutte le directory); il fallback generico restituiva il CSV di
+    # un ALTRO sito dopo un cambio di coordinate (errore silenzioso) e
+    # impediva il download automatico del file corretto.
+    if lat is not None and lon is not None:
+        pattern = f'PVGIS_{float(lat):.4f}_{float(lon):.4f}_*.csv'
+        for d in candidates:
+            if d.is_dir():
+                matches = sorted(d.glob(pattern))
+                if matches:
+                    return matches[0]
+        return None
     for d in candidates:
-        if not d.is_dir():
-            continue
-        if lat is not None and lon is not None:
-            pattern = f'PVGIS_{float(lat):.4f}_{float(lon):.4f}_*.csv'
-            matches = sorted(d.glob(pattern))
+        if d.is_dir():
+            matches = sorted(d.glob('PVGIS_*.csv'))
             if matches:
                 return matches[0]
-        # Fallback: qualsiasi PVGIS_*.csv
-        matches = sorted(d.glob('PVGIS_*.csv'))
-        if matches:
-            return matches[0]
     return None
 
 
@@ -304,6 +309,11 @@ def pvgis_to_epw(pvgis_csv_path, lat, lon, elevation=0):
     frames = []
     for m, sel_year, df_m in tmy_months:
         df_m = df_m.copy()
+        # R2 (v4.2.2): rimuove il 29/02 PRIMA della rinormalizzazione:
+        # replace(year=non_bisestile) su un 29/02 solleva ValueError
+        # (crash riprodotto con dati reali 2018-2020, dossier R2).
+        df_m = df_m[~((df_m['time'].dt.month == 2) &
+                      (df_m['time'].dt.day == 29))]
         # Riscrive i timestamp con l'anno di riferimento
         df_m['time'] = df_m['time'].apply(
             lambda t: t.replace(year=ref_year))
@@ -313,13 +323,12 @@ def pvgis_to_epw(pvgis_csv_path, lat, lon, elevation=0):
 
     n_hours = len(df_tmy)
     if n_hours != 8760:
-        print(f'  AVVISO: TMY assemblato ha {n_hours} ore (attese 8760)')
-        # Gestisci anno bisestile: rimuovi 29 feb se presente
-        if n_hours > 8760:
-            df_tmy = df_tmy[~((df_tmy['time'].dt.month == 2) &
-                               (df_tmy['time'].dt.day == 29))]
-            df_tmy = df_tmy.head(8760).reset_index(drop=True)
-            print(f'  Troncato a {len(df_tmy)} ore')
+        # R2 (v4.2.2): col filtro 29/02 a monte il TMY e' sempre 8760 ore;
+        # un conteggio diverso = serie PVGIS incompleta -> errore esplicito
+        # (prima: solo AVVISO e EPW corto con effetti non controllati).
+        raise RuntimeError(
+            f'TMY assemblato con {n_hours} ore (attese 8760): la serie '
+            f'PVGIS ha mesi incompleti o anomali — verificare il CSV.')
 
     ghi_tmy = df_tmy['ghi'].sum()
     tmy_info = ', '.join(f'{calendar.month_abbr[m]}={y}'
@@ -756,9 +765,11 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
 
         for _i_ut, _ut in enumerate(unique_thetas):
             _tilt = abs(_ut)
-            # v4.2 item 7: azimuth scena calcolato da axis_azimuth ± 90
-            # Per axis_azimuth=180° riproduce il vecchio (90/270).
-            _azimuth = (_axis_azimuth + (-90.0 if _ut >= 0 else 90.0)) % 360.0
+            # R1 (v4.2.2): convenzione pvlib — theta>0 = rotazione verso
+            # OVEST (surface_azimuth = axis+90), theta<0 = EST (axis-90).
+            # La formula storica (v4.1-v4.2.1) era specchiata E/O: provato
+            # sperimentalmente (ombra larga/stretta invertita, dossier R1).
+            _azimuth = (_axis_azimuth + (90.0 if _ut >= 0 else -90.0)) % 360.0
             _ch = hub_height - 0.5 * p['W'] * np.sin(np.radians(_tilt))
             _ch = max(0.01, _ch)
             clearance_cache[_ut] = _ch
@@ -988,7 +999,11 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
             # del modulo, e va verso lo zenit. Per qualsiasi tilt il modulo
             # centrale (a y=0 surface) passa per (0, 0, hub_height).
             _test_linepts = b'0 0 0.5 0 0 1\n'
-            _IRR_TEST_THRESHOLD = 100.0  # W/m²: sotto = blocco da pannello
+            # B1 (v4.2.2): con pannelli semitrasparenti il raggio
+            # verticale trasmette ~tau_tot*500 W/m2: soglia adattiva,
+            # altrimenti la cache veniva bocciata come 'senza geometria'.
+            _IRR_TEST_THRESHOLD = 100.0 + 500.0 * min(
+                0.8, _tau + p.get('tau_diff', 0.0))
             for _ut in unique_thetas:
                 try:
                     _radfiles_t, _matfiles_t = scene_cache[_ut]
@@ -996,13 +1011,14 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
                     _scene_params = {
                         'sr_compat': '4.2',
                         'tilt': abs(_ut),
-                        'azimuth': 90.0 if _ut >= 0 else 270.0,
+                        'azimuth': 270.0 if _ut >= 0 else 90.0,  # R1: pvlib
                         'clearance_height': _ch_t,
                         'pitch': p['pitch'],
                         'n_rows': n_rows,
                         'module_x': module_length,
                         'module_y': p['W'],
                         'tau': _tau,
+                        'tau_diff': p.get('tau_diff', 0.0),  # M2: nel materiale
                         'albedo': p.get('albedo', 0.23),
                         'slope_cross_deg': p.get('slope_cross_deg', 0.0),
                         'slope_along_deg': p.get('slope_along_deg', 0.0),
@@ -1118,9 +1134,18 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
                     # originali della temp dir del run creatore (cancellata
                     # a fine run) -> al riuso cross-run della cache TUTTE le
                     # ore fallivano in rtrace.
+                    # M1 (v4.2.2): con slope_cross != 0 il ring del terreno
+                    # (raggio 100 m) raggiunge z = +/-100*tan(slope): la bbox
+                    # deve includerlo o `oconv -i` fallisce ("boundary does
+                    # not encompass scene") su OGNI ora cache-hit. Per
+                    # terreno piano la bbox resta identica (cache invariata).
+                    _zm = 100.0 * abs(np.tan(np.radians(
+                        p.get('slope_cross_deg', 0.0)))) + 1.0 \
+                        if _has_slope_scene else 0.0
                     with open(_scene_oct_path, 'w') as _f_oct:
                         _proc_result = _subprocess.run(
-                            ['oconv', '-f', '-b', '-100', '-100', '-1', '200']
+                            ['oconv', '-f', '-b', '-100', '-100',
+                             f'{-1.0 - _zm:g}', f'{200.0 + 2.0 * _zm:g}']
                             + _oconv_inputs,
                             stdin=_subprocess.DEVNULL,
                             stdout=_f_oct,
@@ -1392,11 +1417,16 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
             if not os.path.exists(oct_path) or os.path.getsize(oct_path) < 100:
                 return task['task_idx'], task['hour_idx'], None
 
-            # rtrace
-            rtrace_cmd = f'rtrace {rtrace_opts} "{oct_path}"'
-            result = _subprocess.run(rtrace_cmd, shell=True,
-                                     input=linepts_bytes,
-                                     capture_output=True, timeout=60)
+            # rtrace — M3 (v4.2.2): try/except su run e parsing: un
+            # timeout o un output malformato su UNA ora deve contare come
+            # errore di quell'ora, non abortire l'intera simulazione.
+            try:
+                rtrace_cmd = f'rtrace {rtrace_opts} "{oct_path}"'
+                result = _subprocess.run(rtrace_cmd, shell=True,
+                                         input=linepts_bytes,
+                                         capture_output=True, timeout=60)
+            except Exception:
+                return task['task_idx'], task['hour_idx'], None
             if result.returncode != 0:
                 return task['task_idx'], task['hour_idx'], None
 
@@ -1406,7 +1436,11 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
             for line in lines:
                 parts = line.split('\t')
                 if len(parts) >= 6:
-                    r, g, b = float(parts[3]), float(parts[4]), float(parts[5])
+                    try:
+                        r, g, b = (float(parts[3]), float(parts[4]),
+                                   float(parts[5]))
+                    except ValueError:  # M3: token malformato
+                        return task['task_idx'], task['hour_idx'], None
                     irr = (r + g + b) / 3.0  # W/m² (matches BR convention)
                     vals.append(irr)
             if len(vals) != n_total_points:
@@ -1531,11 +1565,15 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
                 pass
             if res.returncode != 0:
                 return task['hour_idx'], None
-            parts = res.stdout.decode().strip().split('\t')
-            if len(parts) >= 6:
-                r, g, b = float(parts[3]), float(parts[4]), float(parts[5])
-                irr = (r + g + b) / 3.0  # W/m² (matches BR convention)
-                return task['hour_idx'], irr
+            try:  # M3 (v4.2.2): parsing difensivo anche nell'open-sky
+                parts = res.stdout.decode().strip().split('\t')
+                if len(parts) >= 6:
+                    r, g, b = (float(parts[3]), float(parts[4]),
+                               float(parts[5]))
+                    irr = (r + g + b) / 3.0  # W/m² (matches BR convention)
+                    return task['hour_idx'], irr
+            except Exception:
+                pass
             return task['hour_idx'], None
 
         IRR_opensky = np.zeros(len(ghi_arr))

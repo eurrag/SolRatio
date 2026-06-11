@@ -293,6 +293,10 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
           2: f'Tilt fisso θ={p.get("theta_fix", 0.0):+.1f}°'
           }.get(int(p['backtracking']), 'Backtracking')],
         ['Albedo', f'{p.get("albedo", 0.23):.2f}'],
+        *([['Trasmittanza diffusa τ_diff', f'{p.get("tau_diff", 0):.2f}']]
+          if p.get('tau_diff', 0) > 0 else []),
+        *([['Fattore bifaccialità', f'{p.get("bifaciality_factor", 0):.2f}']]
+          if p.get('bifaciality_factor', 0) > 0 else []),
         ['Serie PVGIS', f'{p["yr_start"]}-{p["yr_end"]}'],
     ]
     if p.get('tau', 0) > 0:
@@ -533,16 +537,6 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
             pass
         story.append(Spacer(1, 2*mm))
 
-    # ── Ottimizzazione pitch (solo nota sintetica) ─────────────────────────
-    if opt_results is not None:
-        story.append(Paragraph(
-            f'Ottimizzazione pitch: il pitch ottimale per la coltura '
-            f'<b>{LAUB_COEFFICIENTS.get(opt_results["crop_key"], {}).get("label_it", opt_results["crop_key"])}</b> '
-            f'risulta <b>{opt_results["optimal_pitch"]:.2f} m</b> '
-            f'(GCR = {p["W"]/opt_results["optimal_pitch"]:.3f}). '
-            f'Dettaglio nel foglio Ottimizzazione_Pitch del file risultati.xlsx.',
-            S['body']))
-
     # ── Effetto bordo ──────────────────────────────────────────────────────
     if kagv_imp is not None and len(kagv_imp) > 0:
         story.append(Paragraph(
@@ -627,9 +621,9 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
         ('Simulazione ray-tracing',
          'Per ciascuna delle ~4000 ore diurne, il programma rtrace (Radiance) traccia i '
          'raggi luminosi dalla sorgente cielo attraverso la scena 3D fino ai punti sensore '
-         'al suolo. Il calcolo considera rimbalzi multipli della luce (2 ambient bounces), '
-         '2048 divisioni emisferiche e 256 super-campioni, corrispondenti alla configurazione '
-         'standard di bifacial_radiance. L\'irradianza e calcolata come (R+G+B)/3 [W/m2].'),
+         'al suolo. Il calcolo considera rimbalzi multipli della luce e il campionamento '
+         'emisferico di Radiance con parametri configurabili (default 2 ambient bounces, '
+         '2048 divisioni, 256 super-campioni; i valori del run sono nel foglio Parametri). L\'irradianza e calcolata come (R+G+B)/3 [W/m2].'),
 
         ('Parallelizzazione',
          'Le simulazioni orarie sono distribuite su worker paralleli (80% dei core CPU, '
