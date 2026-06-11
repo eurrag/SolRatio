@@ -1,5 +1,5 @@
 """
-br_engine.py  |  SolRatio v4.2.1
+br_engine.py  |  SolRatio v4.3.0
 =================================
 Motore di calcolo basato su bifacial_radiance (Radiance ray-tracing).
 
@@ -764,16 +764,20 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
         _has_slope_scene = abs(_tan_slope_cross) > 1e-8
 
         for _i_ut, _ut in enumerate(unique_thetas):
-            _tilt = abs(_ut)
-            # NOTA R1 (v4.2.2, dossier): questa mappatura e' SPECCHIATA
-            # rispetto a pvlib (theta>0 dovrebbe essere faccia a ovest), ma
-            # scena, sensori e percorso analitico sono co-progettati su
-            # questa convenzione e il flip nudo dell'azimuth DISALLINEA i
-            # sensori dalle file (gate 84.1 -> 58.8 misurato). Il
-            # riallineamento a pvlib richiede il redesign accoppiato
-            # scena+sensori (pianificato; vedi CHANGELOG v4.2.2).
-            _azimuth = (_axis_azimuth + (-90.0 if _ut >= 0 else 90.0)) % 360.0
-            _ch = hub_height - 0.5 * p['W'] * np.sin(np.radians(_tilt))
+            # R1 (v4.3.0): convenzione pvlib in forma CANONICA bifacial_radiance
+            # (la normalizzazione di makeScene1axis): azimuth COSTANTE =
+            # axis-90 e tilt FIRMATO = -theta. Fisica identica a
+            # (axis+90, +tilt) per theta>=0, ma la scena NON si ribalta fra
+            # mattina e pomeriggio: file e sensori restano nello stesso frame
+            # del riferimento canonico set1axis in ogni ora (con nRows pari
+            # il ribaltamento spostava il contesto di bordo del gap
+            # campionato alle ore radenti). theta>0 = faccia a OVEST (pvlib);
+            # la formula storica v4.1.0-v4.2.2 era CONTRO-RUOTATA rispetto
+            # al sole: provato sperimentalmente (larghezza ombra misurata vs
+            # analitica pvlib + riferimento canonico set1axis, dossier R1).
+            _tilt = -_ut
+            _azimuth = (_axis_azimuth - 90.0) % 360.0
+            _ch = hub_height - 0.5 * p['W'] * np.sin(np.radians(abs(_ut)))
             _ch = max(0.01, _ch)
             clearance_cache[_ut] = _ch
             # radname unico per evitare collisione nomi file
@@ -1012,9 +1016,9 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
                     _radfiles_t, _matfiles_t = scene_cache[_ut]
                     _ch_t = clearance_cache[_ut]
                     _scene_params = {
-                        'sr_compat': '4.2',
-                        'tilt': abs(_ut),
-                        'azimuth': 90.0 if _ut >= 0 else 270.0,
+                        'sr_compat': '4.3',  # R1: invalida scene pre-canoniche
+                        'tilt': float(-_ut) + 0.0,  # firmato (+0.0: no -0.0)
+                        'azimuth': (p.get('axis_azimuth', 180.0) - 90.0) % 360.0,
                         'clearance_height': _ch_t,
                         'pitch': p['pitch'],
                         'n_rows': n_rows,

@@ -1,5 +1,5 @@
 """
-validazione_br.py  |  SolRatio v4.2.1
+validazione_br.py  |  SolRatio v4.3.0
 =======================================
 Confronto tra SolRatio v4 (rtrace custom) e workflow standard
 bifacial_radiance (AnalysisObj) sullo stesso progetto.
@@ -223,7 +223,152 @@ def main():
         print(f'  CSV salvato: {csv_path}')
         print()
 
+        # ══════════════════════════════════════════════════════════════
+        # D) RIFERIMENTO CANONICO INDIPENDENTE (set1axis nativo)
+        # ══════════════════════════════════════════════════════════════
+        # La parte B condivide col motore la convenzione theta→(tilt,
+        # azimuth) della scena: un errore di convenzione sarebbe invisibile
+        # per costruzione (è successo: scena contro-ruotata v4.1–v4.2.2,
+        # dossier R1). Qui gli angoli li calcola bifacial_radiance stesso
+        # (set1axis → pvlib surface_tilt/surface_azimuth) e i sensori a
+        # terra li posiziona groundAnalysis nel frame della scena: nessun
+        # codice SolRatio nella geometria. Confronto sul K giornaliero
+        # (media spaziale suolo / GHI): i parametri rtrace del workflow
+        # nativo ('low': -ab 2) differiscono dal motore (-ab 1), quindi i
+        # profili puntuali non sono confrontabili 1:1, ma il K giornaliero
+        # sì entro ~1 pp (misurato −0.1/−0.3 pp sul Sample).
+        print(f'\n--- D) Riferimento canonico set1axis ({target_day}/{target_month}) ---')
+        canon = _run_br_canonical(p, epw_path, target_month, target_day,
+                                  n_points)
+        if canon is None:
+            print('  ERRORE: workflow canonico fallito')
+        else:
+            sum_can, ghi_can, n_can = canon
+            sr_idx = [i for i, ts in enumerate(sr_result['daylight_timestamps'])
+                      if ts.month == target_month and ts.day == target_day]
+            sum_sr = float(IRR_sr.mean(axis=1).sum())
+            ghi_sr = float(sr_result['ghi_arr'][
+                sr_result['daylight_indices'][sr_idx]].sum())
+            k_sr = sum_sr / ghi_sr * 100 if ghi_sr > 0 else float('nan')
+            k_can = sum_can / ghi_can * 100 if ghi_can > 0 else float('nan')
+            print(f'  Ore canoniche: {n_can}  (motore: {len(sr_idx)})')
+            print(f'  K_day suolo/GHI — canonico: {k_can:5.1f}%   '
+                  f'motore SR: {k_sr:5.1f}%   scarto: {k_sr - k_can:+.1f} pp')
+            if abs(k_sr - k_can) > 2.0:
+                print('  ⚠ SCARTO OLTRE 2 pp: possibile errore di convenzione '
+                      'scena (vedi dossier R1) o di geometria.')
+
     print('Validazione completata.')
+
+
+def _run_br_canonical(p, epw_path, target_month, target_day, n_points):
+    """
+    Workflow bifacial_radiance NATIVO 1-axis sul giorno campione:
+    set1axis (angoli pvlib) → gendaylit1axis → makeScene1axis →
+    makeOct1axis → analysis1axisground (sensori a terra lungo il pitch).
+
+    Indipendente dalla convenzione di scena del motore. Restituisce
+    (somma oraria della media spaziale suolo [Wh/m²], somma GHI [Wh/m²],
+    n_ore) sulle ore con sole > 2° e GHI > 20, o None se fallisce.
+    """
+    import bifacial_radiance as br
+
+    temp_work = tempfile.mkdtemp(prefix='sr_val_canon_')
+    try:
+        _cwd_orig = os.getcwd()
+    except OSError:
+        _cwd_orig = tempfile.gettempdir()
+        os.chdir(_cwd_orig)
+
+    try:
+        rad = br.RadianceObj(name='val_canon', path=temp_work)
+        epw_local = os.path.join(temp_work, os.path.basename(epw_path))
+        shutil.copy2(epw_path, epw_local)
+        import io
+        import contextlib
+        _sink = io.StringIO()
+        with contextlib.redirect_stdout(_sink):
+            metdata = rad.readWeatherFile(
+                epw_local,
+                starttime=f'{target_month:02d}_{target_day:02d}_00',
+                endtime=f'{target_month:02d}_{target_day:02d}_23')
+        rad.setGround(p.get('albedo', 0.23))
+        mod = rad.makeModule(name='val_canon_mod', x=30.0, y=p['W'],
+                             glass=False)
+
+        br_n_rows = p.get('br_n_rows', 0)
+        n_rows = br_n_rows if br_n_rows > 0 else 2 * p.get('n_ext', 2) + 1
+        n_rows = max(3, int(n_rows))
+
+        axis_az = float(p.get('axis_azimuth', 180.0))
+        bt = int(p.get('backtracking', 1))
+        if bt == 2:
+            # tilt fisso: tilt firmato canonico (-theta_fix) con azimuth
+            # costante axis-90 (theta_fix>0 = faccia a OVEST, pvlib)
+            trackerdict = rad.set1axis(
+                metdata=metdata, azimuth=(axis_az - 90.0) % 360.0,
+                fixed_tilt_angle=-float(p.get('theta_fix', 0.0)),
+                cumulativesky=False, angledelta=None)
+        else:
+            trackerdict = rad.set1axis(
+                metdata=metdata, azimuth=axis_az,
+                limit_angle=float(p['beta_max']), angledelta=None,
+                backtrack=(bt == 1), gcr=float(p['GCR']),
+                cumulativesky=False)
+        with contextlib.redirect_stdout(_sink):
+            rad.gendaylit1axis()
+            rad.makeScene1axis(trackerdict=trackerdict, module=mod,
+                               sceneDict={'pitch': float(p['pitch']),
+                                          'hub_height': float(p['H']),
+                                          'nMods': 1, 'nRows': n_rows})
+            rad.makeOct1axis(trackerdict=trackerdict)
+            # append=False: pre-inizializza ['AnalysisObj'] (bug 0.5.1 con
+            # append=True: KeyError silenziato → return None a metà loop).
+            rad.analysis1axisground(trackerdict=trackerdict,
+                                    sensorsground=n_points,
+                                    accuracy='low', append=False)
+
+        # filtro ore identico al motore (sole > 2°, GHI > 20)
+        elev = metdata.solpos['apparent_elevation'].values
+        ghi = np.asarray(metdata.ghi if hasattr(metdata, 'ghi')
+                         else metdata.GHI, dtype=float)
+        ok_hours = set()
+        ghi_by_hour = {}
+        for i, dt in enumerate(metdata.datetime):
+            if elev[i] > 2.0 and ghi[i] > 20.0:
+                ok_hours.add((dt.month, dt.day, dt.hour))
+                ghi_by_hour[(dt.month, dt.day, dt.hour)] = float(ghi[i])
+
+        sum_mean = 0.0
+        sum_ghi = 0.0
+        n_ok = 0
+        for key in sorted(trackerdict.keys()):
+            objs = trackerdict[key].get('AnalysisObj') or []
+            if not objs:
+                continue
+            vals = np.asarray(objs[-1].Wm2Front, dtype=float)
+            if len(vals) != n_points or not np.isfinite(vals).all():
+                continue
+            d, t = key.split('_')
+            hkey = (int(d[5:7]), int(d[8:10]), int(t[:2]))
+            if hkey not in ok_hours:
+                continue
+            sum_mean += float(vals.mean())
+            sum_ghi += ghi_by_hour[hkey]
+            n_ok += 1
+        if n_ok == 0:
+            return None
+        return sum_mean, sum_ghi, n_ok
+
+    finally:
+        try:
+            os.chdir(_cwd_orig)
+        except OSError:
+            os.chdir(tempfile.gettempdir())
+        try:
+            shutil.rmtree(temp_work)
+        except Exception:
+            pass
 
 
 def _run_br_official(p, epw_path, target_month, target_day, n_points):
@@ -357,10 +502,12 @@ def _run_br_official(p, epw_path, target_month, target_day, n_points):
 
         for idx in day_indices:
             theta = float(tracker_theta[idx])
-            tilt = abs(theta)
-            # Convenzione storica SolRatio (vedi nota R1 in br_engine).
-            azimuth = (_axis_azimuth + (-90.0 if theta >= 0 else 90.0)) % 360.0
-            ch = hub_height - 0.5 * p['W'] * np.sin(np.radians(tilt))
+            # R1 (v4.3.0): convenzione pvlib in forma canonica BR (come
+            # makeScene1axis): azimuth costante axis-90, tilt firmato -theta
+            # (theta>0 = faccia a OVEST). Stesso frame del motore.
+            tilt = -theta
+            azimuth = (_axis_azimuth - 90.0) % 360.0
+            ch = hub_height - 0.5 * p['W'] * np.sin(np.radians(abs(theta)))
             ch = max(0.01, ch)
 
             dni_val = float(metdata.dni[idx])

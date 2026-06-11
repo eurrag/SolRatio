@@ -1,5 +1,5 @@
 """
-solratio_core.py  |  SolRatio v4.2.1 (2026-05-01)
+solratio_core.py  |  SolRatio v4.3.0 (2026-06-11)
 ====================================================
 Modello fisico: posizione solare, ray-tracing, view factor, PAR/DLI,
 statistiche mensili, decomposizione diffusa Perez, self-test.
@@ -620,7 +620,10 @@ def compute_vf_matrix(x_pts, theta_arr, p, axes_override=None):
 
     th   = theta_arr[:, None, None]              # (n_times, 1, 1)
     half_cos = W / 2 * np.abs(np.cos(th))       # (n_times, 1, 1)
-    half_sin = W / 2 * np.abs(np.sin(th))       # (n_times, 1, 1)
+    # B11 (v4.2.2): sin CON SEGNO — dz_low appartiene al bordo x_left
+    # (ovest) e dz_high a x_right (est); con |sin| il pannello era
+    # specchiato per theta<0 in questo fallback (slope/axes_override).
+    half_sin = W / 2 * np.sin(th)               # (n_times, 1, 1) CON SEGNO
 
     ax  = axes[None, None, :]                    # (1, 1, n_axes)
     xp  = np.array(x_pts)[None, :, None]        # (1, n_points, 1)
@@ -684,9 +687,9 @@ def _shadow_kinematics(solar_elev, solar_az, theta_deg, p, tan_s):
         solar_zenith, solar_az, ax_tilt, ax_az)
     psza_clamped = np.clip(np.abs(psza_deg), 0.5, 89.5)
     abs_tan_phi = np.abs(np.tan(np.radians(90.0 - psza_clamped)))
-    east = (psza_deg < 0)
+    east = (psza_deg > 0)   # R1-analitica: True = ombra verso +x
     theta_arr = np.radians(theta_deg)
-    hs = W / 2 * np.abs(np.sin(theta_arr))
+    hs = W / 2 * np.sin(theta_arr)   # M5: con segno
     hc = W / 2 * np.abs(np.cos(theta_arr))
     den = np.where(abs_tan_phi > 0.001, 1.0 + tan_s / abs_tan_phi, 1e6)
     _rw = np.full_like(abs_tan_phi, 0.0)
@@ -832,12 +835,18 @@ def compute_shadow_matrix(x_pts, df, p, axes_override=None):
     #   PSZA→±90° (sole rasente): phi_shadow→0°, abs_tan_phi→0, offset→∞ (clamp) ✓
     psza_clamped = np.clip(np.abs(psza_deg), 0.5, 89.5)
     abs_tan_phi = np.abs(np.tan(np.radians(90.0 - psza_clamped)))  # (n_times,)
-    # NOTA R1-analitica (v4.2.2): selezione e |sin| restano nella
-    # convenzione storica SPECCHIATA, coerente con la scena (vedi nota R1
-    # in br_engine). Riallineamento accoppiato pianificato (M5 incluso).
-    shadow_east = (psza_deg < 0)                         # True = sole a est
+    # R1-analitica (v4.2.2): l'ombra cade dal lato OPPOSTO al sole.
+    # PSZA<0 = sole a EST (pvlib) -> ombra verso OVEST (-x). La selezione
+    # storica proiettava l'ombra VERSO il sole (specchiata, coerente con
+    # la scena specchiata pre-R1).
+    shadow_east = (psza_deg > 0)                         # True = OMBRA verso +x
 
-    half_sin = W / 2 * np.abs(np.sin(theta_arr))            # (n_times,)
+    # M5 (v4.2.2): sin CON SEGNO — il bordo ovest (x_left) sta a
+    # z = H - half_sin, quello est (x_right) a z = H + half_sin, per
+    # qualunque segno di theta (pvlib: theta>0 = faccia a ovest = bordo
+    # ovest basso). Con |sin| il pannello veniva specchiato per meta'
+    # giornata in modalita' tilt fisso.
+    half_sin = W / 2 * np.sin(theta_arr)                    # (n_times,) CON SEGNO
     half_cos = W / 2 * np.abs(np.cos(theta_arr))            # (n_times,)
 
     # Denominatore terreno inclinato: (n_times,)
@@ -924,7 +933,7 @@ def compute_shadow_matrix(x_pts, df, p, axes_override=None):
         # Geometria: il raggio solare con angolo di profilo φ_p colpisce
         # i bordi del pannello e proietta l'ombra al suolo.
         #
-        # Per sole a EST (φ_p > 0), l'ombra cade a DESTRA (+x) dell'asse.
+        # Per sole a OVEST (PSZA > 0), l'ombra cade a DESTRA (+x) dell'asse.
         # Coordinate ombra al suolo per ciascun bordo del pannello:
         #   x_shadow = x_bordo + (z_bordo - z_ground(x_shadow)) / tan(|φ_p|)
         #
@@ -933,7 +942,7 @@ def compute_shadow_matrix(x_pts, df, p, axes_override=None):
         #   x_sh · (1 + tan_s / tan(|φ_p|)) = x_bordo + z_bordo / tan(|φ_p|)
         #   x_sh = (x_bordo + z_bordo / tan(|φ_p|)) / (1 + tan_s / tan(|φ_p|))
         #
-        # Per sole a OVEST (φ_p < 0), l'ombra cade a SINISTRA (-x):
+        # Per sole a EST (PSZA < 0), l'ombra cade a SINISTRA (-x):
         #   x_sh = x_bordo - (z_bordo - z_ground(x_shadow)) / tan(|φ_p|)
         #   x_sh · (1 - tan_s / tan(|φ_p|)) = x_bordo - z_bordo / tan(|φ_p|)
         #   x_sh = (x_bordo - z_bordo / tan(|φ_p|)) / (1 - tan_s / tan(|φ_p|))
@@ -946,9 +955,10 @@ def compute_shadow_matrix(x_pts, df, p, axes_override=None):
         sh_min_e = np.minimum(x_sh_e1, x_sh_e2)[:, None]    # (n_sun, 1)
         sh_max_e = np.maximum(x_sh_e1, x_sh_e2)[:, None]    # (n_sun, 1)
 
-        # Ombra ovest: i bordi si specchiano
-        x_sh_w1 = (x_right - z_inf / atp) / den_w           # (n_sun,)
-        x_sh_w2 = (x_left  - z_sup / atp) / den_w           # (n_sun,)
+        # Ombra verso ovest (-x): stessi bordi fisici (x_left con z_inf,
+        # x_right con z_sup — accoppiamento CON SEGNO, M5), spostamento -x.
+        x_sh_w1 = (x_left  - z_inf / atp) / den_w           # (n_sun,)
+        x_sh_w2 = (x_right - z_sup / atp) / den_w           # (n_sun,)
         sh_min_w = np.minimum(x_sh_w1, x_sh_w2)[:, None]    # (n_sun, 1)
         sh_max_w = np.maximum(x_sh_w1, x_sh_w2)[:, None]    # (n_sun, 1)
 
