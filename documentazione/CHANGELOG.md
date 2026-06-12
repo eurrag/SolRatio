@@ -1,21 +1,22 @@
 # SolRatio — Changelog
 
-## v4.3.0 (2026-06-11) — CORREZIONE MAGGIORE: scena di tracking contro-ruotata (presente dal v4.1.0)
+## v4.3.0 (2026-06-11) — Correzione maggiore: scena di tracking contro-ruotata (presente dal v4.1.0)
 
-**La scena Radiance ruotava il pannello dalla parte OPPOSTA al sole in ogni
+**La scena Radiance ruotava il pannello dalla parte opposta al sole in ogni
 ora di tracking, dal v4.1.0 al v4.2.2.** Un pannello contro-ruotato presenta
 al sole un profilo più stretto e proietta un'ombra più piccola: **tutti i
-K_agv in modalità tracking delle versioni precedenti SOVRASTIMANO la luce al
+K_agv in modalità tracking delle versioni precedenti sovrastimano la luce al
 suolo**. Sui progetti campione il gate passa da 84.1% a **57.5%** (Sample,
 N-S) e da 79.2% a **55.3%** (Sample_EW). Il tilt fisso è molto meno
-affetto (collaudo: 76.3% → 68.7%, residuo da asimmetrie orarie del meteo).
+interessato dal difetto (collaudo: 76.3% → 68.7%, residuo dovuto ad
+asimmetrie orarie dei dati meteorologici).
 Chi ha usato risultati in tracking delle versioni v4.1.0–v4.2.2 deve
 rieseguire le simulazioni.
 
 ### Perché nessuna validazione lo aveva intercettato
 
 La validazione code-to-code (parte B) costruiva la scena di riferimento con
-la STESSA mappatura theta→azimuth del motore: le due pipeline erano
+la *stessa* mappatura theta→azimuth del motore: le due pipeline erano
 specchiate allo stesso modo e il confronto era cieco per costruzione. La
 prova decisiva è stata fisica e indipendente dalle convenzioni: misura della
 larghezza dell'ombra simulata vs formula analitica con angoli pvlib
@@ -25,20 +26,21 @@ indipendente** col workflow nativo di bifacial_radiance (`set1axis` →
 posizionati dalla libreria): sul giorno sereno (21/6) il motore storico
 sovrastimava il rapporto suolo/GHI giornaliero di **+24.3 punti
 percentuali**; sul giorno coperto (21/3, luce quasi tutta diffusa) lo
-scarto era +0.6 pp — ecco perché gli aggregati annui non insospettivano.
+scarto era +0.6 pp: per questa ragione gli aggregati annui non destavano
+sospetti.
 
 ### Correzione
 
 - **Scena allineata a pvlib in forma canonica** (la stessa normalizzazione
-  di `makeScene1axis`): azimuth di scena COSTANTE = axis−90° e tilt FIRMATO
+  di `makeScene1axis`): azimuth di scena **costante** = axis−90° e tilt **con segno**
   −theta (theta>0 = faccia a ovest). Oltre a correggere la contro-rotazione,
   la scena non si ribalta più fra mattina e pomeriggio: file e sensori
   restano nello stesso frame in ogni ora (con nRows pari il ribaltamento
   spostava il contesto di bordo del gap campionato alle ore radenti).
 - **Percorso analitico accoppiato** (ombre per VF/fallback e tilt fisso):
   selezione del lato d'ombra dal segno del PSZA pvlib (l'ombra cade dal lato
-  opposto al sole) e mezzo-spessore verticale con sin CON SEGNO.
-- **Chiave della cache scene**: tilt firmato + azimuth canonico +
+  opposto al sole) e mezzo-spessore verticale con seno **con segno**.
+- **Chiave della cache scene**: tilt con segno + azimuth canonico +
   `sr_compat: 4.3` (tutte le scene pre-correzione sono invalidate).
 - **Guida theta_fix nei template**: semantica pvlib (positivo = faccia a
   ovest, negativo = est) — la guida precedente rifletteva la convenzione
@@ -46,14 +48,15 @@ scarto era +0.6 pp — ecco perché gli aggregati annui non insospettivano.
 
 ### Rettifica della voce v4.2.2
 
-Il "known issue" dichiarato in v4.2.2 (vedi sotto) conteneva DUE errori,
+Il problema noto ("known issue") dichiarato in v4.2.2 (vedi sotto)
+conteneva **due** errori,
 qui rettificati: (1) l'affermazione "gli aggregati simmetrici (incluso il
-gate) NON ne risentono" è **vera solo per il tilt fisso e FALSA per il
+gate) NON ne risentono" è **vera solo per il tilt fisso e falsa per il
 tracking** (la scena non era specchiata ma contro-ruotata: geometria
 diversa, non immagine speculare); (2) la diagnosi "il flip del solo azimuth
 disallinea i sensori dalle file" era **sbagliata**: il gate a 58.8 misurato
-dopo il fix era la fisica corretta, non un artefatto (il valore odierno
-57.5 differisce da quel 58.8 perché la correzione definitiva adotta la
+dopo la correzione rifletteva la fisica corretta, non un artefatto (il
+valore attuale 57.5 differisce da quel 58.8 perché la correzione definitiva adotta la
 forma canonica a azimuth costante, che elimina anche il ribaltamento del
 frame mattina/pomeriggio).
 
@@ -68,7 +71,7 @@ frame mattina/pomeriggio).
   −0.3 pp su entrambi i giorni).
 - **Corretta anche la mappatura del materiale `trans`** (pannelli
   semitrasparenti, difetto presente dal v4.2.0): il residuo
-  1−τ_tot−spec era scritto nel COLORE Radiance, che moltiplica la
+  1−τ_tot−spec era scritto nel **colore** Radiance, che moltiplica la
   trasmissione → un pannello τ_tot=0.9 trasmetteva ~4% (quasi opaco) e
   rifletteva diffusamente il residuo. Inversione canonica in
   `_apply_tau_material`: trasmissione effettiva = τ+τ_diff esatta;
@@ -82,13 +85,14 @@ frame mattina/pomeriggio).
   (col materiale storico erano entrambe 60.2).
   K_agv impianto Cereali C3: Sample 64.9% (l'effetto bordo pesa di più ora
   che il campo interno è più ombreggiato), Sample_EW 63.2%.
-- Multi-anno e batteria errori: invariati e verdi.
+- La modalità multi-anno e la batteria dei percorsi d'errore restano
+  invariate; tutti i test risultano superati.
 
 ### Revisione completa pre-rilascio (5 passate per sottosistema + verifica puntuale)
 
 Prima della pubblicazione della v4.3.0 l'intero codice (~9.500 righe) è
-stato ri-revisionato; tutti i finding sono stati corretti nella release
-stessa. I principali (nessuno sposta i riferimenti del gate, ri-misurati
+stato sottoposto a nuova revisione; tutti i rilievi sono stati corretti
+nella release stessa. I principali (nessuno sposta i riferimenti del gate, ri-misurati
 invariati a valle dei fix):
 
 - **Percorso analitico, ombra ovest dei sub-campioni**: il blocco
@@ -104,11 +108,12 @@ invariati a valle dei fix):
   mescolava aree per-metro e m² assoluti nel K_agv d'impianto (collassava
   verso il pieno campo): ora errore esplicito alla lettura parametri.
 - **TMY e anni parziali (item B2)**: i (anno, mese) con copertura oraria
-  incompleta sono esclusi da mediana e selezione (prima pesavano 0 e
-  potevano eleggere l'anno sbagliato in silenzio); il multi-anno esclude
+  incompleta sono esclusi da mediana e selezione (in precedenza pesavano 0 e
+  potevano determinare la selezione di un anno errato senza alcuna
+  segnalazione); il multi-anno esclude
   gli anni incompleti dai quantili e rifiuta gli EPW parziali.
-- **Tilt fisso senza θ_fix (B20)**: ora errore esplicito (prima pannelli
-  orizzontali silenziosi); modalità tracker etichettata correttamente in
+- **Tilt fisso senza θ_fix (B20)**: ora errore esplicito (in precedenza i
+  pannelli risultavano orizzontali senza alcuna segnalazione); modalità tracker etichettata correttamente in
   console anche per B19=0/2.
 - **Robustezza**: riscrittura atomica del workbook nel patch dei grafici
   (un crash non corrompe più `risultati_*.xlsx`); cella B43 (CSV PVGIS
@@ -130,7 +135,8 @@ invariati a valle dei fix):
 - **Item B12 chiuso**: la handedness della pendenza trasversale è stata
   ricontrollata su scena, sensori, repliche e percorso analitico — tutte
   coerenti (l'unica eccezione era la normale del ring, sopra). Il
-  self-test ora la inchioda (nuovo check handedness slope), insieme alla
+  self-test ora la verifica in modo stringente (nuovo check handedness
+  slope), insieme alla
   direzione assoluta dell'ombra con θ≠0 (esclude la convenzione
   contro-ruotata) e all'equivalenza fra strategia oraria e sub-campioni.
 
@@ -141,17 +147,18 @@ I depositi v4.2.0 (10.5281/zenodo.20277335) e v4.2.1
 nota di correzione sul record rimanda a questa release. Il DOI di versione
 della v4.3.0 viene coniato al deposito.
 
-## v4.2.2 (2026-06-11) — Revisione approfondita dell'engine: 14 correzioni + 1 known issue documentato
+## v4.2.2 (2026-06-11) — Revisione approfondita dell'engine: 14 correzioni + 1 problema noto documentato
 
 > **⚠ RETTIFICA (v4.3.0)**: il "known issue" in fondo a questa voce è
-> formulato in modo ERRATO. La scena non era uno specchio est/ovest ma era
-> CONTRO-RUOTATA rispetto al sole; gate e aggregati in tracking ERANO
-> affetti (sovrastimati di ~20–27 pp sul collaudo) e il revert del fix fu
-> una diagnosi sbagliata. Vedi la voce v4.3.0.
+> formulato in modo **errato**. La scena non era uno specchio est/ovest ma
+> era **contro-ruotata** rispetto al sole; gate e aggregati in tracking
+> **erano** interessati dal difetto (sovrastimati di ~20–27 pp sul
+> collaudo) e il revert del fix fu una diagnosi sbagliata. Vedi la voce
+> v4.3.0.
 
 Revisione sistematica post-pubblicazione (tre passate indipendenti su
 pipeline, fisica e I/O, con prova sperimentale di ogni finding prima del
-fix). **Il gate di regressione e tutti i K_agv SAU sono INVARIATI**
+fix). **Il gate di regressione e tutti i K_agv SAU sono invariati**
 (84.1 / 79.2 e tutte le varianti di collaudo identiche al decimale);
 cambia il K_agv di impianto (effetto bordo): sul progetto Sample
 87.2% → 86.9% per Cereali C3.
@@ -184,14 +191,14 @@ cambia il K_agv di impianto (effetto bordo): sul progetto Sample
 
 - Un'ora rtrace anomala (timeout/output malformato) non abortisce più
   l'intera simulazione (conta come errore di quell'ora).
-- Cache scene: tau_diff entra nella chiave (prima un octree con
-  materiale stantio veniva riusato in silenzio); bbox estesa con terreno
+- Cache scene: tau_diff entra nella chiave (in precedenza un octree con
+  materiale obsoleto veniva riusato senza alcuna segnalazione); bbox estesa con terreno
   inclinato (il ring del terreno usciva dal boundary → 100% errori sulle
   ore cache-hit); soglia del test semantico adattiva alla trasmittanza
-  (i pannelli semitrasparenti venivano bocciati come "scena senza
-  geometria").
+  (i pannelli semitrasparenti venivano erroneamente classificati come
+  "scena senza geometria").
 - find_pvgis_csv: con coordinate note si accetta solo il match esatto
-  (il fallback restituiva il CSV di un ALTRO sito dopo un cambio di
+  (il fallback restituiva il CSV di un **altro** sito dopo un cambio di
   coordinate, silenziosamente).
 - Validazione code-to-code: modalità tilt fisso ora confrontata a parità
   di geometria (la pipeline di riferimento inseguiva il sole); il cielo
@@ -211,7 +218,7 @@ cambia il K_agv di impianto (effetto bordo): sul progetto Sample
   con clip [0.42, 0.48] — la nota dichiarava una variante non
   implementata).
 
-### Known issue documentato (non corretto in questa release)
+### Problema noto documentato (non corretto in questa release)
 
 - **Specchio est/ovest della scena**: la mappatura storica theta→azimuth
   della scena è speculare rispetto alla convenzione pvlib (provato
@@ -227,8 +234,8 @@ cambia il K_agv di impianto (effetto bordo): sul progetto Sample
 
 ## v4.2.1 (2026-06-11) — Reference edition: potatura al minimo riproducibile + fix
 
-> ⚠ **Avvertenza retrospettiva**: i K_agv in modalità TRACKING di questa
-> versione (incluso il gate 84.1/79.2) sono SOVRASTIMATI per la scena
+> ⚠ **Avvertenza retrospettiva**: i K_agv in modalità **tracking** di questa
+> versione (incluso il gate 84.1/79.2) sono **sovrastimati** per la scena
 > contro-ruotata, corretta in v4.3.0. Non riutilizzarli.
 
 Edizione di riferimento citabile: il perimetro è ridotto al "minimo
@@ -275,13 +282,13 @@ verso chi usava v4.2.0 (che resta taggata e depositata su Zenodo).
 - **Linux: CWD ripristinata dopo la fase ray-tracing**: bifacial_radiance
   fa chdir nella work dir temporanea; alla sua cancellazione il processo
   restava senza directory corrente e la generazione del PDF falliva
-  (`import reportlab` → `os.getcwd()`): su Linux il PDF non veniva MAI
+  (`import reportlab` → `os.getcwd()`): su Linux il PDF non veniva **mai**
   prodotto. Stesso ripristino nella fase "BR ufficiale" di
   `validazione_br.py` (processi multi-run) + cattura difensiva.
 - **Cache scene .oct self-contained (`oconv -f`)**: la scena cachata era
   compilata senza freeze, quindi il riuso in un run successivo richiedeva
   i radfile originali della temp dir (cancellata) → 100% errori rtrace.
-  Era il root-cause del bug cache annotato nella roadmap v4.2.x.
+  Era la causa radice del bug della cache annotato nella roadmap v4.2.x.
   `CACHE_FORMAT_VERSION` 1→2 (le cache esistenti si rigenerano da sole);
   errore chiaro se zero ore simulate (prima un IndexError criptico).
 - **Number format Excel `'0.1'` → `'0.0'`** (11 celle writer): in
@@ -305,7 +312,7 @@ verso chi usava v4.2.0 (che resta taggata e depositata su Zenodo).
   promesso da README e technical note ma mai pubblicato; gli smoke
   storici vi puntavano (erano quindi non eseguibili da un clone).
 - Smoke di regressione ridefinito: `_smoke_regression.bat` (Windows) e
-  `_smoke_regression.sh` (Linux/macOS) girano su ENTRAMBI i progetti;
+  `_smoke_regression.sh` (Linux/macOS) vengono eseguiti su **entrambi** i progetti;
   riferimenti v4.2.1: N-S 84.1, E-W 79.2, tolleranza ±0.2 pp (la
   dicitura "bit-per-bit" è stata rimossa: l'ambient sampling di Radiance
   è stocastico).
@@ -317,7 +324,7 @@ verso chi usava v4.2.0 (che resta taggata e depositata su Zenodo).
 - Foglio Parametri: etichetta SANU riscritta ("fascia non coltivata per
   lato, lungo ogni fila" — quella storica suggeriva il perimetro del
   campo); righe dei parametri non modellati (d_palo, spaziatura pali,
-  ottimizza pitch) SVUOTATE (non eliminate: la lettura è per indirizzo
+  ottimizza pitch) **svuotate** (non eliminate: la lettura è per indirizzo
   di cella); aggiunte le righe-etichetta per i parametri opzionali
   B25 (tau_diff) e B26 (fattore bifaccialità), che il motore leggeva
   ma il template non esponeva.
@@ -340,18 +347,18 @@ verso chi usava v4.2.0 (che resta taggata e depositata su Zenodo).
 
 ## v4.2.0 (2026-05-05) — Multi-anno, frame coord ruotato, bifacciale, BRTDfunc, cache scene .oct
 
-> ⚠ **Avvertenza retrospettiva**: i K_agv in modalità TRACKING di questa
-> versione sono SOVRASTIMATI (scena contro-ruotata, corretta in v4.3.0);
+> ⚠ **Avvertenza retrospettiva**: i K_agv in modalità **tracking** di questa
+> versione sono **sovrastimati** (scena contro-ruotata, corretta in v4.3.0);
 > inoltre il materiale `trans` qui introdotto era quasi opaco (mappatura
 > corretta in v4.3.0): i risultati con τ>0 non vanno riusati.
 
 Release minor che chiude lo scope v4.2 (9 item) come pianificato in
-`PIANO_v4.2.md` (file rimosso in v4.2.1). Decisioni utente del 2026-05-02 hanno spostato i pali
-dalla v4.2 alla v4.3 e anticipato in v4.2 i 3 item v4.3 originali (con
+`PIANO_v4.2.md` (file rimosso in v4.2.1). Per decisione di pianificazione del 2026-05-02 i pali
+sono stati spostati dalla v4.2 alla v4.3 e anticipato in v4.2 i 3 item v4.3 originali (con
 scope ridotti α e β rispettivamente). Trade-off costo H_min spostato
 a v4.4.
 
-### Nuove feature
+### Nuove funzionalità
 
 **Item 8 — Auto-update label versione Excel via VBA**:
 Aggiunto modulo `engine/SolRatio_VersionLabel.bas`. Macro
@@ -504,12 +511,12 @@ Bordo, Sotto-tracker) calcolate da W e beta_max.
 
 ### Rinvii e limitazioni
 
-- **Item 1 (Pali nella scena Radiance)**: spostato a v4.3 su decisione
-  utente. Codice dormiente conservato, call sites commentate.
+- **Item 1 (Pali nella scena Radiance)**: spostato a v4.3 per decisione
+  di pianificazione. Codice dormiente conservato, call sites commentate.
 - ~~**Item 3 (Ground plane inclinato L3 completo)**~~: anticipato e
   completato in v4.2.0 (vedi sezione "Slope L2 e L3 anticipati" sopra).
 - **Item 10 (Trade-off costo H_min, formulazione B)**: spostato a v4.4
-  su decisione utente. v4.4 sarà la prima release "economica" con
+  per decisione di pianificazione. v4.4 sarà la prima release "economica" con
   trade-off + LCOE.
 
 ### Cache scene .oct — fix definitivo completato (2026-05-05)
@@ -684,16 +691,15 @@ sull'ambiente Windows del rilascio):
    identici a v4.1.2 sullo stesso progetto.
 6. **Bifacciale retrocompat**: con `bifaciality_factor=0` deve produrre
    `energy_total = energy_front` e `bifacial_gain = 0%`.
-7. **Sintassi `engine/*.py`**: lo sviluppo è stato fatto in ambiente
-   Cowork con limitazione di file system (bash mount FUSE non riusciva
-   a sincronizzare i file modificati via Windows API in OneDrive).
-   Le edit sono state validate solo visualmente. Eseguire
+7. **Sintassi `engine/*.py`**: alcune modifiche sono state validate
+   soltanto a livello visivo, a causa di limitazioni dell'ambiente di
+   sviluppo. Eseguire il controllo di sintassi seguente come verifica
+   prima del tag:
    `python -c "import ast; [ast.parse(open(f).read()) for f in
    ['engine/br_engine.py','engine/release_helper.py',
    'engine/_scene_cache.py','engine/migrate_project_layout.py',
    'engine/solratio_multiyear.py','engine/solratio_bifacial.py',
    'engine/validazione_br.py','engine/solratio_yield.py']]"`
-   come gate prima del tag.
 
 Smoke regression + i test 1, 5, 6 dovrebbero passare automaticamente
 grazie al disegno retrocompatibile (default identici a v4.1.2). I test
@@ -749,8 +755,8 @@ benchmark e pubblicazioni scientifiche.
 
 ## v4.1.0 (2026-05-01) — Prima release pubblica
 
-> ⚠ **Avvertenza retrospettiva**: i K_agv in modalità TRACKING delle
-> versioni v4.1.x sono SOVRASTIMATI (scena contro-ruotata introdotta qui,
+> ⚠ **Avvertenza retrospettiva**: i K_agv in modalità **tracking** delle
+> versioni v4.1.x sono **sovrastimati** (scena contro-ruotata introdotta qui,
 > corretta in v4.3.0).
 
 Versione preparata per la pubblicazione open source con DOI Zenodo.

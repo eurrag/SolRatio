@@ -9,19 +9,19 @@ SolRatio è uno strumento integrato di simulazione dell'irradianza solare al
 suolo e di stima delle rese colturali in impianti agrivoltaici con tracker
 monoassiale. Il modello combina il calcolo della radiazione disponibile per le
 colture sottostanti ai pannelli fotovoltaici (tramite ray-tracing 3D) con le
-curve dose-risposta della letteratura scientifica (Laub et al., 2022) per
-stimare il coefficiente agrivoltaico K_agv per nove categorie colturali,
-fornendo i dati necessari alla verifica dei requisiti agronomici previsti
-dalle Linee Guida ministeriali in materia di impianti agrivoltaici (MiTE,
-giugno 2022) e dal D.M. 436/2023 sull'agrivoltaico innovativo, e alla
-valutazione della compatibilità tra produzione energetica e produzione
+curve dose-risposta della letteratura scientifica (Laub et al., 2022),
+stimando il coefficiente agrivoltaico K_agv per nove categorie colturali.
+Esso fornisce così i dati necessari alla verifica dei requisiti agronomici
+previsti dalle Linee Guida ministeriali in materia di impianti agrivoltaici
+(MiTE, giugno 2022) e dal D.M. 436/2023 sull'agrivoltaico innovativo, nonché
+alla valutazione della compatibilità tra produzione energetica e produzione
 agricola.
 
 Il motore di calcolo è basato su ray-tracing tridimensionale tramite Radiance
-(LBNL) e il framework bifacial_radiance (NREL): una simulazione fisicamente
-rigorosa della propagazione della luce nella scena dell'impianto, pannello per
-pannello e ora per ora. La versione corrente supporta orientamento arbitrario
-dell'asse tracker (nord-sud, est-ovest o intermedio), pannelli semitrasparenti
+(LBNL) e il framework bifacial_radiance (NREL), che realizza una simulazione
+fisicamente rigorosa della propagazione della luce nella scena dell'impianto,
+ora per ora e pannello per pannello. La versione corrente supporta l'orientamento arbitrario
+dell'asse del tracker (nord-sud, est-ovest o intermedio), pannelli semitrasparenti
 (componente speculare e diffusa), terreni in pendenza, stima dell'energia
 bifacciale e modalità multi-anno con quantili statistici P10/P50/P90.
 
@@ -61,9 +61,9 @@ Per ciascuna ora il modello:
 1. calcola l'angolo di rotazione del tracker in funzione della posizione
    solare, applicando l'algoritmo di backtracking per evitare
    l'ombreggiamento reciproco tra le file;
-2. genera la scena tridimensionale dell'impianto (pannelli, suolo — anche
-   inclinato — e cielo) corrispondente alla configurazione geometrica
-   dell'ora;
+2. genera la scena tridimensionale dell'impianto (pannelli, cielo e suolo,
+   quest'ultimo anche inclinato) corrispondente alla configurazione
+   geometrica dell'ora;
 3. costruisce il cielo luminoso con il programma gendaylit (modello Perez) a
    partire dai valori orari di irradianza diretta normale (DNI) e diffusa
    orizzontale (DHI);
@@ -78,8 +78,8 @@ fornisce, ora per ora, la frazione di luce disponibile per le colture. Questo
 dato viene integrato per ottenere i profili giornalieri, mensili e annuali
 della radiazione al suolo e del DLI (Daily Light Integral), parametro chiave
 per la valutazione agronomica; le curve dose-risposta di Laub et al. (2022)
-lo convertono nel coefficiente agrivoltaico K_agv per ciascuna delle nove
-categorie colturali. In modalità multi-anno la catena viene ripetuta per più
+convertono il DLI così ottenuto nel coefficiente agrivoltaico K_agv per
+ciascuna delle nove categorie colturali. In modalità multi-anno la catena viene ripetuta per più
 anni della serie storica, ottenendo i quantili interannuali P10/P50/P90.
 
 ## Motore di calcolo e riferimenti
@@ -111,13 +111,14 @@ risultati:
 | R²              | 0.9993     | 0.9999     |
 
 Lo scostamento medio inferiore all'1% e il coefficiente di determinazione
-prossimo all'unità (ri-esecuzioni indipendenti: R² ≥ 0.997) confermano
-l'allineamento tra SolRatio e l'implementazione NREL di riferimento
-(misure con la versione 4.3.0, Radiance 6.0, collaudo completo 2026-06-12). Dalla versione 4.3.0 la
-validazione comprende anche un riferimento indipendente costruito col
+prossimo all'unità (riesecuzioni indipendenti: R² ≥ 0.997) confermano
+l'allineamento tra SolRatio e l'implementazione NREL di riferimento; le
+misure si riferiscono alla versione 4.3.0 con Radiance 6.0 (collaudo
+completo del 2026-06-12). Dalla versione 4.3.0 la
+validazione comprende anche un riferimento indipendente costruito con il
 workflow nativo 1-axis di bifacial_radiance (angoli del tracker calcolati
 da pvlib all'interno della libreria), con accordo entro 0.5 punti
-percentuali sul rapporto giornaliero suolo/GHI. Ogni release deve inoltre
+percentuali sul rapporto giornaliero suolo/GHI. Ogni nuova versione deve inoltre
 superare un test di regressione sui due progetti campione inclusi nel
 repository (orientamento nord-sud ed est-ovest), con tolleranza dichiarata
 di ±0.2 punti percentuali sul K_agv.

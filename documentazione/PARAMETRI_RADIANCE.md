@@ -4,7 +4,7 @@
 
 SolRatio usa Radiance rtrace in modalità irradianza (`-I`) per calcolare
 l'irradianza al suolo sotto un impianto agrivoltaico a tracker mono-assiale.
-I tre parametri principali controllano il trade-off accuratezza/velocità.
+I tre parametri principali governano il compromesso tra accuratezza e velocità.
 
 
 ## Parametri configurabili (foglio Parametri)
@@ -16,14 +16,14 @@ Numero massimo di rimbalzi di luce indiretta che rtrace simula.
 | Valore | Significato | Tempo relativo | Quando usare |
 |--------|-------------|----------------|--------------|
 | 0 | Solo luce diretta, nessun rimbalzo | 1× (più veloce) | Test rapidi, debug. Sottostima la diffusa. |
-| 1 | 1 rimbalzo — config. dei progetti Sample inclusi | 2-3× | Uso standard. Cattura la maggior parte della diffusa e la riflessione suolo→pannello→suolo. |
+| 1 | 1 rimbalzo — configurazione dei progetti Sample inclusi | 2-3× | Uso standard. Cattura la maggior parte della diffusa e la riflessione suolo→pannello→suolo. |
 | **2** | **2 rimbalzi (default del codice)** | **5-8×** | **Maggiore accuratezza per scene complesse, albedo alto.** |
 | 3 | 3 rimbalzi | 10-20× | Massima accuratezza. Raramente necessario per agrivoltaico. |
 
 Effetto fisico: con `-ab 0` la luce colpisce il suolo una sola volta (dal cielo).
 Con `-ab 1`, la luce che rimbalza dal suolo e colpisce il retro del pannello
 viene poi riflessa nuovamente verso il suolo (inter-row reflection). Questo è il
-contributo dominante per l'accuratezza in agrivoltaico.
+contributo dominante per l'accuratezza nelle simulazioni agrivoltaiche.
 
 Raccomandazione: **ab=1** per simulazioni di routine veloci (è la
 configurazione dei progetti Sample del gate, celle B48-B50 = 1/1024/128);
@@ -40,16 +40,18 @@ dell'irradianza indiretta.
 |--------|---------|----------------|--------------|
 | 128 | Bassa | 0.5× | Test rapidi |
 | 512 | Media | 0.8× | Simulazioni preliminari |
-| 1024 | Standard — config. dei progetti Sample | 1× | Uso standard |
+| 1024 | Standard — configurazione dei progetti Sample | 1× | Uso standard |
 | **2048** | **Alta (default del codice)** | **1.5×** | **Validazione** |
 | 4096 | Massima | 3× | Benchmark di riferimento |
 
 Effetto fisico: `-ad` controlla il campionamento dell'emisfera diffusa.
-Più raggi = meno rumore nel risultato, ma più tempo di calcolo. Con valori
+Un numero maggiore di raggi riduce il rumore del risultato, ma aumenta il
+tempo di calcolo. Con valori
 troppo bassi, l'irradianza diffusa sotto i pannelli presenta rumore casuale.
 
 Raccomandazione: **ad=1024** per uso standard. Aumentare a 2048-4096 solo
-per simulazioni di benchmark o validazione. Per test rapidi, 128-512 basta.
+per simulazioni di benchmark o validazione. Per i test rapidi è sufficiente
+un valore compreso tra 128 e 512.
 
 
 ### `-as` — Ambient Super-samples (cella B50)
@@ -60,16 +62,16 @@ iniziale (`-ad`) rileva elevata varianza.
 | Valore | Comportamento | Quando usare |
 |--------|---------------|--------------|
 | 32 | Super-sampling minimo | Test rapidi |
-| 128 | Standard — config. dei progetti Sample | Uso standard |
+| 128 | Standard — configurazione dei progetti Sample | Uso standard |
 | **256** | **Conservativo (default del codice)** | **Scene complesse** |
 | 512 | Massimo | Benchmark |
 
-Effetto fisico: `-as` raffina il campionamento dove c'è forte contrasto
+Effetto fisico: `-as` raffina il campionamento nelle regioni a forte contrasto
 (es. transizione ombra/luce al bordo del pannello). Migliora la precisione
 del profilo spaziale senza rallentare significativamente le zone uniformi.
 
-Raccomandazione: **as=128** per uso standard. Valori > 256 hanno rendimenti
-decrescenti.
+Raccomandazione: **as=128** per uso standard. Valori superiori a 256 offrono
+benefici via via decrescenti.
 
 
 ### `br_n_rows` — Numero file scena (cella B51)
@@ -87,8 +89,8 @@ Numero totale di file tracker nella scena Radiance.
 Regola: deve essere **dispari** (fila centrale simmetrica). Se pari, viene
 calcolato `n_ext = (n_rows-1)//2` con arrotondamento.
 
-Effetto: più file = scena più realistica (più inter-row reflections, ombra
-cumulativa). Per il pitch centrale, oltre 7 file il guadagno è trascurabile.
+Effetto: un numero maggiore di file rende la scena più realistica (maggiori
+riflessioni tra le file, ombra cumulativa). Per il pitch centrale, oltre 7 file il guadagno è trascurabile.
 Per l'effetto bordo, il numero di file determina quanti profili edge vengono
 calcolati.
 
@@ -97,10 +99,11 @@ calcolati.
 Misure del 2026-06-12 sul progetto Sample (pianura padana, lat 45.30°N,
 pitch=5m, W=2.38m, H=3.13m): run single-day 21/3 e 21/6, bias del cumulato
 giornaliero medio sul pitch centrale rispetto alla scena di riferimento a
-n_rows=13 (asintoto "campo grande"); rumore ambient run-to-run ~±0.1-0.3%.
-(I bias storici v4.1.1, misurati con la scena pre-correzione, erano
-+4.5%/+1.2% a n_rows=4: la scena canonica, coi pannelli rivolti al sole,
-intercetta di più e il bias del campo piccolo è MAGGIORE.)
+n_rows=13 (asintoto "campo grande"); rumore ambient tra esecuzioni ripetute ~±0.1-0.3%.
+(I bias storici della v4.1.1, misurati con la scena precedente alla
+correzione, erano +4.5%/+1.2% a n_rows=4: la scena canonica, con i pannelli
+rivolti al sole, intercetta una frazione maggiore della radiazione e il
+bias del campo piccolo risulta **maggiore**.)
 
 | n_rows | n_ext | Bias eq. (21 mar) | Bias solst. (21 giu) | Uso consigliato |
 |-------:|------:|------------------:|---------------------:|-----------------|
@@ -113,14 +116,16 @@ intercetta di più e il bias del campo piccolo è MAGGIORE.)
 
 **Causa fisica**: le file lontane dal pitch centrale intercettano raggi
 diretti e diffusi che altrimenti raggiungerebbero il terreno; una scena
-con poche file simula implicitamente un campo agrivoltaico piccolo (es.
-4 file = pilota di pochi tracker), dove il pitch centrale "vede" meno
-ombreggiamento mutuo. Per simulare il comportamento di un pitch interno a
-un impianto medio-grande (10+ file) serve usare n_ext ≥ 3; per benchmark
-e pubblicazioni n_ext ≥ 5 (bias ≤0.2%).
+con poche file simula implicitamente un campo agrivoltaico di piccole
+dimensioni (ad esempio, 4 file corrispondono a un impianto pilota di pochi
+tracker), nel quale il pitch centrale è soggetto a un minore ombreggiamento
+mutuo. Per simulare il comportamento di un pitch interno a
+un impianto medio-grande (10+ file) è necessario impostare n_ext ≥ 3; per
+benchmark e pubblicazioni, n_ext ≥ 5 (bias ≤0.2%).
 
 A partire da v4.1.1, `br_engine.run_annual()` emette un avviso a runtime
-quando `n_rows < 7`, ricordando di aumentare n_ext per simulazioni accurate.
+quando `n_rows < 7`, con l'indicazione di aumentare n_ext per le simulazioni
+accurate.
 La pipeline di validazione `validazione_br.py` è stata corretta per usare
 la stessa scena di `run_annual` (rispetta `br_n_rows` se impostato).
 
@@ -134,7 +139,8 @@ la stessa scena di `run_annual` (rispetta `br_n_rows` se impostato).
 | `-ar` | 256 | Risoluzione ambient (suddivisione spaziale) |
 | `-h` | — | Nessun header nell'output |
 
-Questi valori sono adeguati per agrivoltaico e non richiedono tuning.
+Questi valori sono adeguati per le applicazioni agrivoltaiche e non
+richiedono messa a punto.
 
 
 ## Profili di tempo tipici
@@ -149,14 +155,14 @@ TMY ~4000 ore diurne, 25 workers su 32 CPU).
 | Default del codice (celle vuote) | 2 | 2048 | 256 | ~15-25 min |
 | Benchmark | 3 | 4096 | 512 | ~45-90 min |
 
-Il tempo scala linearmente con: n_ore_diurne × n_total_points × (1 + ab overhead).
+Il tempo di calcolo scala linearmente con n_ore_diurne × n_total_points × (1 + overhead di ab).
 L'overhead per l'effetto bordo (sensori aggiuntivi nel batch) aggiunge ~10-20%
 al tempo base, proporzionale al numero di edge pitches.
 
 
 ## Conversione output rtrace → irradianza
 
-rtrace in modo `-I` restituisce irradianza RGB (R, G, B). La conversione
+rtrace in modalità `-I` restituisce irradianza RGB (R, G, B). La conversione
 a irradianza broadband [W/m²] è la media aritmetica dei tre canali
 (convenzione bifacial_radiance, scena spettralmente neutra):
 
@@ -164,7 +170,7 @@ a irradianza broadband [W/m²] è la media aritmetica dei tre canali
 IRR = (R + G + B) / 3
 ```
 
-NB: la conversione FOTOMETRICA `179 × (0.265·R + 0.670·G + 0.065·B)`
-(lux, pesi luminanza CIE) NON è usata da SolRatio. Con `-I` e sensori che
+N.B.: la conversione **fotometrica** `179 × (0.265·R + 0.670·G + 0.065·B)`
+(lux, pesi di luminanza CIE) **non** è usata da SolRatio. Con `-I` e sensori che
 puntano verso l'alto (direzione 0 0 1), il risultato è l'irradianza totale
 incidente sulla superficie orizzontale.

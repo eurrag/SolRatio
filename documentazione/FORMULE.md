@@ -4,16 +4,17 @@
 
 ### Radianza Radiance → Irradianza [W/m²]
 
-rtrace in modo `-I` restituisce irradianza RGB. Conversione:
+rtrace in modalità `-I` restituisce l'irradianza RGB. La conversione è la seguente:
 
 ```
 IRR = (R + G + B) / 3   [W/m²]
 ```
 
-- Media aritmetica dei tre canali = convenzione di bifacial_radiance per
-  l'irradianza broadband (i materiali della scena sono spettralmente neutri).
-- NB: la conversione FOTOMETRICA `179 × (0.265·R + 0.670·G + 0.065·B)`
-  (lux, pesi luminanza CIE) NON è usata da SolRatio.
+- La media aritmetica dei tre canali è la convenzione adottata da
+  bifacial_radiance per l'irradianza broadband (i materiali della scena sono
+  spettralmente neutri).
+- N.B.: la conversione **fotometrica** `179 × (0.265·R + 0.670·G + 0.065·B)`
+  (lux, pesi di luminanza CIE) **non** è usata da SolRatio.
 
 ### Irradianza → PAR [µmol/m²/s]
 
@@ -42,16 +43,16 @@ orientale). La parametrizzazione usa il clearness index kt:
 kt = GHI / (I₀ × cos(θz))
 ```
 
-dove I₀ è l'irradianza extraterrestre e θz lo zenith angle.
+dove I₀ è l'irradianza extraterrestre e θz l'angolo zenitale.
 
 ```
 par_frac(kt) = clip(0.500 - 0.082·kt, 0.42, 0.48)
 ```
 
-(parametrizzazione lineare sul clearness index nello spirito di Jacovides
-et al. 2003; coefficienti del fit implementato in `compute_par_frac` —
-v4.2.2 allinea la documentazione al codice validato).
-Range operativo: 0.42-0.43 (cielo sereno, kt alto) — 0.48 (coperto).
+(parametrizzazione lineare sul clearness index secondo l'impostazione di
+Jacovides et al. 2003; i coefficienti corrispondono al fit implementato in
+`compute_par_frac`).
+Intervallo operativo: da 0.42-0.43 (cielo sereno, kt alto) a 0.48 (cielo coperto).
 
 Implementazione: `solratio_core.compute_par_frac(ghi, dni_extra, cos_zenith)`
 
@@ -65,10 +66,11 @@ PAR_rel(x) = DLI_sotto(x) / DLI_cielo_aperto
 ```
 
 - `DLI_sotto(x)` = DLI al punto x sotto i pannelli
-- `DLI_cielo_aperto` = DLI da simulazione BR senza pannelli (open sky)
+- `DLI_cielo_aperto` = DLI da simulazione bifacial_radiance senza pannelli (open sky)
 
-Range: 0.0 (ombra totale) — ~1.0 (pieno sole). In v4.1.0 non dovrebbe mai
-superare 1.0 grazie al riferimento open sky BR.
+Range: 0.0 (ombra totale) — ~1.0 (pieno sole). A partire dalla v4.1.0,
+grazie al riferimento open sky calcolato con bifacial_radiance, il valore
+non dovrebbe superare 1.0.
 
 ### RSR — Radiation Stress Ratio
 
@@ -96,7 +98,7 @@ K_agv      = Y_rel / 100
 dove α e β sono i due coefficienti per coltura (in `LAUB_COEFFICIENTS`,
 implementazione `solratio_core.laub_yield`).
 
-9 colture disponibili: bacche, frutta, ortaggi da frutto, foraggere, ortaggi da
+Sono disponibili 9 colture: bacche, frutta, ortaggi da frutto, foraggere, ortaggi da
 foglia, tuberi/radici, cereali C3, leguminose granella, mais (C4).
 
 
@@ -109,7 +111,7 @@ foglia, tuberi/radici, cereali C3, leguminose granella, mais (C4).
 ```
 
 - Con backtracking: θ limitato per evitare ombreggiamento reciproco
-- Senza backtracking: |θ| ≤ β_max — θ è firmato (negativo al mattino),
+- Senza backtracking: |θ| ≤ β_max — θ conserva il segno (negativo al mattino),
   quindi θ = sign(θ_ideale) × min(|θ_ideale|, β_max)
 
 ### Hub height e clearance
@@ -125,7 +127,7 @@ clearance(θ) = H_mozzo - (W/2) × sin(|θ|)
 GCR = W / pitch
 ```
 
-Range tipico agrivoltaico: 0.25 - 0.50 (vs. 0.40 - 0.60 per fotovoltaico puro).
+Intervallo tipico per l'agrivoltaico: 0.25 - 0.50 (contro 0.40 - 0.60 per il fotovoltaico puro).
 
 
 ## Effetto bordo
@@ -138,7 +140,7 @@ H_max = H_mozzo + (W/2)·sin(β_max)
 strip_width = P95(d_ombra) su tutte le ore annuali con elevazione solare > 3°
 ```
 
-Limitata a: `W ≤ strip_width ≤ 5 × pitch`
+Il valore è vincolato all'intervallo `W ≤ strip_width ≤ 5 × pitch`
 
 ### FC_NS — Fattore correttivo longitudinale
 
@@ -148,7 +150,7 @@ frac_trans = min(2·d_NS, L_tracker) / L_tracker
 FC_NS = 1 + (1 - PAR_rel_SAU) × 0.5 × frac_trans
 ```
 
-Modella il bonus di luce alle estremità N-S delle stringhe tracker, dove
+Modella il guadagno di luce alle estremità nord-sud delle stringhe tracker, dove
 l'ombra proiettata lungo l'asse non raggiunge le colture adiacenti.
 
 ### K_agv impianto (media pesata)
@@ -191,7 +193,8 @@ incidente dall'emisfera superiore (downwelling):
 x_j  0  0.05  0  0  1     (posizione x_j, y=0, z=5cm, direzione verso l'alto)
 ```
 
-- z = 0.05 m: leggermente sopra il ground plane per evitare self-intersection
+- z = 0.05 m: leggermente al di sopra del piano del terreno, per evitare
+  auto-intersezioni del raggio con la superficie
   (su terreno in pendenza la quota segue il piano reale: z = z₀ + v·tan(slope_cross))
 - Direzione (0, 0, 1): coseno-pesata, misura irradianza su piano orizzontale
 - n_points punti equispaziati nel pitch: x = j × pitch/(n_points-1), j = 0..n_points-1

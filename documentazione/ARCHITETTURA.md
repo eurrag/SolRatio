@@ -1,8 +1,9 @@
 # SolRatio v4.3.0 — Architettura tecnica
 
-> Edizione di riferimento (Community/Reference Edition). Struttura e
-> responsabilità dei moduli del perimetro pubblico; il flusso di calcolo è
-> descritto in `architettura_br_engine.md` e nella technical note (§3).
+> Edizione di riferimento (Community/Reference Edition). Questo documento
+> descrive la struttura e le responsabilità dei moduli del perimetro
+> pubblico; il flusso di calcolo è illustrato in `architettura_br_engine.md`
+> e nella technical note (§3).
 
 ## Struttura
 
@@ -24,7 +25,7 @@ SolRatio/
 │   ├── check_environment.py      # verifica dipendenze (Python + binari Radiance)
 │   ├── SolRatio_Calcolo.bas      # VBA: launcher Excel (Calcola / Verifica / Test Python)
 │   └── SolRatio_VersionLabel.bas # VBA: auto-update label versione (Workbook_Open)
-├── progetti/Sample/              # progetto demo N-S (benchmark validazione + gate)
+├── progetti/Sample/              # progetto dimostrativo N-S (benchmark di validazione + gate)
 ├── progetti/Sample_EW/           # variante E-W (gate + confronto axis_azimuth)
 ├── _smoke_check_kagv.py          # verifica K_agv del gate
 ├── _smoke_regression.bat / .sh   # smoke di regressione (Windows / Linux-macOS)

@@ -4,7 +4,7 @@
 # Aggiornare `version`, `date-released` e `doi` ad ogni nuova release.
 
 cff-version: 1.2.0
-message: "Se usi SolRatio in lavori pubblici, ti chiediamo cortesemente di citarlo con i metadati seguenti."
+message: "Se si utilizza SolRatio in lavori pubblici, si prega di citarlo con i metadati seguenti."
 type: software
 title: "SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale"
 abstract: >-
@@ -18,14 +18,14 @@ abstract: >-
   agrivoltaici (MiTE, 2022) e dal D.M. 436/2023 sull'agrivoltaico innovativo,
   e la valutazione della compatibilità tra produzione energetica e
   produzione agricola.
-  Validato vs bifacial_radiance ufficiale (NREL): MBE < 1%, R² ≥ 0.997, più
-  un riferimento indipendente col workflow nativo set1axis (entro 0.5 punti
+  Validato mediante confronto con bifacial_radiance ufficiale (NREL): MBE < 1%, R² ≥ 0.997, oltre
+  a un riferimento indipendente con il workflow nativo set1axis (entro 0.5 punti
   percentuali sul rapporto suolo/GHI giornaliero).
-  La v4.3.0 è l'edizione di riferimento citabile e CORREGGE un errore
+  La v4.3.0 è l'edizione di riferimento citabile e corregge un errore
   maggiore presente dal v4.1.0 al v4.2.2: la scena di tracking era
   contro-ruotata rispetto al sole e i K_agv in modalità tracking
   sovrastimavano la luce al suolo (es. progetto Sample: 84.1% → 57.5%).
-  Non usare i K_agv in tracking delle versioni precedenti.
+  I K_agv in modalità tracking delle versioni precedenti non devono essere riutilizzati.
 
 authors:
   - family-names: "Pesavento"
@@ -42,7 +42,7 @@ url: "https://github.com/eurrag/SolRatio"
 # Qui sotto: concept DOI (risolve sempre all'ultima versione). Il DOI di
 # versione della v4.3.0 viene coniato al deposito Zenodo: aggiornare questo
 # campo dopo il deposito.
-# DOI versioni precedenti (⚠ v4.1.0–v4.2.1: K_agv in tracking SOVRASTIMATI,
+# DOI versioni precedenti (⚠ v4.1.0–v4.2.1: K_agv in tracking sovrastimati,
 # scena contro-ruotata — vedi CHANGELOG v4.3.0):
 #   v4.2.1: 10.5281/zenodo.20642574
 #   v4.2.0: 10.5281/zenodo.20277335
