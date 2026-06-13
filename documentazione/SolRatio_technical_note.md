@@ -332,8 +332,7 @@ features are planned for the public repository.
 **Hosted product line.** The development of new functionality —
 three-dimensional post modelling, a complete water balance and
 evapotranspiration module, DC/AC energy yield, real field geometries (KML),
-and a multi-user web interface — continues in the hosted product *SolRatio
-Pro*, which uses this edition as its cited reference engine.
+and a multi-user web interface — continues in the hosted product line, which uses this edition as its cited reference engine.
 
 **Cross-cutting objective — Experimental validation.** Comparison against
 PAR/DLI ground-truth measurements at instrumented agrivoltaic test sites is
