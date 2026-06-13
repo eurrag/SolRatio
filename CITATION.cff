@@ -34,7 +34,7 @@ authors:
     affiliation: "Independent researcher"
 
 version: "4.3.0"
-date-released: "2026-06-11"
+date-released: "2026-06-13"
 license: "Apache-2.0"
 repository-code: "https://github.com/eurrag/SolRatio"
 url: "https://github.com/eurrag/SolRatio"

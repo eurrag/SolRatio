@@ -144,7 +144,7 @@ la contro-rotazione v4.1.0–v4.2.2 (si veda il CHANGELOG v4.3.0).
   contro-ruotata rispetto al sole e sovrastimava la luce al suolo in
   tracking (gate Sample 84.1% → 57.5%). Il percorso analitico (ombre VF/tilt
   fisso) è stato riallineato nel suo complesso; la chiave della cache delle
-  scene è stata aggiornata (`sr_compat: 4.3`).
+  scene è stata aggiornata (`sr_compat: 4.3.0`).
 - **Validazione parte D**: riferimento canonico indipendente col workflow
   nativo `set1axis`/`analysis1axisground`.
 

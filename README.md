@@ -91,7 +91,7 @@ Sviluppato e testato su Windows 11. Compatibile in linea di principio con Linux/
 
 ### Ambiente di riferimento (riproducibilità)
 
-I vincoli di `requirements.txt` sono minimi (`>=`) per facilitare l'installazione; l'unica eccezione è `bifacial_radiance`, **bloccato a `==0.5.1`** perché il motore dipende dalla normalizzazione di `makeScene1axis` di quella versione (forma canonica della scena di tracking) e include un accorgimento specifico per essa. La garanzia *comportamentale* del rilascio è il test di regressione a **±0.2 punti percentuali** (vedi [Validazione](#validazione)): qualsiasi combinazione di versioni che lo superi riproduce i risultati pubblicati.
+I vincoli di `requirements.txt` sono minimi (`>=`) per facilitare l'installazione; l'unica eccezione è `bifacial_radiance`, **bloccato a `==0.5.1`** perché il motore dipende dalla normalizzazione di `makeScene1axis` di quella versione (forma canonica della scena di tracking) e include un accorgimento specifico per essa. La garanzia *comportamentale* del rilascio è il test di regressione a **±0.2 punti percentuali** (vedi [Validazione](#validazione)): qualsiasi combinazione di versioni che lo superi riproduce i risultati pubblicati. Per ricreare l'ambiente *esatto* è disponibile `requirements-lock.txt` (`pip install -r requirements-lock.txt`), con le versioni riportate qui sotto.
 
 Configurazione esatta con cui i riferimenti sono stati riverificati (Linux/WSL, 2026-06-13):
 

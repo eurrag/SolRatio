@@ -41,7 +41,7 @@ sospetti.
   selezione del lato d'ombra dal segno del PSZA pvlib (l'ombra cade dal lato
   opposto al sole) e mezzo-spessore verticale con seno **con segno**.
 - **Chiave della cache scene**: tilt con segno + azimuth canonico +
-  `sr_compat: 4.3` (tutte le scene pre-correzione sono invalidate).
+  `sr_compat: 4.3.0` (tutte le scene pre-correzione sono invalidate).
 - **Guida theta_fix nei template**: semantica pvlib (positivo = faccia a
   ovest, negativo = est) — la guida precedente rifletteva la convenzione
   contro-ruotata.
@@ -74,8 +74,8 @@ frame mattina/pomeriggio).
   trasmissione → un pannello τ_tot=0.9 trasmetteva ~4% (quasi opaco) e
   rifletteva diffusamente il residuo. Inversione canonica in
   `_apply_tau_material`: trasmissione effettiva = τ+τ_diff esatta;
-  chiave cache scene `sr_compat 4.3.1`. I risultati con τ>0 delle
-  versioni precedenti non vanno riusati.
+  chiave cache scene `sr_compat 4.3.0` (token unico di invalidazione). I
+  risultati con τ>0 delle versioni precedenti non vanno riusati.
 - Nuovi riferimenti del gate (±0.2 pp): Sample **57.5**, Sample_EW **55.3**.
   Varianti di collaudo (misure 2026-06-11, riconfermate dal collaudo
   completo 2026-06-12): tilt fisso 68.7, astronomico
@@ -138,6 +138,24 @@ invariati a valle dei fix):
   slope), insieme alla
   direzione assoluta dell'ombra con θ≠0 (esclude la convenzione
   contro-ruotata) e all'equivalenza fra strategia oraria e sub-campioni.
+
+### Rifiniture pre-pubblicazione
+
+- **Cache scene disattivata anche per il tilt fisso** (una sola scena
+  unica): l'octree incrementale poteva risultare degenere e mandare rtrace
+  in timeout 60 s per ogni ora (esecuzione lentissima); ora il tilt fisso
+  segue il flusso legacy (oconv completo per ora), corretto e veloce. Il
+  K_agv non cambia: è solo prestazione e robustezza.
+- **Self-test analitici rafforzati**: aggiunti un controllo della mappatura
+  del materiale `trans` (trasmissione = τ+τ_diff, verificata senza
+  ray-tracing) e uno della decomposizione della pendenza
+  (`compute_slope_components`); il self-test del motore passa da 12 a 15
+  controlli.
+- **Riproducibilità delle dipendenze**: `bifacial_radiance` fissato a
+  `==0.5.1` (il motore dipende dalla normalizzazione di `makeScene1axis` di
+  quella versione); aggiunto `requirements-lock.txt` con le versioni esatte
+  con cui i riferimenti sono stati verificati, riepilogate nella sezione
+  «Ambiente di riferimento» del README.
 
 ### Record Zenodo delle versioni precedenti
 
