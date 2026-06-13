@@ -232,7 +232,7 @@ def compute_edge_profiles(df, p, dli_daily_ref=None):
     dni_ground = df['dni'].values * cos_incidence
     ghi = df['ghi'].values if 'ghi' in df.columns else (dni_ground + df['dhi'].values)
 
-    # PAR_FRAC variabile (Jacovides et al. 2004)
+    # PAR_FRAC variabile (Jacovides et al. 2003)
     import pvlib as _pvlib
     _dni_extra = _pvlib.irradiance.get_extra_radiation(df.index.dayofyear)
     if isinstance(_dni_extra, pd.Series):

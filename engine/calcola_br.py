@@ -251,7 +251,7 @@ def main():
     df['dhi'] = dhi_arr
     df['tracker_theta'] = br_result['tracker_theta'][:n_all]
 
-    # ── PAR_FRAC variabile (Jacovides et al. 2004) ────────────────────
+    # ── PAR_FRAC variabile (Jacovides et al. 2003) ────────────────────
     dni_extra = pvlib.irradiance.get_extra_radiation(df.index.dayofyear)
     if isinstance(dni_extra, pd.Series):
         dni_extra = dni_extra.values

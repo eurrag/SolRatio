@@ -17,7 +17,7 @@ Novita v3.3.4:
   - CLI: --crop, --params, --levels, --delta_tornado
 
 Novita v3.3.3:
-  - PAR_FRAC variabile con clearness index (Jacovides et al. 2004):
+  - PAR_FRAC variabile con clearness index (Jacovides et al. 2003):
     compute_par_frac(ghi, dni_extra, cos_z) → array orario 0.42-0.48
   - PVGIS con surface_tilt=0: ottiene GHI/DNI/DHI diretti, elimina fallback Erbs
   - Warning quantitativo per fallback Erbs (CSV vecchio formato)
@@ -95,12 +95,12 @@ MONTHS     = ['Gen','Feb','Mar','Apr','Mag','Giu',
 # Frazione PAR (400-700 nm) dello spettro solare globale.
 # Valore costante 0.45 mantenuto come default e fallback.
 # La funzione compute_par_frac() calcola il valore orario in funzione del
-# clearness index kt = GHI / GHI_extraterrestre (Jacovides et al. 2004):
+# clearness index kt = GHI / GHI_extraterrestre (Jacovides et al. 2003):
 #   kt basso (coperto)  → PAR_FRAC ~ 0.48
 #   kt alto (sereno)    → PAR_FRAC ~ 0.42
 # Rif: McCree K.J. (1972) Agric. Meteorol. 9:191-216;
 #      Papaioannou G. et al. (1993) Agric. For. Meteorol. 66:101-113;
-#      Jacovides C.P. et al. (2004) Agric. For. Meteorol. 127:65-80.
+#      Jacovides C.P. et al. (2003) Theor. Appl. Climatol. 74:227-233.
 PAR_FRAC   = 0.45
 
 # Fattore di conversione energia radiante -> densita di flusso fotonico PAR.
@@ -113,7 +113,7 @@ W_TO_UMOL  = 4.57
 
 def compute_par_frac(ghi, dni_extra, cos_zenith):
     """
-    Frazione PAR variabile con il clearness index kt (Jacovides et al. 2004).
+    Frazione PAR variabile con il clearness index kt (Jacovides et al. 2003).
 
     kt = GHI / (DNI_extra * cos_zenith).
     PAR_FRAC = 0.500 - 0.082 * kt, clippato in [0.42, 0.48].

@@ -641,7 +641,7 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
         ('PAR e DLI',
          'L\'irradianza al suolo e convertita in PAR (Radiazione Fotosinteticamente Attiva, '
          '400-700 nm) con frazione PAR oraria variabile con l\'indice di sereno kt '
-         '(Jacovides et al. 2004, intervallo 0.42-0.48) e il fattore 4.57 umol/J '
+         '(Jacovides et al. 2003, intervallo 0.42-0.48) e il fattore 4.57 umol/J '
          '(McCree 1972). Il DLI (Daily Light Integral, mol PAR/m2/giorno) e l\'integrale '
          'giornaliero, parametro chiave per la valutazione agronomica.'),
 
@@ -726,7 +726,7 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
     # Assunzioni e limitazioni
     story.append(Paragraph('Assunzioni e limitazioni', S['section']))
     limitations = [
-        'Frazione PAR: variabile con il clearness index kt (Jacovides et al. 2004, '
+        'Frazione PAR: variabile con il clearness index kt (Jacovides et al. 2003, '
         'PAR_FRAC = 0.500 - 0.082 x kt, limitata a 0.42-0.48). Non considera variazioni '
         'spettrali sotto i pannelli.',
 

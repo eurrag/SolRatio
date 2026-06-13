@@ -1,6 +1,6 @@
 # SolRatio — Changelog
 
-## v4.3.0 (2026-06-11) — Correzione maggiore: scena di tracking contro-ruotata (presente dal v4.1.0)
+## v4.3.0 (2026-06-13) — Correzione maggiore: scena di tracking contro-ruotata (presente dal v4.1.0)
 
 **La scena Radiance ruotava il pannello dalla parte opposta al sole in ogni
 ora di tracking, dal v4.1.0 al v4.2.2.** Un pannello contro-ruotato presenta
