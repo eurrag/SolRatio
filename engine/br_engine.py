@@ -1120,6 +1120,17 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
                   f'unici > soglia {_CACHE_MAX_THETAS}. Pre-compile '
                   f'sarebbe più lento del beneficio. Uso flusso legacy.')
             _cache_dir = None
+        # TILT FISSO (1 sola scena unica): l'.oct di scena incrementale in
+        # cache può risultare degenere (specie con molte file) → rtrace va in
+        # timeout 60s su ogni ora, rendendo il run lentissimo e tutto-errori.
+        # Il flusso LEGACY (full oconv per ora) è invece corretto (lo stesso
+        # percorso usato dai progetti con >200 theta). Con una sola scena la
+        # cache dà comunque un beneficio marginale: la disattiviamo per i casi
+        # a scena unica.
+        if _cache_dir is not None and len(unique_thetas) <= 1:
+            print('  Cache scene: DISATTIVATA — tilt fisso (1 scena unica): '
+                  'l\'.oct incrementale può risultare degenere, uso flusso legacy.')
+            _cache_dir = None
         if _cache_dir is not None:
             _n_hits = 0
             _n_built = 0
