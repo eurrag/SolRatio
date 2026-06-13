@@ -1,5 +1,6 @@
 # SolRatio — Dipendenze Python
 # Installazione:  pip install -r requirements.txt
+# Riproducibilità ESATTA (versioni testate): pip install -r requirements-lock.txt
 #
 # DIPENDENZA ESTERNA NON-PIP (richiesta!):
 #   Radiance >= 5.4    https://www.radiance-online.org/

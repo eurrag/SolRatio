@@ -391,7 +391,9 @@ Refactor in `br_engine.py` e `validazione_br.py`. I sensori sono ora
 posizionati in un frame locale `(u, v, w)` ancorato al tracker e
 trasformati in coordinate mondo via `phi = axis_azimuth - 180°`.
 L'azimuth della scena Radiance è calcolato come
-`(axis_azimuth + (-90 if theta>=0 else +90)) % 360`. Per
+`(axis_azimuth + (-90 if theta>=0 else +90)) % 360`. *(È questa la
+mappatura che rendeva la scena contro-ruotata rispetto al sole, corretta in
+v4.3.0: vedi l'avvertenza in testa a questa voce.)* Per
 `axis_azimuth=180°` (default storico N-S) il comportamento è
 **bit-per-bit identico** alla v4.1. Per qualsiasi altro `axis_azimuth`
 (E-W, NE-SW, ecc.) la scena e i sensori sono coerenti tra loro.

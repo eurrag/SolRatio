@@ -1661,13 +1661,32 @@ def self_test():
         _check(False, 'Strategia A ~ B (copertura ombra)',
                f'eccezione durante il test: {type(_e).__name__}: {_e}')
 
+    # ── Test 8 (v4.3.x): decomposizione pendenza (compute_slope_components) ─
+    # Guard analitico del percorso slope: cross = atan(tan(s)·sin(Δaz)),
+    # along = atan(tan(s)·cos(Δaz)). Casi noti + identità tan²(cross)+
+    # tan²(along) = tan²(slope). Intercetta uno scambio sin/cos (classe del
+    # bug R4) o un segno errato nella decomposizione.
+    _ang_a, _cr_a, _al_a, _ = compute_slope_components(10.0, 180.0, 180.0)
+    _check(abs(_cr_a) < 1e-6 and abs(_al_a - _ang_a) < 1e-6,
+           'Slope decomp lungo-asse (cross=0, along=slope)',
+           f'cross={_cr_a:.4f} (atteso 0), along={_al_a:.4f} (atteso {_ang_a:.4f})')
+    _ang_b, _cr_b, _al_b, _ = compute_slope_components(10.0, 270.0, 180.0)
+    _check(abs(_cr_b - _ang_b) < 1e-6 and abs(_al_b) < 1e-6,
+           'Slope decomp trasversale (cross=slope, along=0)',
+           f'cross={_cr_b:.4f} (atteso {_ang_b:.4f}), along={_al_b:.4f} (atteso 0)')
+    _ang_c, _cr_c, _al_c, _ = compute_slope_components(10.0, 217.0, 180.0)
+    _lhs_c = np.tan(np.radians(_cr_c))**2 + np.tan(np.radians(_al_c))**2
+    _rhs_c = np.tan(np.radians(_ang_c))**2
+    _check(abs(_lhs_c - _rhs_c) < 1e-9, 'Slope decomp identità tan²',
+           f'tan²cross+tan²along={_lhs_c:.6f} vs tan²slope={_rhs_c:.6f}')
+
     # ── Risultato ─────────────────────────────────────────────────────────
     n_pass = n_checks - len(errors)
     if ok:
         print(f'   Self-test: PASS ({n_pass}/{n_checks} - '
               f'VF range/simmetria/monotonia; shadow sotto/illuminata/mix/'
               f'direzionalita/notte; direzione assoluta theta!=0; '
-              f'handedness slope; strategia A=B)')
+              f'handedness slope; strategia A=B; slope decomp)')
     else:
         print(f'   Self-test: FAIL ({n_pass}/{n_checks})')
         for e in errors:

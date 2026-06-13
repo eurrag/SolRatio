@@ -1,0 +1,20 @@
+# SolRatio — Set di versioni ESATTE con cui i riferimenti v4.3.0 sono stati
+# verificati (gate Sample 57.5% / Sample_EW 55.3%, tolleranza +/-0.2 pp).
+# Per la riproducibilita' del comportamento del deposito Zenodo.
+#
+# Uso (ambiente pulito):   pip install -r requirements-lock.txt
+# Per l'uso flessibile (vincoli minimi) vedi invece requirements.txt.
+#
+# Ambiente di riverifica: Python 3.10.12, Linux/WSL; Radiance 6.0a (dipendenza
+# esterna non-pip, fornita via `pyradiance==1.2.3` nella CI). Collaudo completo
+# anche su Windows 11 con Radiance 6.0 (2026-06-12). Vedi README, sezione
+# "Ambiente di riferimento".
+
+numpy==2.2.6
+pandas==2.3.3
+pvlib==0.15.1
+bifacial_radiance==0.5.1
+openpyxl==3.1.5
+lxml==6.1.1
+reportlab==4.5.1
+matplotlib==3.10.9
