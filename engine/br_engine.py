@@ -66,6 +66,76 @@ __version__ = _read_version()
 # Trasmittanza pannello (tau) — materiale Radiance 'trans'
 # ══════════════════════════════════════════════════════════════════════════
 
+def _tau_trans_params(tau, tau_diff=0.0, spec=0.05, Rd=0.0):
+    """
+    Inversione canonica della mappatura `tau → materiale Radiance trans`.
+
+    Funzione PURA (nessun I/O): isolata da _apply_tau_material per essere
+    verificabile analiticamente in self_test_tau() senza ray-tracing.
+
+    Restituisce i 5 parametri distinti del materiale `trans`
+    (C, spec, rough, A7, A8). Per la semantica del tipo (refman/m_normal.c):
+        trasmissione totale    = C·(1−spec)·A7
+        trasmissione speculare = (trasm. totale)·A8
+        riflessione diffusa    = C·(1−spec)·(1−A7)
+    Con Rd=0 (il non-trasmesso non-speculare è assorbito dalle celle) si
+    ottiene trasmissione totale = tau+tau_diff (esatta finché ≤ 1−spec) e
+    quota speculare = tau.
+    """
+    tau = float(tau)
+    tau_diff = float(tau_diff)
+    tau_total = tau + tau_diff
+    rgb_diff = min(1.0, (tau_total + Rd) / (1.0 - spec))   # C (colore)
+    trans_param = (tau_total / (tau_total + Rd)) if (tau_total + Rd) > 1e-9 \
+        else 0.0                                           # A7: frazione trasmessa
+    tspec = (tau / tau_total) if tau_total > 1e-9 else 1.0  # A8: quota speculare
+    rough = 0.0                                            # superficie liscia
+    return rgb_diff, spec, rough, trans_param, tspec
+
+
+def self_test_tau(verbose=True):
+    """
+    Self-test ANALITICO della mappatura materiale `trans` (nessun Radiance).
+
+    Verifica che _tau_trans_params produca parametri tali che, per la semantica
+    del tipo `trans`, la trasmissione effettiva = tau+tau_diff e la quota
+    speculare = tau. Avrebbe intercettato il bug storico (C = 1−tau_tot−spec →
+    un pannello tau_tot=0.9 trasmetteva ~4% invece di 90%). Pura → adatta alla
+    CI senza i binari Radiance.
+    """
+    ok = True
+    # Casi FISICI (tau_total ≤ 1−spec = 0.95): trasmissione e speculare esatte.
+    physical = [(0.3, 0.0), (0.7, 0.0), (0.7, 0.2), (0.1, 0.05), (0.5, 0.4)]
+    for tau, tau_diff in physical:
+        tau_total = tau + tau_diff
+        C, sp, rough, A7, A8 = _tau_trans_params(tau, tau_diff)
+        eff_trans = C * (1.0 - sp) * A7            # trasmissione totale
+        eff_spec = eff_trans * A8                  # trasmissione speculare
+        eff_drefl = C * (1.0 - sp) * (1.0 - A7)    # riflessione diffusa pannello
+        if (abs(eff_trans - tau_total) > 1e-6 or abs(eff_spec - tau) > 1e-6
+                or abs(eff_drefl) > 1e-6):
+            ok = False
+            if verbose:
+                print(f'  [FAIL] trans tau={tau} tau_diff={tau_diff}: '
+                      f'trasm.tot={eff_trans:.6f} (atteso {tau_total:.6f}), '
+                      f'spec={eff_spec:.6f} (atteso {tau:.6f}), '
+                      f'drefl={eff_drefl:.6f} (atteso 0)')
+    # Caso LIMITE non fisico (tau_total > 0.95): trasmissione cappata a 1−spec,
+    # nessuna riflessione diffusa spuria.
+    C, sp, rough, A7, A8 = _tau_trans_params(0.7, 0.3)   # tau_total = 1.0
+    eff_trans = C * (1.0 - sp) * A7
+    eff_drefl = C * (1.0 - sp) * (1.0 - A7)
+    if abs(eff_trans - (1.0 - sp)) > 1e-6 or abs(eff_drefl) > 1e-6:
+        ok = False
+        if verbose:
+            print(f'  [FAIL] trans clamp tau_total=1.0: trasm={eff_trans:.6f} '
+                  f'(atteso {1.0 - sp:.6f}), drefl={eff_drefl:.6f}')
+    if verbose:
+        print(f'   Self-test materiale trans: {"PASS" if ok else "FAIL"} '
+              f'(6 casi — trasm.tot=tau+tau_diff, spec=tau, drefl=0, +clamp)')
+    return ok
+
+
 def _apply_tau_material(rad, tau, module_name='sr_module', tau_diff=0.0):
     """
     Trasforma il modulo Radiance in semitrasparente usando il materiale 'trans'.
@@ -194,14 +264,9 @@ def _apply_tau_material(rad, tau, module_name='sr_module', tau_diff=0.0):
     #   C  = (Ts + Td + Rd) / (1 − spec)
     #   A7 = (Ts + Td) / (Ts + Td + Rd)
     #   A8 = Ts / (Ts + Td)
-    spec = 0.05                                 # riflessione speculare vetro
-    Rd = 0.0                                    # rifl. diffusa pannello
-    rgb_diff = min(1.0, (tau_total + Rd) / (1.0 - spec))   # C (colore)
-    trans_param = (tau_total / (tau_total + Rd)) if (tau_total + Rd) > 1e-9 \
-        else 0.0                                # A7: frazione trasmessa
-    # tspec (A8) = frazione speculare della trasmissione totale
-    tspec = (tau / tau_total) if tau_total > 1e-9 else 1.0
-    rough = 0.0                                 # superficie liscia
+    # Inversione canonica → 5 parametri del materiale (funzione pura
+    # _tau_trans_params, verificata in self_test_tau senza ray-tracing).
+    rgb_diff, spec, rough, trans_param, tspec = _tau_trans_params(tau, tau_diff)
 
     # 5. Crea file materiale custom
     if not os.path.isdir(materials_dir):
@@ -1086,10 +1151,15 @@ def run_annual(p, epw_path, n_points=51, sample_days=None,
                     _radfiles_t, _matfiles_t = scene_cache[_ut]
                     _ch_t = clearance_cache[_ut]
                     _scene_params = {
-                        # 4.3 = R1 scena canonica; 4.3.1 = fix mappatura
-                        # materiale trans (inversione canonica): invalida
-                        # gli .oct costruiti col materiale ~opaco.
-                        'sr_compat': '4.3.1',
+                        # Token di invalidazione cache = versione di release
+                        # che ha fissato l'attuale schema di scena+materiale.
+                        # Da incrementare a OGNI cambio di geometria o di
+                        # mappatura materiale. Storia interna del 4.3.0: scena
+                        # canonica R1 e inversione canonica del materiale trans
+                        # sono confluite in questo schema (i .oct col vecchio
+                        # materiale ~opaco o con la scena specchiata sono così
+                        # invalidati).
+                        'sr_compat': '4.3.0',
                         'tilt': float(-_ut) + 0.0,  # firmato (+0.0: no -0.0)
                         'azimuth': (p.get('axis_azimuth', 180.0) - 90.0) % 360.0,
                         'clearance_height': _ch_t,

@@ -51,7 +51,7 @@ from solratio_yield import (
     write_resa_colturale,
     update_resa_with_edge,
 )
-from br_engine import pvgis_to_epw, run_annual, find_pvgis_csv
+from br_engine import pvgis_to_epw, run_annual, find_pvgis_csv, self_test_tau
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 warnings.filterwarnings('ignore', category=DeprecationWarning, module='pvlib')
@@ -164,6 +164,7 @@ def main():
 
     # ── Self-test ─────────────────────────────────────────────────────
     self_test()
+    self_test_tau()   # mappatura materiale trans (analitico, no Radiance)
     print()
 
     # ── Generazione EPW da PVGIS ──────────────────────────────────────

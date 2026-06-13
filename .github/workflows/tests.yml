@@ -23,6 +23,8 @@ jobs:
         run: pip install -r requirements.txt pyradiance
       - name: Compile check
         run: python -m py_compile engine/*.py
+      - name: Self-test materiale trans (analitico, no Radiance)
+        run: cd engine && python -c "import br_engine, sys; sys.exit(0 if br_engine.self_test_tau() else 1)"
       - name: Radiance nel PATH (binari pyradiance)
         run: |
           RT=$(find "$(python -c 'import site,sys;print(site.getsitepackages()[0])')" -name rtrace -type f | head -1)
