@@ -48,13 +48,12 @@ sospetti.
 
 ### Rettifica della voce v4.2.2
 
-Il problema noto ("known issue") dichiarato in v4.2.2 (vedi sotto)
-conteneva **due** errori,
+Il problema noto dichiarato in v4.2.2 (vedi sotto) conteneva **due** errori,
 qui rettificati: (1) l'affermazione "gli aggregati simmetrici (incluso il
 gate) NON ne risentono" è **vera solo per il tilt fisso e falsa per il
 tracking** (la scena non era specchiata ma contro-ruotata: geometria
 diversa, non immagine speculare); (2) la diagnosi "il flip del solo azimuth
-disallinea i sensori dalle file" era **sbagliata**: il gate a 58.8 misurato
+disallinea i sensori dalle file" era **errata**: il gate a 58.8 misurato
 dopo la correzione rifletteva la fisica corretta, non un artefatto (il
 valore attuale 57.5 differisce da quel 58.8 perché la correzione definitiva adotta la
 forma canonica a azimuth costante, che elimina anche il ribaltamento del
@@ -199,7 +198,7 @@ cambia il K_agv di impianto (effetto bordo): sul progetto Sample
   "scena senza geometria").
 - find_pvgis_csv: con coordinate note si accetta solo il match esatto
   (il fallback restituiva il CSV di un **altro** sito dopo un cambio di
-  coordinate, silenziosamente).
+  coordinate, senza alcuna segnalazione).
 - Validazione code-to-code: modalità tilt fisso ora confrontata a parità
   di geometria (la pipeline di riferimento inseguiva il sole); il cielo
   di fallback viene registrato nell'octree (prima l'ora usava il cielo
@@ -229,8 +228,8 @@ cambia il K_agv di impianto (effetto bordo): sul progetto Sample
   oraria est/ovest è scambiata. Un tentativo di correzione del solo
   azimuth disallinea i sensori dalle file (gate 84.1 → 58.8, misurato):
   il riallineamento richiede il redesign accoppiato scena+sensori ed è
-  pianificato come intervento dedicato. Cautela interpretativa con
-  pendenza trasversale e regimi meteo asimmetrici mattina/pomeriggio.
+  pianificato come intervento dedicato. Si raccomanda cautela interpretativa
+  con pendenza trasversale e regimi meteorologici asimmetrici mattina/pomeriggio.
 
 ## v4.2.1 (2026-06-11) — Reference edition: potatura al minimo riproducibile + fix
 
@@ -291,7 +290,7 @@ verso chi usava v4.2.0 (che resta taggata e depositata su Zenodo).
   Era la causa radice del bug della cache annotato nella roadmap v4.2.x.
   `CACHE_FORMAT_VERSION` 1→2 (le cache esistenti si rigenerano da sole);
   errore chiaro se zero ore simulate (prima un IndexError criptico).
-- **Number format Excel `'0.1'` → `'0.0'`** (11 celle writer): in
+- **Formato numerico Excel `'0.1'` → `'0.0'`** (11 celle del writer): in
   ECMA-376 l'`1` è un letterale, Excel mostrava l'intero arrotondato
   + ".1" (es. 29.62 → "30.1").
 - **PDF "Backtracking: ON" anche in tilt fisso** (`bool(2)`): ora mappa
@@ -354,8 +353,8 @@ verso chi usava v4.2.0 (che resta taggata e depositata su Zenodo).
 
 Release minor che chiude lo scope v4.2 (9 item) come pianificato in
 `PIANO_v4.2.md` (file rimosso in v4.2.1). Per decisione di pianificazione del 2026-05-02 i pali
-sono stati spostati dalla v4.2 alla v4.3 e anticipato in v4.2 i 3 item v4.3 originali (con
-scope ridotti α e β rispettivamente). Trade-off costo H_min spostato
+sono stati spostati dalla v4.2 alla v4.3 e i 3 item v4.3 originali sono stati anticipati
+in v4.2 (con scope ridotti, rispettivamente α e β). Trade-off costo H_min spostato
 a v4.4.
 
 ### Nuove funzionalità
@@ -366,15 +365,15 @@ Aggiunto modulo `engine/SolRatio_VersionLabel.bas`. Macro
 fino a 4 livelli sopra il file Excel) e aggiorna la cella `A1` del
 foglio `Launcher` come `"SOLRATIO AGRIVOLTAICO - Launcher vX.Y.Z"`.
 Da chiamare da un `Workbook_Open()` in `ThisWorkbook` (una sola riga
-da aggiungere — istruzioni in `progetti/Sample/README.md`). Silent-fail
-se VERSION non raggiungibile, idempotente, no prompt "Salvare?".
+da aggiungere — istruzioni in `progetti/Sample/README.md`). Fallisce senza
+segnalazione se VERSION non è raggiungibile, idempotente, nessuna richiesta "Salvare?".
 
 **Item 6 — Script di release end-to-end**:
 Aggiunto `engine/release_helper.py` (CLI con subcommand `bump`,
 `bump-from-changelog`, `update-doi`, `status`) e
 `_NUOVA_VERSIONE.bat` come orchestratore. Pre-check git pulito, dry-run
-supportato, single-source-of-truth da CHANGELOG. Riduce la procedura
-manuale di rilascio da ~30 min a ~5 min con interventi utente di ~2 min.
+supportato, sorgente unica di verità nel CHANGELOG. Riduce la procedura
+manuale di rilascio da ~30 min a ~5 min con interventi dell'utente di ~2 min.
 Polling Zenodo + auto-DOI rinviato a step incrementale (manuale per ora).
 
 **Item 4 — Cache scene `.oct` persistente**:
@@ -383,8 +382,8 @@ Aggiunto modulo `engine/_scene_cache.py` con API `make_cache_key`,
 ora `use_scene_cache=True` (default) e `project_dir`. La cache pre-compila
 una volta per progetto+geometria un .oct di scena (matfiles+radfiles, no
 sky); per-ora il `_worker` usa `oconv -i scene.oct sky.rad` invece del
-full oconv. Speedup atteso 30-60% sul tempo per ora dopo il primo run.
-Fail-safe: in caso di errore della cache si applica il flusso legacy.
+full oconv. Accelerazione attesa del 30-60% sul tempo per ora dopo il primo run.
+Per sicurezza: in caso di errore della cache si applica il flusso legacy.
 Storage: `<progetto>/.cache/scenes/`, housekeeping a 20 file per progetto.
 
 **Item 7 — Generalizzazione frame coordinate sensori per `axis_azimuth`**:
@@ -410,7 +409,7 @@ dentro v4.2.0 invece che rimandati a v4.2.x.
   `_local_to_world(_dx)` per trasformare il `_dx` (passo perpendicolare
   al tracker, in coord. locale) in `(dx_world, dy_world)` coerente con
   `axis_azimuth`. Per `axis=180°` la trasformazione è identità. Per altri
-  axis, la replica è nel frame ruotato. Rimosso il warning runtime
+  axis, la replica è nel frame ruotato. Rimosso l'avviso a runtime
   precedente (limitazione superata).
 
 - *L3 groundplane inclinato*: il groundplane Radiance non è più orizzontale
@@ -442,9 +441,9 @@ genera un EPW da PVGIS multi-anno e chiama `run_annual()`. Salvataggio
 incrementale a `<progetto>/test/multiyear_results.csv`: il rilancio
 riprende dagli anni non ancora completati (resilienza a crash). Aggrega
 P10/P50/P90 + media + stddev per ogni KPI numerico in
-`<progetto>/test/multiyear_quantiles.json`. Niente parallelizzazione
-in v4.2.0 (bifacial_radiance/Radiance non sono progettati per multi-thread
-in-process: deferito a v4.2.x se collo di bottiglia).
+`<progetto>/test/multiyear_quantiles.json`. Nessuna parallelizzazione
+in v4.2.0 (bifacial_radiance/Radiance non sono progettati per il multi-thread
+in-process: rinviata a v4.2.x in caso di collo di bottiglia).
 
 **Item 9 — Pannelli BRTDfunc (scope α)**:
 `_apply_tau_material()` accetta ora `tau_diff` opzionale (default 0).
@@ -503,7 +502,7 @@ Bordo, Sotto-tracker) calcolate da W e beta_max.
 
 - **Label pulsante Excel "Ricalcola"**: il pulsante BtnCalcola del foglio
   Launcher è stato semplificato da `"Ricalcola con BR vX.Y.Z"` a
-  `"Ricalcola"` (più stabile alla versione, meno verboso). Modifiche:
+  `"Ricalcola"` (più stabile rispetto al numero di versione e meno prolisso). Modifiche:
   `engine/SolRatio_Calcolo.bas` (sorgente VBA) + script
   `_patch_button_label.py` per applicare il fix in-place al
   `drawing1.xml` di tutti gli `xlsm` esistenti senza richiedere
@@ -585,7 +584,7 @@ ogni categoria.
 **Soglia `_CACHE_MAX_THETAS = 200`**: cache attiva solo per N_thetas
 unici ≤ 200 (validazione_br, single-day, tilt fisso). Per il flusso
 annuale tipico (3000+ thetas), il pre-compile sarebbe più lento del
-beneficio netto e la cache è automaticamente saltata.
+beneficio netto e la cache viene automaticamente saltata.
 
 ### Fix di runtime (2026-05-04 — release_orchestrator step 3a)
 
@@ -615,8 +614,8 @@ unico → 3929 thetas unici sul Sample annuale. Il loop di pre-compile
 chiama `oconv` 3929 volte sequenzialmente. Stima ~0,3-1s per chiamata
 (I/O su `<progetto>/.cache/scenes/` in OneDrive con sync cloud che
 serializza le scritture), totale 20-60+ minuti di pre-compile prima
-che il run vero parta. Aggravante: ogni .oct di scena (~1-3MB)
-moltiplicato per 3929 = qualche GB scritto in OneDrive.
+che il run vero parta. Aggravante: ogni .oct di scena (~1-3 MB)
+moltiplicato per 3929 comporta alcuni GB scritti su OneDrive.
 
 Patch applicata in `br_engine.py`: soglia automatica `_CACHE_MAX_THETAS=200`.
 Sopra questa soglia il cache pre-compile viene **saltato** e il worker
@@ -626,8 +625,8 @@ ora). Comportamento bit-per-bit identico a v4.1 quando N_thetas > 200.
 La cache continua a essere efficace nei casi originariamente previsti
 (es. simulazione single-day con tracker fixed-tilt → 1 theta unico,
 oppure profili con `theta_fix=N`). Per il flusso annuale tipico la
-cache è di fatto disattivata in v4.2.0 — feature rimandata a v4.2.x
-con due possibili soluzioni alternative:
+cache è di fatto disattivata in v4.2.0 — funzionalità rimandata a v4.2.x
+con tre possibili soluzioni alternative:
 
 1. Round `tracker_theta` a 0.1° prima di calcolare unique_thetas
    (riduce a ~600 buckets, errore numerico <0.05% sui K_agv).
@@ -649,8 +648,8 @@ integrazione:
 2. **`find_pvgis_csv` non era usata da `validazione_br.py`**: stesso
    problema. Patch identica al punto 1.
 
-3. **`solratio_bifacial.py` era dead code**: il modulo era creato ma
-   nessuno lo importava né chiamava. Patch: aggiunto in `calcola_br.py`
+3. **`solratio_bifacial.py` era codice morto**: il modulo era stato creato ma
+   nessuno lo importava né lo richiamava. Patch: aggiunto in `calcola_br.py`
    un'importazione condizionale + chiamata a `bifacial_yield` +
    `add_bifacial_to_excel` quando `p['bifaciality_factor'] > 0`. Con
    `bifaciality_factor = 0` (default), il blocco `try/except` non viene
@@ -691,9 +690,9 @@ sull'ambiente Windows del rilascio):
    identici a v4.1.2 sullo stesso progetto.
 6. **Bifacciale retrocompat**: con `bifaciality_factor=0` deve produrre
    `energy_total = energy_front` e `bifacial_gain = 0%`.
-7. **Sintassi `engine/*.py`**: alcune modifiche sono state validate
-   soltanto a livello visivo, a causa di limitazioni dell'ambiente di
-   sviluppo. Eseguire il controllo di sintassi seguente come verifica
+7. **Sintassi `engine/*.py`**: alcune modifiche sono state verificate
+   soltanto mediante ispezione visiva, a causa di limitazioni dell'ambiente
+   di sviluppo. Si raccomanda di eseguire il seguente controllo di sintassi
    prima del tag:
    `python -c "import ast; [ast.parse(open(f).read()) for f in
    ['engine/br_engine.py','engine/release_helper.py',
@@ -746,9 +745,9 @@ SR > BR ufficiale di +4.5% sull'equinozio e +1.2% sul solstizio (con
 tau=0 e slope=0). Dopo il fix le due pipeline simulano la stessa scena
 e il confronto torna a MBE ~0.0%, R² > 0.9997.
 
-**Insight scientifico emerso dal debug**: il numero di file di tracker
+**Risultato scientifico emerso dal debug**: il numero di file di tracker
 nella scena influenza significativamente la radiazione al pitch centrale
-quando il sole è basso. Aggiunto warning runtime in `run_annual` quando
+quando il sole è basso. Aggiunto un avviso a runtime in `run_annual` quando
 `n_rows < 7`, e raccomandazione esplicita in `PARAMETRI_RADIANCE.md`:
 n_ext ≥ 3 (n_rows ≥ 7) per uso di routine, n_ext ≥ 4 (n_rows ≥ 9) per
 benchmark e pubblicazioni scientifiche.

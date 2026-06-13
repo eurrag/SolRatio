@@ -30,7 +30,7 @@ La funzione principale `run_annual()` esegue questa sequenza:
    - `oconv` (materialfiles + skyfile + radfiles) → file `.oct` (octree)
    - `rtrace` con parametri configurabili → irradianza nei punti sensore
 
-7. **Parsing risultati** — L'output rtrace in formato `-oovs` (tab-separated, colonne 3-5 = RGB) viene convertito in irradianza con la formula `(r + g + b) / 3.0` [W/m²], identica alla convenzione bifacial_radiance.
+7. **Parsing risultati** — L'output rtrace in formato `-oovs` (separato da tabulazioni, colonne 3-5 = RGB) viene convertito in irradianza con la formula `(r + g + b) / 3.0` [W/m²], identica alla convenzione bifacial_radiance.
 
 8. **Simulazione cielo aperto** — Secondo passaggio rtrace con solo sky+ground (senza pannelli), un singolo punto sensore per ora. Costituisce il riferimento per il calcolo della PAR relativa.
 

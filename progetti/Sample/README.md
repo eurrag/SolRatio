@@ -1,24 +1,25 @@
-# Progetto Sample — esempio di uso SolRatio
+# Progetto Sample — esempio d'uso di SolRatio
 
-Questa cartella contiene un **progetto dimostrativo** completo, pronto all'uso, per
-verificare l'installazione di SolRatio e per servire da template per i tuoi progetti.
+Questa cartella contiene un **progetto dimostrativo** completo e immediatamente
+utilizzabile, utile a verificare l'installazione di SolRatio e a fungere da
+modello per i progetti dell'utente.
 
-## Cosa contiene
+## Contenuto
 
-| File | Cosa è |
+| File | Descrizione |
 |------|--------|
-| `SolRatio_progetto.xlsm` | Foglio Excel con i parametri dell'impianto agrivoltaico (geometria tracker, ottica, sito, parametri Radiance) e il pulsante VBA per lanciare il calcolo |
+| `SolRatio_progetto.xlsm` | Foglio Excel con i parametri dell'impianto agrivoltaico (geometria tracker, ottica, sito, parametri Radiance) e il pulsante VBA per avviare il calcolo |
 | `PVGIS_45.3000_9.3400_2005_2023.csv` | Serie storica oraria di irradianza GHI/DNI/DHI da PVGIS-SARAH3 per la località esempio (pianura padana, lat 45.30°N, lon 9.34°E), anni 2005-2023 |
 | `PVGIS_45.3000_9.3400_TMY.epw` | Anno meteorologico tipo (TMY composito mese-per-mese) generato automaticamente alla prima esecuzione |
 
-## Come eseguire il progetto
+## Esecuzione del progetto
 
 ### Da Excel (consigliato)
 
-1. Apri `SolRatio_progetto.xlsm` con Microsoft Excel + macro abilitate
-2. Vai sul foglio `Launcher` e clicca il pulsante "Calcola"
-3. Attendi 5-10 minuti (il motore Radiance simula 8760 ore con ray-tracing 3D)
-4. Apri i file di output che vengono creati nella stessa cartella:
+1. Aprire `SolRatio_progetto.xlsm` con Microsoft Excel e le macro abilitate
+2. Aprire il foglio `Launcher` e premere il pulsante "Calcola"
+3. Attendere 5-10 minuti (il motore Radiance simula 8760 ore con ray-tracing 3D)
+4. Aprire i file di output creati nella stessa cartella:
    - `risultati_Sample.xlsx` — fogli Excel con tutti i KPI per zona/mese/coltura
    - `report_SolRatio_Sample.pdf` — report PDF di sintesi
 
@@ -30,10 +31,10 @@ Dalla cartella radice del repository SolRatio:
 python engine\calcola_br.py "progetti\Sample\SolRatio_progetto.xlsm"
 ```
 
-## Come creare un nuovo progetto a partire da Sample
+## Creazione di un nuovo progetto a partire da Sample
 
-1. **Duplica** questa cartella `Sample/` e rinominala con il nome del tuo progetto
-2. **Modifica i parametri** nel foglio `Parametri` di `SolRatio_progetto.xlsm`:
+1. **Duplicare** questa cartella `Sample/` e rinominarla con il nome del proprio progetto
+2. **Modificare i parametri** nel foglio `Parametri` di `SolRatio_progetto.xlsm`:
    - Coordinate del sito (B4 = lat, B5 = lon)
    - Slope terreno (B6 = pendenza %, B7 = azimut discesa)
    - Geometria tracker (B14-B20: azimut asse, pitch, W, H_min, beta_max,
@@ -41,13 +42,13 @@ python engine\calcola_br.py "progetti\Sample\SolRatio_progetto.xlsm"
    - Ottica (B23 = trasmittanza tau, B24 = albedo; opzionali: B25 =
      tau_diff, B26 = fattore bifaccialità)
    - Effetto bordo (B30 = larghezza blocco, B31 = lunghezza tracker, B32 = SAU esterna)
-   - Parametri Radiance (B48-B51) lasciali ai default per la prima prova
-3. **Aggiorna il titolo** nella cella A1 del foglio Parametri (per identificare il progetto nei report)
-4. **Scarica i tuoi dati PVGIS** per le coordinate del sito da
-   [PVGIS](https://re.jrc.ec.europa.eu/pvg_tools/it/) → "Hourly data" → seleziona
-   `PVGIS-SARAH3` come database di riferimento, scarica come CSV con tutti gli anni
-   disponibili. Sostituisci il file `PVGIS_*_*.csv` nella tua cartella di progetto.
-5. Lancia il calcolo (vedi sopra)
+   - Parametri Radiance (B48-B51): lasciarli ai valori predefiniti per la prima prova
+3. **Aggiornare il titolo** nella cella A1 del foglio Parametri (per identificare il progetto nei report)
+4. **Scaricare i dati PVGIS** per le coordinate del sito da
+   [PVGIS](https://re.jrc.ec.europa.eu/pvg_tools/it/) → "Hourly data" → selezionare
+   `PVGIS-SARAH3` come database di riferimento e scaricare il CSV con tutti gli anni
+   disponibili. Sostituire quindi il file `PVGIS_*_*.csv` nella propria cartella di progetto.
+5. Avviare il calcolo (vedi sopra)
 
 ## Parametri del progetto Sample
 
@@ -61,30 +62,31 @@ agrivoltaico in pianura padana:
 - Pannelli opachi (tau = 0)
 - Albedo terreno 0.23 (erba/pascolo)
 
-Sono parametri di partenza realistici per un agrivoltaico standard. Per i tuoi
+Sono parametri di partenza realistici per un impianto agrivoltaico standard. Nei
 progetti reali andranno sostituiti con i valori del sito specifico.
 
-## Auto-update label versione (v4.2+)
+## Aggiornamento automatico dell'etichetta di versione (v4.2+)
 
 A partire da SolRatio v4.2, il file `SolRatio_progetto.xlsm` può aggiornare
 automaticamente la cella `A1` del foglio Launcher con la versione corrente
-letta da `engine/VERSION`. Per attivare la feature in un progetto esistente:
+letta da `engine/VERSION`. Per attivare la funzionalità in un progetto esistente:
 
-1. Apri `SolRatio_progetto.xlsm` con Excel (macro abilitate)
-2. `Alt+F11` per aprire l'editor VBA
-3. `File → Importa file…` → seleziona `engine/SolRatio_VersionLabel.bas`
-4. Doppio click su `ThisWorkbook` nel pannello Progetto VBA, incolla:
+1. Aprire `SolRatio_progetto.xlsm` con Excel (macro abilitate)
+2. Premere `Alt+F11` per aprire l'editor VBA
+3. `File → Importa file…` → selezionare `engine/SolRatio_VersionLabel.bas`
+4. Fare doppio clic su `ThisWorkbook` nel pannello Progetto VBA e incollare:
    ```vba
    Private Sub Workbook_Open()
        On Error Resume Next
        UpdateVersionLabelFromFile
    End Sub
    ```
-5. `Ctrl+S` per salvare. Chiudi e riapri: la cella `A1` mostrerà
-   `SOLRATIO AGRIVOLTAICO - Launcher vX.Y.Z` con la versione corrente.
+5. Premere `Ctrl+S` per salvare. Chiudere e riaprire il file: la cella `A1`
+   mostrerà `SOLRATIO AGRIVOLTAICO - Launcher vX.Y.Z` con la versione corrente.
 
-Comportamento: silent-fail se `engine/VERSION` non è raggiungibile, niente
-prompt "Salvare?" alla chiusura, idempotente.
+Comportamento: in caso di `engine/VERSION` non raggiungibile l'operazione
+fallisce senza segnalazione; non viene mostrata la richiesta "Salvare?" alla
+chiusura; il comportamento è idempotente.
 
 ## Validazione del progetto Sample
 

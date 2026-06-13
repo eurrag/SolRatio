@@ -91,7 +91,7 @@ Sviluppato e testato su Windows 11. Compatibile in linea di principio con Linux/
 
 ### Ambiente di riferimento (riproducibilità)
 
-I vincoli di `requirements.txt` sono minimi (`>=`) per facilitare l'installazione; l'unica eccezione è `bifacial_radiance`, **bloccato a `==0.5.1`** perché il motore dipende dalla normalizzazione di `makeScene1axis` di quella versione (forma canonica della scena tracking) e ne porta un workaround specifico. La garanzia *comportamentale* del rilascio è il gate smoke a **±0.2 punti percentuali** (vedi [Validazione](#validazione)): qualsiasi combinazione di versioni che superi quel gate riproduce i risultati pubblicati.
+I vincoli di `requirements.txt` sono minimi (`>=`) per facilitare l'installazione; l'unica eccezione è `bifacial_radiance`, **bloccato a `==0.5.1`** perché il motore dipende dalla normalizzazione di `makeScene1axis` di quella versione (forma canonica della scena di tracking) e include un accorgimento specifico per essa. La garanzia *comportamentale* del rilascio è il test di regressione a **±0.2 punti percentuali** (vedi [Validazione](#validazione)): qualsiasi combinazione di versioni che lo superi riproduce i risultati pubblicati.
 
 Configurazione esatta con cui i riferimenti sono stati riverificati (Linux/WSL, 2026-06-13):
 
@@ -105,7 +105,7 @@ Configurazione esatta con cui i riferimenti sono stati riverificati (Linux/WSL, 
 | openpyxl / lxml | 3.1.5 / 6.1.1 |
 | reportlab / matplotlib | 4.5.1 / 3.10.9 |
 
-Il gate `K_agv` Cereali C3 (Sample **57.5 %**, Sample_EW **55.3 %**) è risultato identico — scarto **+0.00 pp**, 3919/3919 ore senza errori — sia nel collaudo completo su Windows 11 (2026-06-12, Radiance 6.0) sia in questa riverifica su Linux/WSL, a conferma della robustezza cross-platform.
+Il `K_agv` Cereali C3 di riferimento (Sample **57.5 %**, Sample_EW **55.3 %**) è risultato identico — scarto **+0.00 pp**, 3919/3919 ore senza errori — sia nel collaudo completo su Windows 11 (2026-06-12, Radiance 6.0) sia in questa riverifica su Linux/WSL, a conferma della robustezza tra piattaforme.
 
 ---
 
@@ -223,7 +223,7 @@ Lo scostamento residuo è rumore numerico intrinseco di Radiance (stocasticità 
 
 **2) Riferimento canonico indipendente** (parte D della validazione, introdotta in v4.3.0): la stessa scena è simulata con il workflow nativo 1-axis di bifacial_radiance (`set1axis` → `gendaylit1axis` → `analysis1axisground`), in cui gli angoli del tracker sono calcolati da pvlib all'interno della libreria e i sensori a terra sono posizionati dalla libreria stessa: la geometria non incorpora alcuna convenzione SolRatio. Scarto sul rapporto suolo/GHI giornaliero entro 0.5 pp (misure del collaudo 2026-06-12: −0.3 pp su entrambi i giorni; il valore puntuale varia con il campionamento ambient stocastico). Questo controllo è stato aggiunto dopo la scoperta della scena contro-ruotata (v4.1.0–v4.2.2): la sola validazione code-to-code condivideva la convenzione di scena con il motore ed era cieca per costruzione agli errori di convenzione.
 
-Test di regressione nel workflow di rilascio: i progetti inclusi *Sample* (N-S) e *Sample_EW* (E-W) devono riprodurre un K_agv SAU per Cereali C3 di **57.5%** e **55.3%** rispettivamente (riferimenti misurati con v4.3.0), con tolleranza **±0.2 punti percentuali**: l'ambient sampling di Radiance è stocastico e il risultato non è bit-identico tra run. Lancio: `_smoke_regression.bat` (Windows) o `./_smoke_regression.sh` (Linux/macOS). Ogni release candidate deve passare questo gate.
+Test di regressione nel workflow di rilascio: i progetti inclusi *Sample* (N-S) e *Sample_EW* (E-W) devono riprodurre un K_agv SAU per Cereali C3 di **57.5%** e **55.3%** rispettivamente (riferimenti misurati con v4.3.0), con tolleranza **±0.2 punti percentuali**: l'ambient sampling di Radiance è stocastico e il risultato non è bit-identico tra run. Esecuzione: `_smoke_regression.bat` (Windows) o `./_smoke_regression.sh` (Linux/macOS). Ogni release candidate deve passare questo gate.
 
 ---
 

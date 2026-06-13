@@ -13,15 +13,15 @@ aggiornamenti della technical note — e non nuove funzionalità.
 
 Lo sviluppo di nuove funzionalità — modellazione 3D dei pali di sostegno,
 bilancio idrico/evapotraspirazione, resa energetica DC/AC, geometrie di campo
-reali (KML), interfaccia web multi-utente — prosegue nella linea di prodotto **SolRatio Pro**, offerta in modalità
-hosted, e non è previsto per il rilascio in questo repository.
+reali (KML), interfaccia web multi-utente — prosegue nella linea di prodotto **SolRatio Pro**, erogata come servizio
+gestito, e non è previsto per il rilascio in questo repository.
 
 ## v4.3.x (manutenzione)
 
-- Correzioni di errori segnalati dagli utenti (le issue GitHub sono benvenute).
+- Correzione degli errori segnalati dagli utenti (le segnalazioni tramite issue su GitHub sono benvenute).
 - Riproducibilità: mantenimento del gate di regressione (Sample N-S 57.5 /
   Sample_EW 55.3, ±0.2 pp, riferimenti v4.3.0) su Windows e Linux.
-- Eventuali estensioni della technical note (errata, chiarimenti).
+- Eventuali estensioni della technical note (errata corrige, chiarimenti).
 
 ## Obiettivo aperto — validazione sperimentale (cross-cutting)
 
@@ -32,4 +32,4 @@ Il confronto con **misure PAR/DLI in campo** da impianti agrivoltaici
 strumentati resta l'obiettivo scientifico aperto di maggior valore:
 le collaborazioni con gruppi sperimentali e i dataset anonimizzati,
 condivisi tramite issue o pull request, sono benvenuti e verranno
-incorporati in un'appendice di validazione dedicata.
+integrati in un'appendice di validazione dedicata.

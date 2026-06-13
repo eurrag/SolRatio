@@ -5,15 +5,15 @@ orientato **Est-Ovest** (`axis_azimuth = 90°`, foglio `Parametri`, cella B14).
 Tutti gli altri parametri (sito, geometria, ottica, effetto bordo, serie PVGIS,
 parametri Radiance) sono identici al Sample N-S.
 
-## A cosa serve
+## Finalità
 
 - Studiare la dipendenza dei risultati dall'orientamento dell'asse
   (`axis_azimuth`), la generalizzazione introdotta in v4.2.
-- Fare da secondo progetto del **test di regressione** della release (insieme al
-  Sample N-S): il valore di riferimento del K_agv e la tolleranza sono documentati
+- Costituire il secondo progetto del **test di regressione** della release, insieme
+  al Sample N-S: il valore di riferimento del K_agv e la tolleranza sono documentati
   nel README principale del repository, sezione *Validazione*.
 
-## Come eseguire
+## Esecuzione
 
 Dalla cartella radice del repository:
 
@@ -21,8 +21,8 @@ Dalla cartella radice del repository:
 python engine\calcola_br.py "progetti\Sample_EW\SolRatio_progetto.xlsm"
 ```
 
-oppure da Excel col pulsante "Calcola" del foglio `Launcher` (macro abilitate).
-I dati meteo PVGIS sono gli stessi del Sample (stesse coordinate: lat 45.30°N,
+oppure da Excel con il pulsante "Calcola" del foglio `Launcher` (macro abilitate).
+I dati meteo PVGIS coincidono con quelli del Sample (medesime coordinate: lat 45.30°N,
 lon 9.34°E, località esempio di pianura padana).
 
 ## Avvertenza agronomica

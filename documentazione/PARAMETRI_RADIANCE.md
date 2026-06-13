@@ -1,4 +1,4 @@
-# Parametri Radiance — Guida al tuning
+# Parametri Radiance — Guida alla taratura
 
 ## Panoramica
 
@@ -15,7 +15,7 @@ Numero massimo di rimbalzi di luce indiretta che rtrace simula.
 
 | Valore | Significato | Tempo relativo | Quando usare |
 |--------|-------------|----------------|--------------|
-| 0 | Solo luce diretta, nessun rimbalzo | 1× (più veloce) | Test rapidi, debug. Sottostima la diffusa. |
+| 0 | Solo luce diretta, nessun rimbalzo | 1× (più veloce) | Test rapidi, diagnostica. Sottostima la diffusa. |
 | 1 | 1 rimbalzo — configurazione dei progetti Sample inclusi | 2-3× | Uso standard. Cattura la maggior parte della diffusa e la riflessione suolo→pannello→suolo. |
 | **2** | **2 rimbalzi (default del codice)** | **5-8×** | **Maggiore accuratezza per scene complesse, albedo alto.** |
 | 3 | 3 rimbalzi | 10-20× | Massima accuratezza. Raramente necessario per agrivoltaico. |
@@ -140,7 +140,7 @@ la stessa scena di `run_annual` (rispetta `br_n_rows` se impostato).
 | `-h` | — | Nessun header nell'output |
 
 Questi valori sono adeguati per le applicazioni agrivoltaiche e non
-richiedono messa a punto.
+richiedono taratura.
 
 
 ## Profili di tempo tipici
