@@ -7,7 +7,7 @@ date: 2026-06-13
 version: v4.3.0
 license: "Text: CC-BY-4.0 (proposed at deposit). Software described: Apache-2.0"
 software_doi_concept: 10.5281/zenodo.19959581
-# DOI di versione v4.3.0: assegnato al deposito Zenodo (aggiornare qui).
+software_doi_version: 10.5281/zenodo.20683303
 # v4.2.1 (K_agv in tracking sovrastimati, vedi §2.1): 10.5281/zenodo.20642574
 repository: https://github.com/eurrag/SolRatio
 keywords:
@@ -31,7 +31,7 @@ Stefano Pesavento (Independent researcher)
 ORCID: [0009-0008-0720-4539](https://orcid.org/0009-0008-0720-4539)
 
 Software (concept DOI): [10.5281/zenodo.19959581](https://doi.org/10.5281/zenodo.19959581)
-Software (this version, v4.3.0): version DOI assigned at the Zenodo deposit
+Software (this version, v4.3.0): [10.5281/zenodo.20683303](https://doi.org/10.5281/zenodo.20683303)
 Repository: <https://github.com/eurrag/SolRatio>
 
 ---
@@ -361,7 +361,7 @@ The public repository is maintained as a citable reference edition (correctness 
 The source code is hosted on GitHub at <https://github.com/eurrag/SolRatio> under the Apache 2.0 licence. Every release is deposited on Zenodo via the automated GitHub-Zenodo connector.
 
 - **Concept DOI** (recommended for general citation, always resolves to the latest version): [10.5281/zenodo.19959581](https://doi.org/10.5281/zenodo.19959581)
-- **Version-specific DOI for v4.3.0**: assigned at the Zenodo deposit of this release.
+- **Version-specific DOI for v4.3.0** (this Reference Edition): [10.5281/zenodo.20683303](https://doi.org/10.5281/zenodo.20683303)
 - Version-specific DOI for v4.2.1 (immutable; ⚠ tracking-mode results overestimated, see Section 2.1 — not recommended for new citations): [10.5281/zenodo.20642574](https://doi.org/10.5281/zenodo.20642574)
 - Version-specific DOI for v4.2.0 (immutable; same caveat): [10.5281/zenodo.20277335](https://doi.org/10.5281/zenodo.20277335)
 
@@ -403,7 +403,7 @@ Perez, R., R. Seals, and J. Michalsky (1993). All-weather model for sky luminanc
 
 Pesavento, S. (2026a). *SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale* (v4.2.0) [Software]. Zenodo. <https://doi.org/10.5281/zenodo.20277335>
 
-Pesavento, S. (2026b). *SolRatio: A Ground-Irradiance and Crop-Yield Model for Single-Axis Tracker Agrivoltaic Systems. Technical Note* (v1.7). Zenodo. <https://doi.org/10.5281/zenodo.[DOI_PLACEHOLDER]>
+Pesavento, S. (2026b). *SolRatio: A Ground-Irradiance and Crop-Yield Model for Single-Axis Tracker Agrivoltaic Systems. Technical Note* (v1.8). Zenodo. <https://doi.org/10.5281/zenodo.[DOI_PLACEHOLDER]>
 
 Trommsdorff, M., J. Kang, C. Reise, S. Schindele, G. Bopp, A. Ehmann, A. Weselek, P. Högy, and T. Obergfell (2021). Combining food and energy production: Design of an agrivoltaic system applied in arable and vegetable farming in Germany. *Renewable and Sustainable Energy Reviews*, 140, 110694. <https://doi.org/10.1016/j.rser.2020.110694>
 
