@@ -366,7 +366,7 @@ The source code is hosted on GitHub at <https://github.com/eurrag/SolRatio> unde
 
 The reference *Sample* project used for the validation in Section 4 is included in the repository under `progetti/Sample/`. The east-west variant *Sample_EW* used for the comparison of Section 5 is included under `progetti/Sample_EW/` and exercised, together with *Sample*, by the release regression gate.
 
-This technical note is itself deposited on Zenodo as a stand-alone publication; the placeholder `[DOI_PLACEHOLDER]` in the self-citation of Section 10 (Pesavento, 2026b) will be replaced with the assigned DOI upon deposit.
+This technical note is itself deposited on Zenodo as a stand-alone publication with DOI [10.5281/zenodo.20683917](https://doi.org/10.5281/zenodo.20683917); the self-citation of Section 10 (Pesavento, 2026b) carries the same DOI.
 
 ---
 
@@ -402,7 +402,7 @@ Perez, R., R. Seals, and J. Michalsky (1993). All-weather model for sky luminanc
 
 Pesavento, S. (2026a). *SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale* (v4.2.0) [Software]. Zenodo. <https://doi.org/10.5281/zenodo.20277335>
 
-Pesavento, S. (2026b). *SolRatio: A Ground-Irradiance and Crop-Yield Model for Single-Axis Tracker Agrivoltaic Systems. Technical Note* (v1.8). Zenodo. <https://doi.org/10.5281/zenodo.[DOI_PLACEHOLDER]>
+Pesavento, S. (2026b). *SolRatio: A Ground-Irradiance and Crop-Yield Model for Single-Axis Tracker Agrivoltaic Systems. Technical Note* (v1.8). Zenodo. <https://doi.org/10.5281/zenodo.20683917>
 
 Trommsdorff, M., J. Kang, C. Reise, S. Schindele, G. Bopp, A. Ehmann, A. Weselek, P. Högy, and T. Obergfell (2021). Combining food and energy production: Design of an agrivoltaic system applied in arable and vegetable farming in Germany. *Renewable and Sustainable Energy Reviews*, 140, 110694. <https://doi.org/10.1016/j.rser.2020.110694>
 
