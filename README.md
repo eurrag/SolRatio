@@ -89,6 +89,24 @@ To cite this software, use the concept DOI
 
 Sviluppato e testato su Windows 11. Compatibile in linea di principio con Linux/macOS dove Radiance è disponibile, ma il workflow Excel/VBA richiede Microsoft Excel.
 
+### Ambiente di riferimento (riproducibilità)
+
+I vincoli di `requirements.txt` sono minimi (`>=`) per facilitare l'installazione; l'unica eccezione è `bifacial_radiance`, **bloccato a `==0.5.1`** perché il motore dipende dalla normalizzazione di `makeScene1axis` di quella versione (forma canonica della scena tracking) e ne porta un workaround specifico. La garanzia *comportamentale* del rilascio è il gate smoke a **±0.2 punti percentuali** (vedi [Validazione](#validazione)): qualsiasi combinazione di versioni che superi quel gate riproduce i risultati pubblicati.
+
+Configurazione esatta con cui i riferimenti sono stati riverificati (Linux/WSL, 2026-06-13):
+
+| componente | versione |
+|---|---|
+| Python | 3.10.12 |
+| Radiance | 6.0a (binari forniti da `pyradiance` 1.2.3) |
+| numpy / pandas | 2.2.6 / 2.3.3 |
+| pvlib | 0.15.1 |
+| bifacial_radiance | 0.5.1 |
+| openpyxl / lxml | 3.1.5 / 6.1.1 |
+| reportlab / matplotlib | 4.5.1 / 3.10.9 |
+
+Il gate `K_agv` Cereali C3 (Sample **57.5 %**, Sample_EW **55.3 %**) è risultato identico — scarto **+0.00 pp**, 3919/3919 ore senza errori — sia nel collaudo completo su Windows 11 (2026-06-12, Radiance 6.0) sia in questa riverifica su Linux/WSL, a conferma della robustezza cross-platform.
+
 ---
 
 ## Installazione

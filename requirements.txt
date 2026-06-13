@@ -11,7 +11,12 @@ pandas>=1.3
 pvlib>=0.10
 
 # === Simulazione 3D ray-tracing ===
-bifacial_radiance>=0.5.1
+# Pin ESATTO (non >=): il motore dipende dalla normalizzazione di
+# makeScene1axis di questa versione (forma canonica della scena tracking) e
+# porta un workaround specifico per analysis1axisground 0.5.1 (append=False,
+# altrimenti KeyError silenzioso nel riferimento canonico della validazione).
+# Verificare la forma scena e il workaround PRIMA di salire a 0.6.x.
+bifacial_radiance==0.5.1
 
 # === I/O Excel ===
 openpyxl>=3.0
