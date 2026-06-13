@@ -148,7 +148,7 @@ della v4.3.0 viene coniato al deposito.
 
 ## v4.2.2 (2026-06-11) — Revisione approfondita dell'engine: 14 correzioni + 1 problema noto documentato
 
-> **⚠ RETTIFICA (v4.3.0)**: il "known issue" in fondo a questa voce è
+> **⚠ RETTIFICA (v4.3.0)**: il problema noto in fondo a questa voce è
 > formulato in modo **errato**. La scena non era uno specchio est/ovest ma
 > era **contro-ruotata** rispetto al sole; gate e aggregati in tracking
 > **erano** interessati dal difetto (sovrastimati di ~20–27 pp sul
