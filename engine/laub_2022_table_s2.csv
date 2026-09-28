@@ -1,0 +1,175 @@
+# Laub M., Pataczek L., Feuerbacher A., Zikeli S., Högy P. (2022). Contrasting yield
+# responses at varying levels of shade suggest different suitability of crops for dual
+# land-use systems: a meta-analysis. Agronomy for Sustainable Development 42, 51.
+# https://doi.org/10.1007/s13593-022-00783-7 -- Supplementary Information, Table S2
+# (file ESM1, 13593_2022_783_MOESM1_ESM.docx, md5 d676a7c570e23136015d4f4788f58641:
+# https://static-content.springer.com/esm/art%3A10.1007%2Fs13593-022-00783-7/MediaObjects/13593_2022_783_MOESM1_ESM.docx).
+# Licenza dell'articolo: Creative Commons Attribution 4.0 International,
+# http://creativecommons.org/licenses/by/4.0/
+# Valori copiati senza modifiche: resa prevista (%) e intervallo di confidenza 95 % per
+# 9 gruppi colturali a RSR 5, 10, ..., 90 % (162 righe). Modifiche di forma: l'intervallo
+# "(lo - hi)" diviso in due colonne; "Tubers/ root crops" scritto "Tubers/root crops".
+# Letto da engine/test_laub_tabella_s2.py; le righe che iniziano con # sono commenti.
+crop_type,rsr_pct,prediction_pct,ci95_lo_pct,ci95_hi_pct,shade_response
+Berries,5,104.7,100.3,109.3,B
+Berries,10,108.7,100,118.1,B
+Berries,15,111.9,99.1,126.4,B
+Berries,20,114.3,97.5,133.9,B
+Berries,25,115.7,95.2,140.6,B
+Berries,30,116.1,92.2,146.3,B
+Berries,35,115.6,88.5,150.8,B
+Berries,40,114.1,84.3,154.3,B
+Berries,45,111.6,79.5,156.6,B
+Berries,50,108.3,74.3,157.9,B
+Berries,55,104.2,68.8,158.1,B
+Berries,60,99.5,63,157.2,T
+Berries,65,94.1,57,155.4,T
+Berries,70,88.3,51.1,152.8,T
+Berries,75,82.2,45.2,149.4,T
+Berries,80,75.8,39.5,145.4,T
+Berries,85,69.3,34.1,140.9,T
+Berries,90,62.9,29.1,135.9,T
+C3 cereals,5,97,93.8,100.3,T
+C3 cereals,10,93.3,87.4,99.6,T
+C3 cereals,15,89,80.9,97.8,T
+C3 cereals,20,84.2,74.4,95.2,T
+C3 cereals,25,78.9,67.9,91.7,T
+C3 cereals,30,73.4,61.5,87.6,T
+C3 cereals,35,67.7,55.2,83,T
+C3 cereals,40,61.9,49.1,78,T
+C3 cereals,45,56.1,43.3,72.8,T
+C3 cereals,50,50.4,37.7,67.5,T
+C3 cereals,55,45,32.5,62.2,S
+C3 cereals,60,39.8,27.7,57.1,S
+C3 cereals,65,34.8,23.3,52.1,S
+C3 cereals,70,30.3,19.4,47.3,T
+C3 cereals,75,26.1,15.9,42.8,T
+C3 cereals,80,22.3,12.9,38.6,T
+C3 cereals,85,18.9,10.3,34.6,T
+C3 cereals,90,15.9,8.2,31,T
+Forages,5,102.1,98.4,105.9,B
+Forages,10,103.3,96.4,110.8,B
+Forages,15,103.7,93.9,114.6,B
+Forages,20,103.3,90.9,117.3,B
+Forages,25,101.9,87.5,118.8,B
+Forages,30,99.7,83.6,119.1,T
+Forages,35,96.8,79.2,118.3,T
+Forages,40,93.2,74.5,116.5,T
+Forages,45,88.9,69.4,113.8,T
+Forages,50,84.1,64.1,110.4,T
+Forages,55,78.9,58.5,106.4,T
+Forages,60,73.4,52.8,102,T
+Forages,65,67.7,47.2,97.3,T
+Forages,70,62,41.6,92.4,T
+Forages,75,56.2,36.2,87.3,T
+Forages,80,50.6,31.1,82.2,T
+Forages,85,45.1,26.4,77.1,T
+Forages,90,39.9,22.1,72.1,T
+Fruits,5,104.6,100.4,109,B
+Fruits,10,108.5,100.2,117.5,B
+Fruits,15,111.6,99.3,125.5,B
+Fruits,20,113.9,97.6,132.8,B
+Fruits,25,115.2,95.2,139.3,B
+Fruits,30,115.5,92.2,144.8,B
+Fruits,35,114.9,88.4,149.3,B
+Fruits,40,113.3,84,152.8,B
+Fruits,45,110.8,79,155.3,B
+Fruits,50,107.4,73.6,156.7,B
+Fruits,55,103.3,67.9,157.2,B
+Fruits,60,98.5,61.9,156.7,T
+Fruits,65,93.1,55.8,155.3,T
+Fruits,70,87.3,49.7,153.2,T
+Fruits,75,81.1,43.8,150.4,T
+Fruits,80,74.8,38.1,146.9,T
+Fruits,85,68.3,32.7,142.9,T
+Fruits,90,61.9,27.7,138.4,T
+Fruity vegetables,5,103.3,97.7,109.2,B
+Fruity vegetables,10,105.8,94.8,118.1,B
+Fruity vegetables,15,107.5,91.3,126.5,B
+Fruity vegetables,20,108.3,87.3,134.3,B
+Fruity vegetables,25,108.2,82.8,141.2,B
+Fruity vegetables,30,107.1,77.9,147.2,B
+Fruity vegetables,35,105.2,72.7,152.2,B
+Fruity vegetables,40,102.5,67.2,156.1,B
+Fruity vegetables,45,98.9,61.6,158.9,T
+Fruity vegetables,50,94.7,55.9,160.5,T
+Fruity vegetables,55,89.9,50.3,161,T
+Fruity vegetables,60,84.7,44.7,160.4,T
+Fruity vegetables,65,79.1,39.4,158.7,T
+Fruity vegetables,70,73.2,34.3,156.1,T
+Fruity vegetables,75,67.2,29.6,152.7,T
+Fruity vegetables,80,61.2,25.2,148.5,T
+Fruity vegetables,85,55.2,21.2,143.6,T
+Fruity vegetables,90,49.4,17.7,138.2,T
+Grain legumes,5,94.6,91.6,97.6,S
+Grain legumes,10,88.6,83.4,94.2,S
+Grain legumes,15,82.4,75.5,90,S
+Grain legumes,20,76,67.9,85,S
+Grain legumes,25,69.5,60.7,79.5,S
+Grain legumes,30,63,53.8,73.7,S
+Grain legumes,35,56.6,47.3,67.7,S
+Grain legumes,40,50.4,41.2,61.7,S
+Grain legumes,45,44.6,35.6,55.8,S
+Grain legumes,50,39.1,30.4,50.2,S
+Grain legumes,55,33.9,25.7,44.9,S
+Grain legumes,60,29.2,21.4,40,S
+Grain legumes,65,25,17.7,35.4,S
+Grain legumes,70,21.2,14.4,31.2,S
+Grain legumes,75,17.8,11.5,27.4,S
+Grain legumes,80,14.8,9.2,24,S
+Grain legumes,85,12.2,7.2,20.9,S
+Grain legumes,90,10,5.5,18.2,S
+Leafy vegetables,5,101,96.4,105.9,B
+Leafy vegetables,10,101.3,92.4,111,B
+Leafy vegetables,15,100.6,87.9,115.1,B
+Leafy vegetables,20,99.1,83.1,118.2,T
+Leafy vegetables,25,96.8,77.9,120.3,T
+Leafy vegetables,30,93.8,72.5,121.4,T
+Leafy vegetables,35,90.1,66.9,121.4,T
+Leafy vegetables,40,85.8,61.2,120.4,T
+Leafy vegetables,45,81.1,55.5,118.5,T
+Leafy vegetables,50,75.9,49.8,115.7,T
+Leafy vegetables,55,70.5,44.3,112.3,T
+Leafy vegetables,60,64.9,39,108.2,T
+Leafy vegetables,65,59.3,33.9,103.6,T
+Leafy vegetables,70,53.7,29.2,98.6,T
+Leafy vegetables,75,48.2,24.9,93.4,T
+Leafy vegetables,80,42.9,20.9,88,T
+Leafy vegetables,85,37.9,17.4,82.4,T
+Leafy vegetables,90,33.2,14.3,76.9,T
+Maize,5,93.3,90.2,96.5,S
+Maize,10,86.3,80.9,92.1,S
+Maize,15,79.2,72.2,86.9,S
+Maize,20,72,64,81.1,S
+Maize,25,65,56.3,75,S
+Maize,30,58.1,49.2,68.6,S
+Maize,35,51.5,42.6,62.3,S
+Maize,40,45.3,36.6,56.1,S
+Maize,45,39.5,31.2,50.1,S
+Maize,50,34.2,26.3,44.4,S
+Maize,55,29.3,21.9,39.2,S
+Maize,60,24.9,18.1,34.4,S
+Maize,65,21,14.7,30,S
+Maize,70,17.6,11.8,26.1,S
+Maize,75,14.6,9.4,22.6,S
+Maize,80,12,7.4,19.4,S
+Maize,85,9.8,5.7,16.7,S
+Maize,90,7.9,4.4,14.3,S
+Tubers/root crops,5,96.8,91,103,T
+Tubers/root crops,10,92.9,82.2,105,T
+Tubers/root crops,15,88.4,73.7,106.1,T
+Tubers/root crops,20,83.4,65.6,106.1,T
+Tubers/root crops,25,78.1,57.9,105.2,T
+Tubers/root crops,30,72.4,50.7,103.4,T
+Tubers/root crops,35,66.6,44.1,100.7,T
+Tubers/root crops,40,60.8,38,97.3,T
+Tubers/root crops,45,55,32.4,93.2,S
+Tubers/root crops,50,49.3,27.5,88.6,S
+Tubers/root crops,55,43.9,23,83.7,S
+Tubers/root crops,60,38.7,19.1,78.4,S
+Tubers/root crops,65,33.9,15.7,72.9,S
+Tubers/root crops,70,29.4,12.8,67.4,S
+Tubers/root crops,75,25.2,10.3,61.9,T
+Tubers/root crops,80,21.5,8.2,56.5,T
+Tubers/root crops,85,18.2,6.5,51.3,T
+Tubers/root crops,90,15.3,5,46.3,T

@@ -25,6 +25,8 @@ jobs:
         run: python -m py_compile engine/*.py
       - name: Self-test materiale trans (analitico, no Radiance)
         run: cd engine && python -c "import br_engine, sys; sys.exit(0 if br_engine.self_test_tau() else 1)"
+      - name: Curve di resa contro la Table S2 di Laub (162 valori, no Radiance)
+        run: python engine/test_laub_tabella_s2.py
       - name: Radiance nel PATH (binari pyradiance)
         run: |
           RT=$(find "$(python -c 'import site,sys;print(site.getsitepackages()[0])')" -name rtrace -type f | head -1)

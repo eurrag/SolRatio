@@ -1,22 +1,25 @@
 """
-Smoke regression v4.3.0: estrae il K_agv SAU (media Mar-Set) dai risultati dei
+Smoke regression v4.3.1: estrae il K_agv SAU (media Mar-Set) dai risultati dei
 progetti Sample (N-S) e Sample_EW (E-W) e lo confronta con i riferimenti.
 
-Riferimenti misurati con v4.3.0 (correzione della scena di tracking
-contro-ruotata, vedi CHANGELOG: i valori v4.1.0–v4.2.2 sovrastimavano la
-luce al suolo in tracking). Tolleranza ±0.2 punti percentuali: il
-ray-tracing Radiance ha una componente stocastica (ambient sampling) e il
-risultato NON è bit-identico tra run — oscillazioni di ~0.1 pp sono normali.
+Riferimenti misurati con v4.3.1 (coefficienti di resa di Laub adattati alla
+Table S2, vedi CHANGELOG): Sample 47.8, Sample_EW 48.0, uguali in tre run
+del 2026-09-28 (Linux/WSL, Radiance 6.0.2). Con i coefficienti della v4.3.0 i
+riferimenti erano 57.5 e 55.3 (correzione della scena di tracking
+contro-ruotata: i valori v4.1.0–v4.2.2 sovrastimavano la luce al suolo in
+tracking). Tolleranza ±0.2 punti percentuali: il ray-tracing Radiance ha una
+componente stocastica (ambient sampling) e il risultato non è garantito
+bit-identico tra piattaforme e run.
 """
 import sys
 from pathlib import Path
 
 from openpyxl import load_workbook
 
-# progetto -> K_agv SAU Cereali C3 atteso [%] (media Mar-Set, v4.3.0)
+# progetto -> K_agv SAU Cereali C3 atteso [%] (media Mar-Set, v4.3.1)
 REFERENCES = {
-    'Sample': 57.5,
-    'Sample_EW': 55.3,
+    'Sample': 47.8,
+    'Sample_EW': 48.0,
 }
 TOLERANCE_PP = 0.2  # punti percentuali
 GATE_CROP = 'Cereali C3'

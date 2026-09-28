@@ -1,5 +1,5 @@
 """
-solratio_core.py  |  SolRatio v4.3.0 (2026-06-11)
+solratio_core.py  |  SolRatio v4.3.1
 ====================================================
 Modello fisico: posizione solare, ray-tracing, view factor, PAR/DLI,
 statistiche mensili, decomposizione diffusa Perez, self-test.
@@ -221,20 +221,31 @@ def compute_slope_components(slope_pct, slope_azimuth, axis_azimuth=180.0):
 # COEFFICIENTI RESA COLTURALE -- Laub et al. (2022)
 # ══════════════════════════════════════════════════════════════════════════════
 # Modello: Y_rel = 10^(2 + α·RSR + β·RSR²),  RSR in [0,1], Y_rel in %
-# Calibrati da Table S2 tramite curve_fit (RMSE < 1.6% per tutte le tipologie)
+# v4.3.1: α e β adattati alla Table S2 del materiale supplementare di Laub
+# (resa prevista per 9 gruppi a RSR 5, 10, ..., 90 %: 162 valori, copiati in
+# engine/laub_2022_table_s2.csv) col modello finale dell'articolo: un α per
+# gruppo e un β comune (Table 1 dell'articolo: il termine RSR² × gruppo esce
+# dal modello ridotto, p = 0.3932). Minimi quadrati su log10(Y_rel) − 2.
+# Scarto dalla tabella: al più 0.071 punti percentuali, RMSE per gruppo
+# da 0.025 a 0.041 punti (engine/test_laub_tabella_s2.py). L'articolo pubblica le rese
+# della Table S2, non α e β.
+# Fino alla v4.3.0 i coefficienti avevano un β per gruppo (da −0.6835 a
+# −1.5675) e il commento li diceva adattati alla Table S2 con RMSE < 1.6 %:
+# misurati contro la tabella, l'RMSE andava da 0.50 (bacche) a 15.43 punti
+# (tuberi), sotto 1.6 solo per bacche, foraggere e ortaggi da frutto.
 # Rif: Laub et al., Agron. Sustain. Dev., 42:51 (2022)
 # Dataset: doi:10.5281/zenodo.5716091
 
 LAUB_COEFFICIENTS = {
-    'bacche':              {'alpha':  0.4318, 'beta': -0.7337, 'label_it': 'Bacche',              'label_en': 'Berries'},
-    'frutta':              {'alpha':  0.4330, 'beta': -0.7690, 'label_it': 'Frutta',              'label_en': 'Fruits'},
-    'ortaggi_frutto':      {'alpha':  0.3171, 'beta': -0.7565, 'label_it': 'Ortaggi da frutto',   'label_en': 'Fruity vegetables'},
-    'foraggere':           {'alpha':  0.1945, 'beta': -0.6835, 'label_it': 'Foraggere',           'label_en': 'Forages'},
-    'ortaggi_foglia':      {'alpha':  0.2153, 'beta': -0.9377, 'label_it': 'Ortaggi da foglia',   'label_en': 'Leafy vegetables'},
-    'tuberi_radici':       {'alpha':  0.1101, 'beta': -0.8653, 'label_it': 'Tuberi/radici',       'label_en': 'Tubers/root crops'},
-    'cereali_C3':          {'alpha':  0.0310, 'beta': -0.9341, 'label_it': 'Cereali C3',          'label_en': 'C3 cereals'},
-    'leguminose_granella': {'alpha': -0.1285, 'beta': -1.5675, 'label_it': 'Leguminose granella', 'label_en': 'Grain legumes'},
-    'mais':                {'alpha': -0.3169, 'beta': -1.4154, 'label_it': 'Mais (C4)',           'label_en': 'Maize (C4)'},
+    'bacche':              {'alpha':  0.4359, 'beta': -0.7329, 'label_it': 'Bacche',              'label_en': 'Berries'},
+    'frutta':              {'alpha':  0.4285, 'beta': -0.7329, 'label_it': 'Frutta',              'label_en': 'Fruits'},
+    'ortaggi_frutto':      {'alpha':  0.3195, 'beta': -0.7329, 'label_it': 'Ortaggi da frutto',   'label_en': 'Fruity vegetables'},
+    'foraggere':           {'alpha':  0.2162, 'beta': -0.7329, 'label_it': 'Foraggere',           'label_en': 'Forages'},
+    'ortaggi_foglia':      {'alpha':  0.1272, 'beta': -0.7329, 'label_it': 'Ortaggi da foglia',   'label_en': 'Leafy vegetables'},
+    'tuberi_radici':       {'alpha': -0.2472, 'beta': -0.7329, 'label_it': 'Tuberi/radici',       'label_en': 'Tubers/root crops'},
+    'cereali_C3':          {'alpha': -0.2280, 'beta': -0.7329, 'label_it': 'Cereali C3',          'label_en': 'C3 cereals'},
+    'leguminose_granella': {'alpha': -0.4506, 'beta': -0.7329, 'label_it': 'Leguminose granella', 'label_en': 'Grain legumes'},
+    'mais':                {'alpha': -0.5653, 'beta': -0.7329, 'label_it': 'Mais (C4)',           'label_en': 'Maize (C4)'},
 }
 
 
