@@ -1,6 +1,6 @@
 # SolRatio — Roadmap dell'edizione di riferimento
 
-> Aggiornata con la v4.3.0. Le roadmap storiche delle versioni precedenti
+> Aggiornata con la v4.3.1. Le roadmap storiche delle versioni precedenti
 > restano consultabili nei tag e nel `CHANGELOG.md`.
 
 ## Posizionamento (open-core)
@@ -19,8 +19,9 @@ gestito, e non è previsto per il rilascio in questo repository.
 ## v4.3.x (manutenzione)
 
 - Correzione degli errori segnalati dagli utenti (le segnalazioni tramite issue su GitHub sono benvenute).
-- Riproducibilità: mantenimento del gate di regressione (Sample N-S 57.5 /
-  Sample_EW 55.3, ±0.2 pp, riferimenti v4.3.0) su Windows e Linux.
+- Riproducibilità: mantenimento del gate di regressione (Sample N-S 47.8 /
+  Sample_EW 48.0, ±0.2 pp, riferimenti v4.3.1; con i coefficienti di resa
+  della v4.3.0 erano 57.5 / 55.3) su Windows e Linux.
 - Eventuali estensioni della technical note (errata corrige, chiarimenti).
 
 ## Obiettivo aperto — validazione sperimentale (cross-cutting)

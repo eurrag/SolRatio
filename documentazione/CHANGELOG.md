@@ -1,5 +1,93 @@
 # SolRatio — Changelog
 
+## v4.3.1 (2026-09-28) — Correzione: coefficienti delle curve di resa adattati alla Table S2 di Laub
+
+**I coefficienti α e β delle curve di resa non riproducevano la Table S2 di
+Laub et al. (2022)**, che il codice e la technical note indicavano come loro
+fonte («fitted to Laub Table S2 by `curve_fit`, RMSE < 1.6%»). La Table S2 del
+materiale supplementare dà la resa prevista dal modello finale dell'articolo
+per 9 gruppi colturali a RSR 5, 10, …, 90 %: 162 valori. Misurati contro
+quei valori, i coefficienti in uso dalla v4.1.0 alla v4.3.0 (identici in tutti
+i rilasci pubblici) avevano RMSE da 0.50 a 15.43 punti percentuali, sotto 1.6
+solo per bacche, foraggere e ortaggi da frutto. Scarti massimi: tuberi/radici
++19.9 punti (RSR 45 %), cereali C3 +11.1 (RSR 35 %), leguminose da granella
+−7.3 e mais −5.4 (RSR 70 %), ortaggi da foglia −6.0 (RSR 90 %). Avevano
+inoltre un β per coltura, da −1.5675 a −0.6835, mentre il modello finale di
+Laub ha un β comune (Table 1 dell'articolo: il termine RSR² × gruppo non
+resta nel modello ridotto, p = 0.3932).
+**Tutti i K_agv calcolati con le versioni v4.1.0–v4.3.0 vanno ricalcolati
+con la v4.3.1**; irradianza al suolo, PAR e DLI non cambiano.
+
+### Cosa cambia
+
+- `LAUB_COEFFICIENTS` (`engine/solratio_core.py`): un α per coltura e un β
+  comune, adattati con i minimi quadrati su log10(Y_rel) − 2 ai 162 valori
+  della Table S2. β = −0.7329; α: bacche 0.4359, frutta 0.4285, ortaggi da
+  frutto 0.3195, foraggere 0.2162, ortaggi da foglia 0.1272, tuberi/radici
+  −0.2472, cereali C3 −0.2280, leguminose da granella −0.4506, mais −0.5653.
+  Scarto massimo dalla tabella 0.071 punti (leguminose a RSR 25 %), RMSE per
+  coltura da 0.025 a 0.041 punti. L'articolo pubblica le rese della Table S2,
+  non α e β.
+- Nuova prova `engine/test_laub_tabella_s2.py`: le curve contro i 162 valori
+  della tabella, copiati in `engine/laub_2022_table_s2.csv` (articolo con
+  licenza CC BY 4.0; fonte e licenza nell'intestazione del file), tolleranza
+  0.1 punti. Rossa coi coefficienti della v4.3.0 su tutte e nove le colture,
+  verde coi nuovi. Non richiede Radiance né pytest
+  (`python engine/test_laub_tabella_s2.py`) e gira nella CI (job
+  `compile-e-ambiente`).
+- **Riferimenti del gate** (±0.2 pp): Sample **57.5 → 47.8**, Sample_EW
+  **55.3 → 48.0**, misurati il 2026-09-28 (Linux/WSL, Python 3.10.12 con le
+  versioni di `requirements-lock.txt`, Radiance 6.0.2): tre run con gli
+  stessi valori di gate (il K_agv dei tuberi del Sample è variato di 0.1
+  punti fra i run: 46.8 / 46.7 / 46.8). Sullo stesso campo di luce la differenza è dovuta ai soli
+  coefficienti: il K_agv ricalcolato dal profilo PAR registrato
+  (`PAR_DLI_Profilo`) di un run della v4.3.0 riproduce i valori registrati
+  entro 0.05 punti coi coefficienti della v4.3.0 e dà 47.85 e 48.03 coi
+  nuovi.
+- K_agv SAU (media Mar-Set) per coltura, v4.3.0 → v4.3.1 (run del gate del
+  2026-09-28 con la versione rilasciata, gli stessi file della Figura 4):
+
+  | coltura | Sample (N-S) | Sample_EW (E-W) |
+  |---|---|---|
+  | Bacche | 105.7 → 106.3 | 96.0 → 96.5 |
+  | Frutta | 103.5 → 105.3 | 93.7 → 95.7 |
+  | Ortaggi da frutto | 90.8 → 92.4 | 83.0 → 84.5 |
+  | Foraggere | 82.0 → 81.6 | 76.1 → 75.4 |
+  | Ortaggi da foglia | 71.6 → 73.3 | 66.4 → 68.6 |
+  | Tuberi/radici | 66.1 → 46.8 | 62.2 → 47.2 |
+  | Cereali C3 | 57.5 → 47.8 | 55.3 → 48.0 |
+  | Leguminose granella | 32.0 → 36.6 | 36.5 → 39.2 |
+  | Mais (C4) | 28.1 → 31.9 | 33.3 → 35.5 |
+
+  K_agv impianto Cereali C3 (effetto bordo): Sample 64.9 → 56.6, Sample_EW
+  63.2 → 56.8.
+- Confronto N-S / E-W (technical note §5): per i cereali C3 i due
+  orientamenti restano entro la tolleranza del gate (47.8 contro 48.0; con i
+  coefficienti della v4.3.0 l'E-W perdeva 2.2 punti). L'asse E-W abbassa il
+  K_agv di bacche, frutta, ortaggi da frutto, foraggere e ortaggi da foglia
+  (da 4.7 a 9.8 punti), lascia tuberi/radici e cereali C3 entro 0.5 punti e
+  alza leguminose (+2.6) e mais (+3.6).
+- Technical note v1.9: §2.5 (coefficienti e correzione della frase «RMSE <
+  1.6%»), §4.4 (gate), §5 e Figura 4 (rigenerata dai run del gate della
+  v4.3.1), abstract, §8, §9. `FORMULE.md`, `README.md`, `ROADMAP.md`,
+  `CITATION.cff`, `.zenodo.json` e `engine/VERSION` allineati.
+- Due testi delle uscite, fuori dalle curve di resa. Il report PDF (sezioni
+  «PAR e DLI» e «Assunzioni e limitazioni») cita Jacovides et al. (2003),
+  il lavoro sulla frazione PAR citato dalla nota e da `FORMULE.md`, invece di
+  «Jacovides et al. 2004»: correzione pubblicata su `main` dopo il tag
+  v4.3.0 (commit 2cc0684), con formula e limiti della frazione PAR
+  invariati. Gli EPW annuali della modalità multi-anno dichiarano la v4.3.1
+  nella riga `COMMENTS 1`.
+
+### Cosa non cambia
+
+Motore di irradianza, scena, validazione code-to-code (Tabella 2 della nota)
+e riferimento indipendente (§4.3): nessuna riga del calcolo di irradianza,
+PAR e DLI è toccata. Cambiano solo le uscite che passano dalle curve di resa
+— K_agv, rese per zona, coltivabilità e K_agv d'impianto nei fogli
+`Resa_Colturale`, `Effetto_Bordo`, `Riepilogo`, nel report PDF e nei KPI di
+K_agv della modalità multi-anno — e i due testi della voce precedente.
+
 ## v4.3.0 (2026-06-13) — Correzione maggiore: scena di tracking contro-ruotata (presente dal v4.1.0)
 
 **La scena Radiance ruotava il pannello dalla parte opposta al sole in ogni

@@ -142,7 +142,7 @@ la contro-rotazione v4.1.0–v4.2.2 (si veda il CHANGELOG v4.3.0).
 - **Scena tracking in forma canonica** (correzione maggiore): azimuth di
   scena costante (axis−90°) e tilt con segno −theta; la mappatura storica era
   contro-ruotata rispetto al sole e sovrastimava la luce al suolo in
-  tracking (gate Sample 84.1% → 57.5%). Il percorso analitico (ombre VF/tilt
+  tracking (gate Sample 84.1% → 57.5%, coi coefficienti di resa della v4.3.0). Il percorso analitico (ombre VF/tilt
   fisso) è stato riallineato nel suo complesso; la chiave della cache delle
   scene è stata aggiornata (`sr_compat: 4.3.0`).
 - **Validazione parte D**: riferimento canonico indipendente col workflow

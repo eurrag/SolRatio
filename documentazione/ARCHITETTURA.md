@@ -1,4 +1,4 @@
-# SolRatio v4.3.0 — Architettura tecnica
+# SolRatio v4.3.1 — Architettura tecnica
 
 > Edizione di riferimento (Community/Reference Edition). Questo documento
 > descrive la struttura e le responsabilità dei moduli del perimetro
@@ -23,6 +23,8 @@ SolRatio/
 │   ├── solratio_bifacial.py      # energia bifacciale beta-tier (view-factor)
 │   ├── validazione_br.py         # confronto code-to-code SR vs bifacial_radiance ufficiale
 │   ├── check_environment.py      # verifica dipendenze (Python + binari Radiance)
+│   ├── test_laub_tabella_s2.py   # curve di resa contro i 162 valori della Table S2 di Laub (v4.3.1)
+│   ├── laub_2022_table_s2.csv    # Table S2 di Laub et al. 2022 (CC BY 4.0), letta dalla prova
 │   ├── SolRatio_Calcolo.bas      # VBA: launcher Excel (Calcola / Verifica / Test Python)
 │   └── SolRatio_VersionLabel.bas # VBA: auto-update label versione (Workbook_Open)
 ├── progetti/Sample/              # progetto dimostrativo N-S (benchmark di validazione + gate)

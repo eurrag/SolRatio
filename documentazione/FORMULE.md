@@ -87,16 +87,22 @@ RSR(x) = 1 - PAR_rel(x) = (DLI_ref - DLI_sotto) / DLI_ref
 K_agv = Y_agv / Y_pieno_sole = f(RSR)
 ```
 
-Relazione empirica da Laub et al. (2022), specifica per coltura
-(fit log-quadratico della Table S2, RMSE < 1.6%):
+Relazione empirica da Laub et al. (2022), specifica per coltura. Dalla
+v4.3.1 α e β sono adattati alla Table S2 del materiale supplementare (resa
+prevista per 9 gruppi a RSR 5, 10, …, 90 %: 162 valori, in
+`engine/laub_2022_table_s2.csv`) col modello finale dell'articolo, un α per
+coltura e un β comune; scarto dalla tabella al più 0.071 punti percentuali,
+RMSE per coltura da 0.025 a 0.041 punti (`engine/test_laub_tabella_s2.py`). Fino alla
+v4.3.0 questo paragrafo diceva «RMSE < 1.6%», ma i coefficienti di allora,
+con un β per coltura, avevano RMSE da 0.50 a 15.43 punti dalla tabella:
 
 ```
 Y_rel(RSR) = 10^(2 + α·RSR + β·RSR²)   [%],  clip a [0, 200]
 K_agv      = Y_rel / 100
 ```
 
-dove α e β sono i due coefficienti per coltura (in `LAUB_COEFFICIENTS`,
-implementazione `solratio_core.laub_yield`).
+dove α è il coefficiente della coltura e β = −0.7329 è comune alle nove
+colture (in `LAUB_COEFFICIENTS`, implementazione `solratio_core.laub_yield`).
 
 Sono disponibili 9 colture: bacche, frutta, ortaggi da frutto, foraggere, ortaggi da
 foglia, tuberi/radici, cereali C3, leguminose granella, mais (C4).
