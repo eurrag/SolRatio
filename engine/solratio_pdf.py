@@ -652,9 +652,10 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
 
         ('Resa colturale',
          'Il modello di Laub et al. (2022) stima la resa relativa Y_rel in funzione della '
-         'Relative Shade Ratio RSR = 1 - PAR_rel, con la formula '
+         'riduzione della radiazione solare RSR = 1 - PAR_rel, con la formula '
          'Y_rel = 10^(2 + alpha x RSR + beta x RSR2). '
-         'I coefficienti alpha e beta sono calibrati per 9 tipologie colturali. '
+         'Il coefficiente alpha è calibrato per ciascuna delle 9 tipologie colturali, beta è '
+         'comune a tutte (adattati alla Table S2 di Laub et al. 2022). '
          'K_agv = Y_rel / 100 e il coefficiente di resa agrivoltaica.'),
     ]
 
@@ -699,7 +700,7 @@ def generate_report_pdf(pdf_path, p, zs, yield_data, opt_results=None,
         ['DLI', 'mol/m2/d', 'Daily Light Integral (integrale giornaliero PAR)'],
         ['GCR', '---', 'Ground Coverage Ratio = W / pitch'],
         ['theta', 'deg', 'Angolo di rotazione del tracker (da pvlib)'],
-        ['RSR', '0-1', 'Relative Shade Ratio = 1 - PAR_rel'],
+        ['RSR', '0-1', 'Riduzione della radiazione solare = 1 - PAR_rel'],
         ['K_agv', '---', 'Coefficiente resa agrivoltaica = Y_rel/100 (frazione; nelle tabelle espresso in %)'],
         ['PAR_rel', '0-1', 'PAR relativa = DLI_zona / DLI_riferimento'],
         ['SAU', 'm', 'Superficie Agricola Utile = pitch - 2 x SANU'],

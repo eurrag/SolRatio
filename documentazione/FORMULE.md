@@ -72,7 +72,7 @@ Range: 0.0 (ombra totale) — ~1.0 (pieno sole). A partire dalla v4.1.0,
 grazie al riferimento open sky calcolato con bifacial_radiance, il valore
 non dovrebbe superare 1.0.
 
-### RSR — Radiation Stress Ratio
+### RSR — riduzione della radiazione solare (reduction in solar radiation, Laub et al. 2022)
 
 ```
 RSR(x) = 1 - PAR_rel(x) = (DLI_ref - DLI_sotto) / DLI_ref

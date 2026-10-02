@@ -1,4 +1,4 @@
-# SolRatio v4.3.1 — Architettura tecnica
+# SolRatio v4.3.2 — Architettura tecnica
 
 > Edizione di riferimento (Community/Reference Edition). Questo documento
 > descrive la struttura e le responsabilità dei moduli del perimetro

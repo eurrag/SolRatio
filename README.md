@@ -1,4 +1,4 @@
-# SolRatio v4.3.1
+# SolRatio v4.3.2
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19959581.svg)](https://doi.org/10.5281/zenodo.19959581)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -182,7 +182,7 @@ Per creare un nuovo progetto: duplicare una delle cartelle, rinominarla, modific
 ```
 SolRatio/
 ├── engine/                          # Codice sorgente
-│   ├── VERSION                      # Versione corrente: "4.3.1"
+│   ├── VERSION                      # Versione corrente: "4.3.2"
 │   ├── calcola_br.py                # Entry point principale
 │   ├── br_engine.py                 # Motore bifacial_radiance (con tau_diff, slope L2/L3, cache .oct)
 │   ├── _scene_cache.py              # Cache persistente delle scene Radiance octree
@@ -281,15 +281,16 @@ sono benvenute (aprire una issue sul repository).
 
 Se si utilizza SolRatio in lavori pubblici (relazioni tecniche, articoli, presentazioni), lo si può citare come segue:
 
-> Pesavento, S. (2026). *SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale* (v4.3.1). Zenodo. https://doi.org/10.5281/zenodo.19959581
+> Pesavento, S. (2026). *SolRatio: Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici a tracker monoassiale* (v4.3.2). Zenodo. https://doi.org/10.5281/zenodo.19959581
 
 **DOI:**
 
 - **Concept DOI** (risolve sempre all'ultima versione): [`10.5281/zenodo.19959581`](https://doi.org/10.5281/zenodo.19959581) — da utilizzare per citare "SolRatio" in generale
-- **DOI di versione v4.3.1** (questa edizione di riferimento): [`10.5281/zenodo.23110857`](https://doi.org/10.5281/zenodo.23110857)
+- **DOI di versione v4.3.2** (questa edizione di riferimento): assegnato al deposito Zenodo e riportato qui dopo il deposito
 
 DOI versioni precedenti — **⚠ v4.1.0–v4.3.0: coefficienti delle curve di resa non conformi alla Table S2 di Laub, K_agv da ricalcolare** (vedi CHANGELOG v4.3.1); **⚠ v4.1.0–v4.2.1: anche i K_agv in modalità tracking sono sovrastimati** (scena contro-ruotata, vedi CHANGELOG v4.3.0); i record restano immutabili per la riproducibilità storica e **non sono raccomandati per nuove citazioni**:
 
+- v4.3.1: [`10.5281/zenodo.23110857`](https://doi.org/10.5281/zenodo.23110857) — stessi risultati della v4.3.2, che corregge due testi del report e della nota e la LICENSE
 - v4.3.0: [`10.5281/zenodo.20683303`](https://doi.org/10.5281/zenodo.20683303)
 - v4.2.1: [`10.5281/zenodo.20642574`](https://doi.org/10.5281/zenodo.20642574)
 - v4.2.0: [`10.5281/zenodo.20277335`](https://doi.org/10.5281/zenodo.20277335)

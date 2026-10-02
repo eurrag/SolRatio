@@ -1,13 +1,14 @@
 ---
 title: "SolRatio: A Ground-Irradiance and Crop-Yield Model for Single-Axis Tracker Agrivoltaic Systems"
-subtitle: "Technical Note — Version 4.3.1 (Reference Edition)"
+subtitle: "Technical Note — Version 4.3.2 (Reference Edition)"
 author:
   - Stefano Pesavento (ORCID 0009-0008-0720-4539)
-date: 2026-09-28
-version: v4.3.1
+date: 2026-10-03
+version: v4.3.2
 license: "Text: CC-BY-4.0 (proposed at deposit). Software described: Apache-2.0"
 software_doi_concept: 10.5281/zenodo.19959581
-software_doi_version: 10.5281/zenodo.23110857
+# DOI di versione v4.3.2: assegnato al deposito Zenodo (aggiornare qui).
+# v4.3.1 (stessi risultati della v4.3.2): 10.5281/zenodo.23110857
 # v4.3.0 (coefficienti di resa non conformi alla Table S2 di Laub, vedi §2.5): 10.5281/zenodo.20683303
 # v4.2.1 (K_agv in tracking sovrastimati, vedi §2.1; coefficienti di resa non conformi alla Table S2, vedi §2.5): 10.5281/zenodo.20642574
 repository: https://github.com/eurrag/SolRatio
@@ -26,13 +27,13 @@ keywords:
 
 # SolRatio: A Ground-Irradiance and Crop-Yield Model for Single-Axis Tracker Agrivoltaic Systems
 
-**Technical Note — Software version 4.3.1 (Reference Edition)**
+**Technical Note — Software version 4.3.2 (Reference Edition)**
 
 Stefano Pesavento (Independent researcher)
 ORCID: [0009-0008-0720-4539](https://orcid.org/0009-0008-0720-4539)
 
 Software (concept DOI): [10.5281/zenodo.19959581](https://doi.org/10.5281/zenodo.19959581)
-Software (this version, v4.3.1): [10.5281/zenodo.23110857](https://doi.org/10.5281/zenodo.23110857)
+Software (this version, v4.3.2): version DOI assigned at the Zenodo deposit
 Repository: <https://github.com/eurrag/SolRatio>
 
 ---
@@ -59,7 +60,7 @@ The design of agrivoltaic systems must therefore reconcile two objectives that a
 
 The existing open-source modelling landscape is split between the two sides of the problem. Tools focused on the electrical side — most prominently pvlib-python (Holmgren et al., 2018) and the bifacial_radiance framework (Ayala Pelaez and Deline, 2020) — capture the photovoltaic energy yield and the back-side plane-of-array irradiance with high fidelity, but offer only limited support for the under-canopy PAR distribution that drives crop physiology. Conversely, tools focused on crop response (canopy models such as DSSAT, STICS, APSIM) model plant development in detail but rely on coarse analytical or empirical proxies for the irradiance environment under the array. Recent ray-tracing-based approaches to agrivoltaic system simulation (e.g. Zainali et al., 2023) have begun to bridge this gap by adapting general-purpose photometric engines to the specific geometry of single-axis tracker arrays. The objective of SolRatio is to provide an open-source, end-user-operable tool that couples a physically rigorous ground-irradiance model — based on three-dimensional ray tracing — with calibrated crop-yield curves, in a workflow that can be operated from a parameter-driven Excel workbook without writing code, and whose outputs are directly usable for regulatory compliance assessment.
 
-This technical note describes version 4.3.1 of the model (the reference edition line). The note is organised as follows: Section 2 presents the modelling framework; Section 3 describes the software architecture and dependencies; Section 4 summarises the validation against the reference bifacial_radiance workflow and the independent native-workflow check; Section 5 illustrates a typical application — the comparison of north-south and east-west tracker axis orientations with identical geometry; Section 6 discusses the known limitations of the current release; Section 7 outlines the planned roadmap; Section 8 presents the conclusions.
+This technical note describes version 4.3.2 of the model (the reference edition line). The note is organised as follows: Section 2 presents the modelling framework; Section 3 describes the software architecture and dependencies; Section 4 summarises the validation against the reference bifacial_radiance workflow and the independent native-workflow check; Section 5 illustrates a typical application — the comparison of north-south and east-west tracker axis orientations with identical geometry; Section 6 discusses the known limitations of the current release; Section 7 outlines the planned roadmap; Section 8 presents the conclusions.
 
 ---
 
@@ -148,7 +149,7 @@ $$\mathrm{PAR}\,[\mu\mathrm{mol\,m^{-2}\,s^{-1}}] = E \cdot f_{\mathrm{PAR}} \cd
 
 where the clearness index $k_t = \mathrm{GHI} / (I_0 \cos\theta_z)$ uses the extraterrestrial irradiance $I_0$ and the solar zenith angle $\theta_z$. The factor 4.57 µmol J⁻¹ converts watts to micromoles per second in the PAR band. Hourly PAR is then integrated over each day to obtain the daily light integral DLI [mol m⁻² d⁻¹], the agronomically relevant aggregate metric.
 
-The relative PAR transmission at a given ground position *x* and its complement, the radiation stress ratio (RSR), are:
+The relative PAR transmission at a given ground position *x* and its complement, the reduction in solar radiation (RSR) of Laub et al. (2022), are:
 
 $$\mathrm{PAR}_{\mathrm{rel}}(x) = \frac{\mathrm{DLI}_{\mathrm{under}}(x)}{\mathrm{DLI}_{\mathrm{opensky}}}$$
 
@@ -371,7 +372,8 @@ The public repository is maintained as a citable reference edition (correctness 
 The source code is hosted on GitHub at <https://github.com/eurrag/SolRatio> under the Apache 2.0 licence. Every release is deposited on Zenodo via the automated GitHub-Zenodo connector.
 
 - **Concept DOI** (recommended for general citation, always resolves to the latest version): [10.5281/zenodo.19959581](https://doi.org/10.5281/zenodo.19959581)
-- **Version-specific DOI for v4.3.1** (this Reference Edition): [10.5281/zenodo.23110857](https://doi.org/10.5281/zenodo.23110857)
+- **Version-specific DOI for v4.3.2** (this Reference Edition): assigned at the Zenodo deposit of this release.
+- Version-specific DOI for v4.3.1 (immutable; same results as v4.3.2): [10.5281/zenodo.23110857](https://doi.org/10.5281/zenodo.23110857)
 - Version-specific DOI for v4.3.0 (immutable; ⚠ crop-yield coefficients not consistent with Laub Table S2, see Section 2.5 — not recommended for new citations): [10.5281/zenodo.20683303](https://doi.org/10.5281/zenodo.20683303)
 - Version-specific DOI for v4.2.1 (immutable; ⚠ tracking-mode results overestimated, see Section 2.1, and crop-yield coefficients not consistent with Laub Table S2, see Section 2.5 — not recommended for new citations): [10.5281/zenodo.20642574](https://doi.org/10.5281/zenodo.20642574)
 - Version-specific DOI for v4.2.0 (immutable; same caveats): [10.5281/zenodo.20277335](https://doi.org/10.5281/zenodo.20277335)
@@ -466,7 +468,7 @@ Figures 1–3 are generated from the artefacts of the v4.3.0 acceptance battery 
 | PV          | Photovoltaic                                                             |
 | PVGIS       | Photovoltaic Geographical Information System (JRC)                       |
 | RMSE        | Root-Mean-Square Error                                                   |
-| RSR         | Radiation Stress Ratio = 1 − PAR_rel                                     |
+| RSR         | Reduction in solar radiation (Laub et al., 2022) = 1 − PAR_rel           |
 | SARAH3      | Surface Solar Radiation Data Set – Heliosat, version 3                   |
 | SAU         | Superficie Agricola Utilizzata (utilised agricultural area)              |
 | TMY         | Typical Meteorological Year                                              |
@@ -497,4 +499,4 @@ Figures 1–3 are generated from the artefacts of the v4.3.0 acceptance battery 
 
 ---
 
-*Document version: 1.9 (2026-09-28). Revision history: v1.0 initial draft; v1.1 first internal review (literature, validation framing, formula notation, references); v1.2 second internal review (notation consistency, terminology, table numbering, references, conclusions); v1.3 third internal review (uniform math notation across tables and corpus, Ward 1994 reference, nomenclature appendix, structural cleanup of §1 and §3.3); v1.4 alignment with the v4.2.1 reference edition (pruned scope in §3, corrected Table 1 cell references against the code, UTC EPW header, updated regression gate in §4.2, new application example in §5, open-core roadmap in §7); v1.5 alignment with the v4.3.0 corrective release (counter-rotated tracking scene corrected and documented in §2.1, validation re-measured and independent native-workflow reference added in §4, regression gate and §5 comparison updated, corrected benchmark-scene parameters in §4.1); v1.6 full documentation review against the code and the 2026-06-12 acceptance battery (Table 2 and §4.3 re-measured after a degenerate validation artefact was found and regenerated; rtrace→irradiance conversion corrected to the (R+G+B)/3 convention actually implemented; benchmark rtrace parameters declared in §4.1; section cross-references fixed; Jacovides reference corrected to the 2003 PAR paper; Italian regulatory references disentangled — MiTE 2022 Guidelines versus D.M. 436/2023; Table 1 extended with B40/B43/B47 and the θ_fix sign convention); v1.7 pre-release refinements (the `trans` material mapping correction documented in §2.3 with re-measured semi-transparent variants; n_rows scene-size bias re-measured with the canonical scene in §4.2; Appendix A placeholders replaced with real figures generated from the released artefacts); v1.8 (2026-06-13) full English-language copy-edit for a formal scientific register, and correction of the octree-cache description in §3.2/§3.3/§6 to reflect that fixed-tilt runs now follow the legacy per-hour path (the incremental cached octree could be degenerate); v1.9 (2026-09-28) alignment with the v4.3.1 corrective release (crop-yield coefficients refitted to Laub Table S2 and the previous "RMSE < 1.6%" statement corrected in §2.5; regression gate re-measured in §4.4; abstract, §5, §8, §9 and Figure 4 updated). Prepared from the SolRatio v4.3.1 repository and release artefacts. For corrections and updates, please open an issue at <https://github.com/eurrag/SolRatio/issues>.*
+*Document version: 1.10 (2026-10-03). Revision history: v1.0 initial draft; v1.1 first internal review (literature, validation framing, formula notation, references); v1.2 second internal review (notation consistency, terminology, table numbering, references, conclusions); v1.3 third internal review (uniform math notation across tables and corpus, Ward 1994 reference, nomenclature appendix, structural cleanup of §1 and §3.3); v1.4 alignment with the v4.2.1 reference edition (pruned scope in §3, corrected Table 1 cell references against the code, UTC EPW header, updated regression gate in §4.2, new application example in §5, open-core roadmap in §7); v1.5 alignment with the v4.3.0 corrective release (counter-rotated tracking scene corrected and documented in §2.1, validation re-measured and independent native-workflow reference added in §4, regression gate and §5 comparison updated, corrected benchmark-scene parameters in §4.1); v1.6 full documentation review against the code and the 2026-06-12 acceptance battery (Table 2 and §4.3 re-measured after a degenerate validation artefact was found and regenerated; rtrace→irradiance conversion corrected to the (R+G+B)/3 convention actually implemented; benchmark rtrace parameters declared in §4.1; section cross-references fixed; Jacovides reference corrected to the 2003 PAR paper; Italian regulatory references disentangled — MiTE 2022 Guidelines versus D.M. 436/2023; Table 1 extended with B40/B43/B47 and the θ_fix sign convention); v1.7 pre-release refinements (the `trans` material mapping correction documented in §2.3 with re-measured semi-transparent variants; n_rows scene-size bias re-measured with the canonical scene in §4.2; Appendix A placeholders replaced with real figures generated from the released artefacts); v1.8 (2026-06-13) full English-language copy-edit for a formal scientific register, and correction of the octree-cache description in §3.2/§3.3/§6 to reflect that fixed-tilt runs now follow the legacy per-hour path (the incremental cached octree could be degenerate); v1.9 (2026-09-28) alignment with the v4.3.1 corrective release (crop-yield coefficients refitted to Laub Table S2 and the previous "RMSE < 1.6%" statement corrected in §2.5; regression gate re-measured in §4.4; abstract, §5, §8, §9 and Figure 4 updated); v1.10 (2026-10-03) alignment with the v4.3.2 corrective release (RSR named "reduction in solar radiation" as in Laub et al. (2022), §2.4 and nomenclature; version DOIs in §9). Prepared from the SolRatio v4.3.2 repository and release artefacts. For corrections and updates, please open an issue at <https://github.com/eurrag/SolRatio/issues>.*

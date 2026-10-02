@@ -1,5 +1,27 @@
 # SolRatio — Changelog
 
+## v4.3.2 (2026-10-03) — Correzione: due testi del report e della nota, LICENSE ufficiale
+
+Versione correttiva: i risultati non cambiano rispetto alla v4.3.1.
+
+- **Il report diceva «I coefficienti alpha e beta sono calibrati per 9 tipologie
+  colturali»**, che con un β comune a tutte le colture si legge come nove coppie.
+  Ora dice «Il coefficiente alpha è calibrato per ciascuna delle 9 tipologie
+  colturali, beta è comune a tutte (adattati alla Table S2 di Laub et al. 2022)»
+  (`engine/solratio_pdf.py`, sezione «Resa colturale»).
+- **RSR aveva due nomi diversi da quello della fonte**: «radiation stress ratio»
+  nella nota (§2.4 e nomenclatura) e in `FORMULE.md`, «Relative Shade Ratio» nel
+  report. Laub et al. (2022, p. 3) lo definiscono «mean reduction in solar
+  radiation (RSR)»: ora la nota dice «reduction in solar radiation», il report e
+  `FORMULE.md` «riduzione della radiazione solare».
+- **La LICENSE non era il testo ufficiale di Apache 2.0**: al §6 mancavano le
+  parole «reasonable and customary use in» e il titolo e la chiusa del §9 erano
+  diversi. Ora è il testo di apache.org, con «Copyright 2026 Stefano Pesavento»
+  nell'appendice.
+- Versione 4.3.2 in `engine/VERSION`, `CITATION.cff`, `.zenodo.json`, README,
+  nota tecnica (versione del documento 1.10) e intestazione degli EPW annuali
+  della modalità multi-anno.
+
 ## v4.3.1 (2026-09-28) — Correzione: coefficienti delle curve di resa adattati alla Table S2 di Laub
 
 **I coefficienti α e β delle curve di resa non riproducevano la Table S2 di

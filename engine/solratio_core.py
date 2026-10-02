@@ -1,5 +1,5 @@
 """
-solratio_core.py  |  SolRatio v4.3.1
+solratio_core.py  |  SolRatio v4.3.2
 ====================================================
 Modello fisico: posizione solare, ray-tracing, view factor, PAR/DLI,
 statistiche mensili, decomposizione diffusa Perez, self-test.

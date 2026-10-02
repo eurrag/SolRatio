@@ -1,7 +1,7 @@
 # SolRatio — Modello di irradianza al suolo e stima delle rese colturali per impianti agrivoltaici
 
 *Testo introduttivo riutilizzabile nelle relazioni tecniche. Allineato alla
-versione 4.3.1 (edizione di riferimento, depositata su Zenodo con DOI).*
+versione 4.3.2 (edizione di riferimento, depositata su Zenodo con DOI).*
 
 ## Descrizione del modello
 
