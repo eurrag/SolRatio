@@ -286,7 +286,7 @@ Se si utilizza SolRatio in lavori pubblici (relazioni tecniche, articoli, presen
 **DOI:**
 
 - **Concept DOI** (risolve sempre all'ultima versione): [`10.5281/zenodo.19959581`](https://doi.org/10.5281/zenodo.19959581) — da utilizzare per citare "SolRatio" in generale
-- **DOI di versione v4.3.2** (questa edizione di riferimento): assegnato al deposito Zenodo e riportato qui dopo il deposito
+- **DOI di versione v4.3.2** (questa edizione di riferimento): [`10.5281/zenodo.23116710`](https://doi.org/10.5281/zenodo.23116710)
 
 DOI versioni precedenti — **⚠ v4.1.0–v4.3.0: coefficienti delle curve di resa non conformi alla Table S2 di Laub, K_agv da ricalcolare** (vedi CHANGELOG v4.3.1); **⚠ v4.1.0–v4.2.1: anche i K_agv in modalità tracking sono sovrastimati** (scena contro-ruotata, vedi CHANGELOG v4.3.0); i record restano immutabili per la riproducibilità storica e **non sono raccomandati per nuove citazioni**:
 
